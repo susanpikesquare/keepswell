@@ -6,7 +6,7 @@ import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 
 import {
   databaseConfig,
-  twilioConfig,
+  vonageConfig,
   clerkConfig,
   storageConfig,
 } from './config';
@@ -35,6 +35,7 @@ import { JournalsModule } from './modules/journals/journals.module';
 import { ParticipantsModule } from './modules/participants/participants.module';
 import { EntriesModule } from './modules/entries/entries.module';
 import { TemplatesModule } from './modules/templates/templates.module';
+import { SmsModule } from './modules/sms/sms.module';
 
 @Module({
   imports: [
@@ -42,7 +43,7 @@ import { TemplatesModule } from './modules/templates/templates.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [databaseConfig, twilioConfig, clerkConfig, storageConfig],
+      load: [databaseConfig, vonageConfig, clerkConfig, storageConfig],
     }),
 
     // Database
@@ -88,6 +89,7 @@ import { TemplatesModule } from './modules/templates/templates.module';
     ParticipantsModule,
     EntriesModule,
     TemplatesModule,
+    SmsModule,
   ],
   controllers: [HealthController],
   providers: [

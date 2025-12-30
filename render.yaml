@@ -32,11 +32,11 @@ services:
         sync: false # Set manually in Render dashboard
       - key: CLERK_PUBLISHABLE_KEY
         sync: false
-      - key: TWILIO_ACCOUNT_SID
+      - key: VONAGE_API_KEY
         sync: false
-      - key: TWILIO_AUTH_TOKEN
+      - key: VONAGE_API_SECRET
         sync: false
-      - key: TWILIO_PHONE_NUMBER
+      - key: VONAGE_PHONE_NUMBER
         sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
