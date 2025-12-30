@@ -2,8 +2,9 @@ import { Controller, Post, Body, Get, Query, Logger, HttpCode, HttpStatus } from
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Public } from '../../common/decorators';
-import { IncomingSmsDto } from './dto/incoming-sms.dto';
+import { IncomingSmsDto, IncomingMessageDto } from './dto/incoming-sms.dto';
 import { Entry, Participant, MediaAttachment } from '../../database/entities';
+import { StorageService } from '../storage/storage.service';
 
 @Controller('webhooks/sms')
 export class SmsController {
@@ -16,66 +17,205 @@ export class SmsController {
     private participantRepo: Repository<Participant>,
     @InjectRepository(MediaAttachment)
     private mediaRepo: Repository<MediaAttachment>,
+    private storageService: StorageService,
   ) {}
 
   /**
-   * Handle incoming SMS from Vonage
-   * Vonage can send as GET or POST depending on configuration
+   * Handle incoming SMS from Vonage (legacy SMS API)
    */
   @Public()
   @Post('incoming')
   @HttpCode(HttpStatus.OK)
-  async handleIncomingSms(@Body() dto: IncomingSmsDto): Promise<string> {
-    return this.processIncomingSms(dto);
+  async handleIncomingSms(@Body() body: any): Promise<string> {
+    // Check if this is Messages API format (has 'from' field) or SMS API format (has 'msisdn' field)
+    if (body.from) {
+      return this.processIncomingMessage(body as IncomingMessageDto);
+    } else if (body.msisdn) {
+      return this.processIncomingSms(body as IncomingSmsDto);
+    }
+
+    this.logger.warn(`Unknown webhook format: ${JSON.stringify(body)}`);
+    return 'OK';
   }
 
   @Public()
   @Get('incoming')
-  async handleIncomingSmsGet(@Query() dto: IncomingSmsDto): Promise<string> {
-    return this.processIncomingSms(dto);
+  async handleIncomingSmsGet(@Query() query: any): Promise<string> {
+    if (query.from) {
+      return this.processIncomingMessage(query as IncomingMessageDto);
+    } else if (query.msisdn) {
+      return this.processIncomingSms(query as IncomingSmsDto);
+    }
+    return 'OK';
   }
 
+  /**
+   * Process legacy SMS API format
+   */
   private async processIncomingSms(dto: IncomingSmsDto): Promise<string> {
     this.logger.log(`Received SMS from ${dto.msisdn}: ${dto.text?.substring(0, 50)}...`);
 
     try {
-      // Normalize the phone number (add + prefix if needed)
       const fromNumber = this.normalizePhoneNumber(dto.msisdn);
-
-      // Find participant by phone number
-      const participant = await this.participantRepo.findOne({
-        where: { phone_number: fromNumber, status: 'active' },
-        relations: ['journal'],
-      });
+      const participant = await this.findParticipant(fromNumber);
 
       if (!participant) {
-        this.logger.warn(`No active participant found for phone: ${fromNumber}`);
         return 'OK';
       }
 
-      // Create entry from the SMS
-      const entry = await this.entryRepo.save({
-        journal_id: participant.journal_id,
-        participant_id: participant.id,
-        content: dto.text,
-        entry_type: 'text',
-        is_hidden: false,
-        is_pinned: false,
-        from_phone_number: fromNumber,
-      });
-
-      // Update participant's last response time
-      await this.participantRepo.update(participant.id, {
-        last_response_at: new Date(),
-      });
-
-      this.logger.log(`Created entry ${entry.id} for participant ${participant.display_name}`);
-
+      await this.createEntry(participant, dto.text, []);
       return 'OK';
     } catch (error) {
       this.logger.error(`Error processing incoming SMS: ${error.message}`);
-      return 'OK'; // Always return OK to prevent Vonage from retrying
+      return 'OK';
     }
+  }
+
+  /**
+   * Process Messages API format (supports MMS with images)
+   */
+  private async processIncomingMessage(dto: IncomingMessageDto): Promise<string> {
+    this.logger.log(`Received message from ${dto.from}, type: ${dto.message_type || dto.channel}`);
+
+    try {
+      const fromNumber = this.normalizePhoneNumber(dto.from);
+      const participant = await this.findParticipant(fromNumber);
+
+      if (!participant) {
+        return 'OK';
+      }
+
+      // Extract text content
+      let textContent = dto.text || dto.message?.content?.text || '';
+
+      // Extract image URLs
+      const imageUrls: string[] = [];
+
+      // Direct image field
+      if (dto.image?.url) {
+        imageUrls.push(dto.image.url);
+        if (dto.image.caption && !textContent) {
+          textContent = dto.image.caption;
+        }
+      }
+
+      // Nested message.content format
+      if (dto.message?.content?.image?.url) {
+        imageUrls.push(dto.message.content.image.url);
+        if (dto.message.content.image.caption && !textContent) {
+          textContent = dto.message.content.image.caption;
+        }
+      }
+
+      this.logger.log(`Message content: "${textContent?.substring(0, 50)}", images: ${imageUrls.length}`);
+
+      await this.createEntry(participant, textContent, imageUrls);
+      return 'OK';
+    } catch (error) {
+      this.logger.error(`Error processing incoming message: ${error.message}`);
+      return 'OK';
+    }
+  }
+
+  /**
+   * Find participant by phone number
+   */
+  private async findParticipant(phoneNumber: string): Promise<Participant | null> {
+    // Try exact match first
+    let participant = await this.participantRepo.findOne({
+      where: { phone_number: phoneNumber, status: 'active' },
+      relations: ['journal'],
+    });
+
+    // Try without + prefix
+    if (!participant && phoneNumber.startsWith('+')) {
+      participant = await this.participantRepo.findOne({
+        where: { phone_number: phoneNumber.substring(1), status: 'active' },
+        relations: ['journal'],
+      });
+    }
+
+    // Try with + prefix
+    if (!participant && !phoneNumber.startsWith('+')) {
+      participant = await this.participantRepo.findOne({
+        where: { phone_number: `+${phoneNumber}`, status: 'active' },
+        relations: ['journal'],
+      });
+    }
+
+    if (!participant) {
+      this.logger.warn(`No active participant found for phone: ${phoneNumber}`);
+    }
+
+    return participant;
+  }
+
+  /**
+   * Create an entry with optional media attachments
+   */
+  private async createEntry(
+    participant: Participant,
+    content: string,
+    imageUrls: string[],
+  ): Promise<Entry> {
+    // Determine entry type
+    let entryType: 'text' | 'photo' | 'mixed' = 'text';
+    if (imageUrls.length > 0) {
+      entryType = content ? 'mixed' : 'photo';
+    }
+
+    // Create the entry
+    const entry = await this.entryRepo.save(
+      this.entryRepo.create({
+        journal_id: participant.journal_id,
+        participant_id: participant.id,
+        content: content || '',
+        entry_type: entryType,
+        is_hidden: false,
+        is_pinned: false,
+      }),
+    );
+
+    // Process and store images
+    for (const imageUrl of imageUrls) {
+      try {
+        // Upload to Cloudinary
+        const uploadResult = await this.storageService.uploadFromUrl(
+          imageUrl,
+          `keepswell/${participant.journal_id}`,
+        );
+
+        if (uploadResult) {
+          await this.mediaRepo.save({
+            entry_id: entry.id,
+            original_url: imageUrl,
+            stored_url: uploadResult.url,
+            thumbnail_url: uploadResult.thumbnailUrl,
+            media_type: 'image',
+          });
+          this.logger.log(`Stored image for entry ${entry.id}`);
+        } else {
+          // Fallback: store original URL if Cloudinary fails
+          await this.mediaRepo.save({
+            entry_id: entry.id,
+            original_url: imageUrl,
+            stored_url: imageUrl,
+            media_type: 'image',
+          });
+          this.logger.warn(`Cloudinary upload failed, using original URL for entry ${entry.id}`);
+        }
+      } catch (error) {
+        this.logger.error(`Failed to process image: ${error.message}`);
+      }
+    }
+
+    // Update participant's last response time
+    await this.participantRepo.update(participant.id, {
+      last_response_at: new Date(),
+    });
+
+    this.logger.log(`Created entry ${entry.id} for participant ${participant.display_name}`);
+    return entry;
   }
 
   /**
@@ -97,9 +237,7 @@ export class SmsController {
   }
 
   private normalizePhoneNumber(phone: string): string {
-    // Remove all non-numeric characters
     const cleaned = phone.replace(/[^0-9]/g, '');
-    // Add + prefix if not present
     return cleaned.startsWith('+') ? cleaned : `+${cleaned}`;
   }
 }
