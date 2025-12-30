@@ -24,7 +24,7 @@ export function Header() {
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <BookHeart className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Moments</span>
+          <span className="text-xl font-bold">Keepswell</span>
         </Link>
 
         <nav className="flex items-center gap-4">

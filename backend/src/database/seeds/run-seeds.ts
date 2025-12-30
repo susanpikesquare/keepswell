@@ -17,7 +17,7 @@ function parseConnectionString(url: string) {
     password: match[2] || '',
     host: match[3] || 'localhost',
     port: parseInt(match[4] || '5432', 10),
-    database: match[5] || 'moments_db',
+    database: match[5] || 'keepswell_db',
   };
 }
 

@@ -1,16 +1,16 @@
-# Render Blueprint - Moments Memory Journal
+# Render Blueprint - Keepswell Memory Journal
 # Deploy: Connect your repo to Render and it will auto-detect this file
 
 databases:
-  - name: moments-db
-    databaseName: moments_production
-    user: moments_user
+  - name: keepswell-db
+    databaseName: keepswell_production
+    user: keepswell_user
     plan: free # Use 'starter' for production with backups
 
 services:
   # Backend API
   - type: web
-    name: moments-api
+    name: keepswell-api
     runtime: node
     plan: free # Use 'starter' for production
     rootDir: backend
@@ -24,7 +24,7 @@ services:
         value: 10000
       - key: DATABASE_URL
         fromDatabase:
-          name: moments-db
+          name: keepswell-db
           property: connectionString
       - key: FRONTEND_URL
         sync: false # Set manually after frontend deploys
@@ -51,7 +51,7 @@ services:
 
   # Frontend Static Site
   - type: web
-    name: moments-app
+    name: keepswell-app
     runtime: static
     rootDir: frontend
     buildCommand: npm install && npm run build
