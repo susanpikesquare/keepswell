@@ -14,8 +14,8 @@ services:
     runtime: node
     plan: free # Use 'starter' for production
     rootDir: backend
-    buildCommand: npm install && npm run build
-    startCommand: npm run start:prod
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node dist/main.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
