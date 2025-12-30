@@ -1,0 +1,71 @@
+# Render Blueprint - Moments Memory Journal
+# Deploy: Connect your repo to Render and it will auto-detect this file
+
+databases:
+  - name: moments-db
+    databaseName: moments_production
+    user: moments_user
+    plan: free # Use 'starter' for production with backups
+
+services:
+  # Backend API
+  - type: web
+    name: moments-api
+    runtime: node
+    plan: free # Use 'starter' for production
+    rootDir: backend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: DATABASE_URL
+        fromDatabase:
+          name: moments-db
+          property: connectionString
+      - key: FRONTEND_URL
+        sync: false # Set manually after frontend deploys
+      - key: CLERK_SECRET_KEY
+        sync: false # Set manually in Render dashboard
+      - key: CLERK_PUBLISHABLE_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true # Auto-generate secure value
+      - key: JWT_EXPIRATION
+        value: 7d
+
+  # Frontend Static Site
+  - type: web
+    name: moments-app
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    headers:
+      - path: /*
+        name: Cache-Control
+        value: no-cache
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        sync: false # Set to your API URL after it deploys
+      - key: VITE_CLERK_PUBLISHABLE_KEY
+        sync: false
