@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Settings, Phone, Share2 } from 'lucide-react';
+import { ArrowLeft, Settings, Share2 } from 'lucide-react';
 import { useJournal, useEntries, useAuthSync } from '../../hooks';
 import { Button, PageLoader } from '../../components/ui';
 import { MemoryTimeline, ShareModal } from '../../components/journal';
@@ -54,16 +54,6 @@ export function MemoryBookPage() {
             <Share2 className="h-4 w-4 mr-1" />
             Share
           </Button>
-          <Link to={`/journals/${id}/simulate`}>
-            <Button
-              size="sm"
-              variant="outline"
-              className={`${theme.cardBg} ${theme.cardShadow} border ${theme.cardBorder}`}
-            >
-              <Phone className="h-4 w-4 mr-1" />
-              Test SMS
-            </Button>
-          </Link>
           <Link to={`/journals/${id}`}>
             <Button
               size="sm"
