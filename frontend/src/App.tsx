@@ -9,7 +9,6 @@ import { SignUpPage } from './pages/auth/SignUpPage';
 import { DashboardPage } from './pages/dashboard/DashboardPage';
 import { CreateJournalPage } from './pages/journal/CreateJournalPage';
 import { JournalDetailPage } from './pages/journal/JournalDetailPage';
-import { SimulatorPage } from './pages/journal/SimulatorPage';
 import { MemoryBookPage } from './pages/journal/MemoryBookPage';
 import { SharedBookPage } from './pages/shared/SharedBookPage';
 
@@ -44,14 +43,6 @@ function App() {
           element={
             <ProtectedRoute>
               <JournalDetailPage />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/journals/:id/simulate"
-          element={
-            <ProtectedRoute>
-              <SimulatorPage />
             </ProtectedRoute>
           }
         />

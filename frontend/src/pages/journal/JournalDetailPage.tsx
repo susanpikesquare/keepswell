@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Phone, Trash2, EyeOff, MoreVertical, BookOpen } from 'lucide-react';
+import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen } from 'lucide-react';
 import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry } from '../../hooks';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
 import { JournalSettingsModal } from '../../components/journal/JournalSettingsModal';
@@ -80,12 +80,6 @@ export function JournalDetailPage() {
               View Memory Book
             </Button>
           </Link>
-          <Link to={`/journals/${id}/simulate`}>
-            <Button variant="outline">
-              <Phone className="h-4 w-4 mr-2" />
-              Test SMS
-            </Button>
-          </Link>
           <Button variant="outline" onClick={() => setShowSettings(true)}>
             <Settings className="h-4 w-4 mr-2" />
             Settings
@@ -127,7 +121,7 @@ export function JournalDetailPage() {
                   ))}
                 </div>
               ) : (
-                <EmptyEntriesState journalId={id || ''} />
+                <EmptyEntriesState />
               )}
             </CardContent>
           </Card>
@@ -141,12 +135,10 @@ export function JournalDetailPage() {
                 <Users className="h-5 w-5" />
                 Participants
               </CardTitle>
-              <Link to={`/journals/${id}/simulate`}>
-                <Button size="sm">
-                  <UserPlus className="h-4 w-4 mr-1" />
-                  Add
-                </Button>
-              </Link>
+              <Button size="sm">
+                <UserPlus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
             </CardHeader>
             <CardContent>
               {participantList.length > 0 ? (
@@ -182,12 +174,9 @@ export function JournalDetailPage() {
                 <div className="text-center py-6 text-muted-foreground">
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No participants yet</p>
-                  <Link
-                    to={`/journals/${id}/simulate`}
-                    className="text-xs text-primary hover:underline mt-1 inline-block"
-                  >
-                    Add test participants →
-                  </Link>
+                  <p className="text-xs mt-1">
+                    Add participants to start collecting memories
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -207,24 +196,6 @@ export function JournalDetailPage() {
                 {journal.prompt_time && <> at {journal.prompt_time}</>}
               </p>
               <p className="mt-2 text-xs">Timezone: {journal.timezone}</p>
-            </CardContent>
-          </Card>
-
-          {/* Test Mode Banner */}
-          <Card className="border-dashed border-primary/50 bg-primary/5">
-            <CardContent className="pt-6">
-              <div className="text-center">
-                <Phone className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <p className="font-medium text-sm">Test Mode</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Use the SMS Simulator to test entries without configuring Twilio
-                </p>
-                <Link to={`/journals/${id}/simulate`}>
-                  <Button size="sm" className="mt-3">
-                    Open Simulator
-                  </Button>
-                </Link>
-              </div>
             </CardContent>
           </Card>
         </div>
@@ -356,20 +327,14 @@ function EntryCard({ entry }: { entry: Entry }) {
   );
 }
 
-function EmptyEntriesState({ journalId }: { journalId: string }) {
+function EmptyEntriesState() {
   return (
     <div className="text-center py-12 text-muted-foreground">
       <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
       <p className="font-medium">No entries yet</p>
-      <p className="text-sm mt-2 mb-4">
-        Test the SMS flow by simulating participant responses
+      <p className="text-sm mt-2">
+        Entries will appear here when participants respond to prompts
       </p>
-      <Link to={`/journals/${journalId}/simulate`}>
-        <Button>
-          <Phone className="h-4 w-4 mr-2" />
-          Open SMS Simulator
-        </Button>
-      </Link>
     </div>
   );
 }
