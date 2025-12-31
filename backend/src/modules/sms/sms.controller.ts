@@ -1,10 +1,15 @@
 import { Controller, Post, Body, Get, Query, Logger, HttpCode, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { Public } from '../../common/decorators';
 import { IncomingSmsDto, IncomingMessageDto } from './dto/incoming-sms.dto';
 import { Entry, Participant, MediaAttachment } from '../../database/entities';
 import { StorageService } from '../storage/storage.service';
+import { SmsService } from './sms.service';
+
+// Keywords for opt-in/opt-out
+const OPT_IN_KEYWORDS = ['yes', 'y', 'start', 'subscribe', 'optin', 'opt-in'];
+const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'cancel', 'end', 'quit', 'optout', 'opt-out'];
 
 @Controller('webhooks/sms')
 export class SmsController {
@@ -18,6 +23,7 @@ export class SmsController {
     @InjectRepository(MediaAttachment)
     private mediaRepo: Repository<MediaAttachment>,
     private storageService: StorageService,
+    private smsService: SmsService,
   ) {}
 
   /**
@@ -57,6 +63,15 @@ export class SmsController {
 
     try {
       const fromNumber = this.normalizePhoneNumber(dto.msisdn);
+      const messageText = (dto.text || '').trim().toLowerCase();
+
+      // Check for opt-in/opt-out keywords first
+      const optInOutResult = await this.handleOptInOut(fromNumber, messageText);
+      if (optInOutResult) {
+        return 'OK';
+      }
+
+      // Regular message - find active participant
       const participant = await this.findParticipant(fromNumber);
 
       if (!participant) {
@@ -79,14 +94,25 @@ export class SmsController {
 
     try {
       const fromNumber = this.normalizePhoneNumber(dto.from);
+
+      // Extract text content
+      let textContent = dto.text || dto.message?.content?.text || '';
+      const messageText = textContent.trim().toLowerCase();
+
+      // Check for opt-in/opt-out keywords first (only for text messages)
+      if (messageText && !dto.image?.url && !dto.message?.content?.image?.url) {
+        const optInOutResult = await this.handleOptInOut(fromNumber, messageText);
+        if (optInOutResult) {
+          return 'OK';
+        }
+      }
+
+      // Regular message - find active participant
       const participant = await this.findParticipant(fromNumber);
 
       if (!participant) {
         return 'OK';
       }
-
-      // Extract text content
-      let textContent = dto.text || dto.message?.content?.text || '';
 
       // Extract image URLs
       const imageUrls: string[] = [];
@@ -115,6 +141,84 @@ export class SmsController {
       this.logger.error(`Error processing incoming message: ${error.message}`);
       return 'OK';
     }
+  }
+
+  /**
+   * Handle opt-in/opt-out keywords
+   * Returns true if the message was an opt-in/opt-out command
+   */
+  private async handleOptInOut(phoneNumber: string, messageText: string): Promise<boolean> {
+    const isOptIn = OPT_IN_KEYWORDS.includes(messageText);
+    const isOptOut = OPT_OUT_KEYWORDS.includes(messageText);
+
+    if (!isOptIn && !isOptOut) {
+      return false;
+    }
+
+    // Find all participants with this phone number (any status)
+    const participants = await this.findParticipantsByPhone(phoneNumber);
+
+    if (participants.length === 0) {
+      this.logger.warn(`No participants found for phone ${phoneNumber} during opt-in/out`);
+      return true; // Still handled, just no participants
+    }
+
+    if (isOptIn) {
+      // Activate pending participants
+      const pendingParticipants = participants.filter(p => p.status === 'pending');
+      for (const participant of pendingParticipants) {
+        await this.participantRepo.update(participant.id, {
+          status: 'active',
+          opted_in: true,
+        });
+        this.logger.log(`Participant ${participant.display_name} opted in for journal ${participant.journal?.title}`);
+
+        // Send confirmation
+        await this.smsService.sendSms(
+          phoneNumber,
+          `Welcome to "${participant.journal?.title}"! You're all set to receive prompts and share your memories. Reply anytime to contribute.`,
+        );
+      }
+
+      if (pendingParticipants.length === 0) {
+        this.logger.log(`No pending participants to activate for ${phoneNumber}`);
+      }
+    } else if (isOptOut) {
+      // Deactivate all active participants
+      const activeParticipants = participants.filter(p => p.status === 'active' || p.status === 'pending');
+      for (const participant of activeParticipants) {
+        await this.participantRepo.update(participant.id, {
+          status: 'paused',
+          opted_in: false,
+        });
+        this.logger.log(`Participant ${participant.display_name} opted out of journal ${participant.journal?.title}`);
+      }
+
+      if (activeParticipants.length > 0) {
+        // Send confirmation
+        await this.smsService.sendSms(
+          phoneNumber,
+          `You've been unsubscribed from memory journal prompts. Reply YES anytime to rejoin.`,
+        );
+      }
+    }
+
+    return true;
+  }
+
+  /**
+   * Find all participants by phone number (any status)
+   */
+  private async findParticipantsByPhone(phoneNumber: string): Promise<Participant[]> {
+    const phoneVariants = [
+      phoneNumber,
+      phoneNumber.startsWith('+') ? phoneNumber.substring(1) : `+${phoneNumber}`,
+    ];
+
+    return this.participantRepo.find({
+      where: phoneVariants.map(phone => ({ phone_number: phone })),
+      relations: ['journal'],
+    });
   }
 
   /**
