@@ -31,12 +31,19 @@ export function AdminDashboardPage() {
   }
 
   if (accessError || !access?.isAdmin) {
+    // Debug info
+    const errorMessage = accessError instanceof Error ? accessError.message : 'Unknown error';
+    const errorDetails = (accessError as any)?.response?.data?.message || '';
+
     return (
       <div className="container mx-auto px-4 py-16 text-center">
         <Shield className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
         <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
         <p className="text-muted-foreground mb-6">
           You do not have administrator access to this page.
+        </p>
+        <p className="text-xs text-muted-foreground mb-4">
+          Debug: {errorMessage} {errorDetails}
         </p>
         <Button onClick={() => navigate('/dashboard')}>
           <ArrowLeft className="h-4 w-4 mr-2" />
