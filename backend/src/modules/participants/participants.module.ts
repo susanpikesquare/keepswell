@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { JournalParticipantsController, ParticipantsController } from './participants.controller';
+import { JournalParticipantsController, ParticipantsController, ParticipantMagicLinkController } from './participants.controller';
 import { ParticipantsService } from './participants.service';
-import { Participant, Journal, User } from '../../database/entities';
+import { Participant, Journal, User, Entry } from '../../database/entities';
 import { SmsModule } from '../sms/sms.module';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Participant, Journal, User]), SmsModule],
-  controllers: [JournalParticipantsController, ParticipantsController],
+  imports: [TypeOrmModule.forFeature([Participant, Journal, User, Entry]), SmsModule],
+  controllers: [JournalParticipantsController, ParticipantsController, ParticipantMagicLinkController],
   providers: [ParticipantsService],
   exports: [ParticipantsService],
 })

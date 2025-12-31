@@ -1,6 +1,8 @@
 import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { randomBytes } from 'crypto';
 import { Participant, Journal, User } from '../../database/entities';
 import { CreateParticipantDto } from './dto/create-participant.dto';
 import { SmsService } from '../sms/sms.service';
@@ -8,6 +10,7 @@ import { SmsService } from '../sms/sms.service';
 @Injectable()
 export class ParticipantsService {
   private readonly logger = new Logger(ParticipantsService.name);
+  private readonly frontendUrl: string;
 
   constructor(
     @InjectRepository(Participant)
@@ -17,7 +20,10 @@ export class ParticipantsService {
     @InjectRepository(User)
     private userRepo: Repository<User>,
     private smsService: SmsService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://keepswell.com';
+  }
 
   private async getUserByClerkId(clerkId: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
@@ -25,6 +31,10 @@ export class ParticipantsService {
       throw new NotFoundException('User not found');
     }
     return user;
+  }
+
+  private generateMagicToken(): string {
+    return randomBytes(32).toString('hex');
   }
 
   async create(
@@ -43,11 +53,18 @@ export class ParticipantsService {
       throw new NotFoundException('Journal not found');
     }
 
+    // Generate magic token for participant access
+    const magicToken = this.generateMagicToken();
+    const tokenExpiry = new Date();
+    tokenExpiry.setFullYear(tokenExpiry.getFullYear() + 1); // Valid for 1 year
+
     const participant = this.participantRepo.create({
       ...dto,
       journal_id: journalId,
       status: 'pending', // Start as pending until they confirm
       opted_in: false,
+      magic_token: magicToken,
+      magic_token_expires_at: tokenExpiry,
     });
 
     const savedParticipant = await this.participantRepo.save(participant);
@@ -55,11 +72,13 @@ export class ParticipantsService {
     // Send SMS invite if phone number is provided
     if (dto.phone_number) {
       const ownerName = user.full_name || user.email || 'Someone';
+      const viewUrl = `${this.frontendUrl}/p/${magicToken}`;
       const result = await this.smsService.sendInvite(
         dto.phone_number,
         dto.display_name,
         journal.title,
         ownerName,
+        viewUrl,
       );
 
       if (result.success) {
@@ -172,12 +191,26 @@ export class ParticipantsService {
       return { success: false, error: 'Participant has no phone number' };
     }
 
+    // Regenerate magic token if expired or missing
+    let magicToken = participant.magic_token;
+    if (!magicToken || (participant.magic_token_expires_at && participant.magic_token_expires_at < new Date())) {
+      magicToken = this.generateMagicToken();
+      const tokenExpiry = new Date();
+      tokenExpiry.setFullYear(tokenExpiry.getFullYear() + 1);
+      await this.participantRepo.update(id, {
+        magic_token: magicToken,
+        magic_token_expires_at: tokenExpiry,
+      });
+    }
+
     const ownerName = user.full_name || user.email || 'Someone';
+    const viewUrl = `${this.frontendUrl}/p/${magicToken}`;
     const result = await this.smsService.sendInvite(
       participant.phone_number,
       participant.display_name,
       participant.journal.title,
       ownerName,
+      viewUrl,
     );
 
     if (result.success) {
@@ -185,5 +218,23 @@ export class ParticipantsService {
     }
 
     return result;
+  }
+
+  async findByMagicToken(token: string): Promise<Participant | null> {
+    const participant = await this.participantRepo.findOne({
+      where: { magic_token: token },
+      relations: ['journal', 'journal.owner'],
+    });
+
+    if (!participant) {
+      return null;
+    }
+
+    // Check if token is expired
+    if (participant.magic_token_expires_at && participant.magic_token_expires_at < new Date()) {
+      return null;
+    }
+
+    return participant;
   }
 }

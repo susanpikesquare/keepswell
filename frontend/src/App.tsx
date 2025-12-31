@@ -12,6 +12,7 @@ import { JournalDetailPage } from './pages/journal/JournalDetailPage';
 import { MemoryBookPage } from './pages/journal/MemoryBookPage';
 import { SharedBookPage } from './pages/shared/SharedBookPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
+import { ParticipantViewPage } from './pages/participant/ParticipantViewPage';
 
 function App() {
   return (
@@ -69,6 +70,9 @@ function App() {
 
       {/* Public shared memory book view */}
       <Route path="/shared/:token" element={<SharedBookPage />} />
+
+      {/* Participant magic link view */}
+      <Route path="/p/:token" element={<ParticipantViewPage />} />
     </Routes>
   );
 }

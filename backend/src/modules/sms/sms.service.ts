@@ -63,8 +63,15 @@ export class SmsService {
     participantName: string,
     journalTitle: string,
     ownerName: string,
+    viewUrl?: string,
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const message = `Hi ${participantName}! ${ownerName} has invited you to contribute to "${journalTitle}" - a memory journal to collect and share special moments.\n\nYou'll receive prompts via text. Simply reply with your thoughts, stories, or photos to share memories.\n\nReply YES to confirm you'd like to participate, or STOP to opt out.`;
+    let message = `Hi ${participantName}! ${ownerName} has invited you to contribute to "${journalTitle}" - a memory journal to collect and share special moments.\n\n`;
+
+    if (viewUrl) {
+      message += `View the memory book: ${viewUrl}\n\n`;
+    }
+
+    message += `You'll receive prompts via text. Simply reply with your thoughts, stories, or photos to share memories.\n\nReply YES to confirm you'd like to participate, or STOP to opt out.`;
     return this.sendSms(to, message);
   }
 }
