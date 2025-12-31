@@ -65,13 +65,15 @@ export class SmsService {
     ownerName: string,
     viewUrl?: string,
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    let message = `Hi ${participantName}! ${ownerName} has invited you to contribute to "${journalTitle}" - a memory journal to collect and share special moments.\n\n`;
+    // Note: Some carriers filter messages with links, so we keep the message simple
+    // The viewUrl is included only if provided and can be removed if delivery issues occur
+    let message = `Hi ${participantName}! ${ownerName} has invited you to contribute to "${journalTitle}" - a memory journal to collect and share special moments. You'll receive prompts via text. Simply reply with your thoughts, stories, or photos. Reply YES to join or STOP to opt out.`;
 
-    if (viewUrl) {
-      message += `View the memory book: ${viewUrl}\n\n`;
-    }
+    // Temporarily disabled link due to carrier filtering - uncomment when 10DLC registered
+    // if (viewUrl) {
+    //   message += `\n\nView memories: ${viewUrl}`;
+    // }
 
-    message += `You'll receive prompts via text. Simply reply with your thoughts, stories, or photos to share memories.\n\nReply YES to confirm you'd like to participate, or STOP to opt out.`;
     return this.sendSms(to, message);
   }
 }
