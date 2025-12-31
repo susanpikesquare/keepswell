@@ -33,6 +33,9 @@ export class SmsController {
   @Post('incoming')
   @HttpCode(HttpStatus.OK)
   async handleIncomingSms(@Body() body: any): Promise<string> {
+    // Log the full incoming webhook for debugging
+    this.logger.log(`Incoming webhook: ${JSON.stringify(body)}`);
+
     // Check if this is Messages API format (has 'from' field) or SMS API format (has 'msisdn' field)
     if (body.from) {
       return this.processIncomingMessage(body as IncomingMessageDto);
