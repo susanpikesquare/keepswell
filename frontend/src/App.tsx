@@ -13,6 +13,8 @@ import { MemoryBookPage } from './pages/journal/MemoryBookPage';
 import { SharedBookPage } from './pages/shared/SharedBookPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { ParticipantViewPage } from './pages/participant/ParticipantViewPage';
+import { PrivacyPage } from './pages/PrivacyPage';
+import { TermsPage } from './pages/TermsPage';
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/sign-in/*" element={<SignInPage />} />
         <Route path="/sign-up/*" element={<SignUpPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
 
         {/* Protected routes */}
         <Route
