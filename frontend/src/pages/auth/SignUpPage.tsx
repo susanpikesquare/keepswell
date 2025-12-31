@@ -40,13 +40,24 @@ export function SignUpPage() {
   }
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center py-12 px-4">
+    <div className="min-h-[calc(100vh-4rem)] flex flex-col items-center justify-center py-12 px-4">
       <SignUp
         path="/sign-up"
         routing="path"
         signInUrl="/sign-in"
         fallbackRedirectUrl="/dashboard"
       />
+      <p className="mt-6 text-sm text-muted-foreground text-center">
+        By signing up, you agree to our{' '}
+        <Link to="/terms" className="text-primary hover:underline">
+          Terms & Conditions
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" className="text-primary hover:underline">
+          Privacy Policy
+        </Link>
+        .
+      </p>
     </div>
   );
 }

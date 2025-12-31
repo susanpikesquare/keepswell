@@ -238,6 +238,19 @@ export function LandingPage() {
       {/* Footer */}
       <footer className="py-8 px-4 border-t">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
+          <div className="flex flex-wrap justify-center gap-4 mb-4">
+            <Link to="/privacy" className="hover:text-foreground transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link to="/terms" className="hover:text-foreground transition-colors">
+              Terms & Conditions
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
+            <Link to="/support" className="hover:text-foreground transition-colors">
+              Support
+            </Link>
+          </div>
           <p>&copy; {new Date().getFullYear()} Keepswell. Made with love for families everywhere.</p>
         </div>
       </footer>
