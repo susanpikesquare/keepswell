@@ -16,7 +16,7 @@ import { CreateParticipantDto } from './dto/create-participant.dto';
 import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import { Public } from '../../common/decorators';
-import { Entry } from '../../database/entities';
+import { Entry, Participant } from '../../database/entities';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
 
 // Controller for journal-scoped participant routes
@@ -126,6 +126,39 @@ export class ParticipantMagicLinkController {
           media_type: m.media_type,
         })),
       })),
+    };
+  }
+}
+
+// Temporary: Manual activation endpoint (for testing when SMS is blocked)
+// Remove this once 10DLC is approved
+@Controller('admin/participants')
+export class AdminParticipantsController {
+  constructor(
+    private readonly participantsService: ParticipantsService,
+    @InjectRepository(Participant)
+    private participantRepo: Repository<Participant>,
+  ) {}
+
+  @Public()
+  @Post(':id/activate')
+  async manualActivate(@Param('id') id: string) {
+    const participant = await this.participantsService.findOne(id);
+    if (!participant) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    // Manually activate the participant
+    await this.participantRepo.update(id, {
+      status: 'active',
+      opted_in: true,
+      opted_in_at: new Date(),
+    });
+
+    return {
+      success: true,
+      message: `${participant.display_name} has been activated`,
+      participantId: id
     };
   }
 }

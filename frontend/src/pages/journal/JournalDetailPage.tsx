@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle } from 'lucide-react';
 import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite } from '../../hooks';
+import { apiClient } from '../../api';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
 import { JournalSettingsModal, InviteParticipantModal } from '../../components/journal';
 import { formatRelativeTime } from '../../lib/utils';
@@ -331,8 +333,11 @@ function EmptyEntriesState() {
 function ParticipantItem({ participant, journalId }: { participant: Participant; journalId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
+  const [activating, setActivating] = useState(false);
+  const [activated, setActivated] = useState(false);
   const removeParticipant = useRemoveParticipant();
   const resendInvite = useResendInvite();
+  const queryClient = useQueryClient();
 
   const handleRemove = async () => {
     try {
@@ -350,6 +355,20 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
       setTimeout(() => setInviteSent(false), 3000);
     } catch (error) {
       console.error('Failed to resend invite:', error);
+    }
+  };
+
+  const handleManualActivate = async () => {
+    setActivating(true);
+    try {
+      await apiClient.post(`/admin/participants/${participant.id}/activate`);
+      setActivated(true);
+      // Refresh participant list
+      queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'participants'] });
+    } catch (error) {
+      console.error('Failed to activate participant:', error);
+    } finally {
+      setActivating(false);
     }
   };
 
@@ -384,18 +403,30 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
       </div>
 
       {/* Action buttons - always visible */}
-      <div className="flex gap-2 pt-1">
+      <div className="flex flex-wrap gap-2 pt-1">
         {participant.status === 'pending' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={handleResendInvite}
-            disabled={resendInvite.isPending || inviteSent}
-            className="text-xs"
-          >
-            <RefreshCw className={`h-3 w-3 mr-1 ${resendInvite.isPending ? 'animate-spin' : ''}`} />
-            {inviteSent ? 'Sent!' : resendInvite.isPending ? 'Sending...' : 'Resend Invite'}
-          </Button>
+          <>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleResendInvite}
+              disabled={resendInvite.isPending || inviteSent}
+              className="text-xs"
+            >
+              <RefreshCw className={`h-3 w-3 mr-1 ${resendInvite.isPending ? 'animate-spin' : ''}`} />
+              {inviteSent ? 'Sent!' : resendInvite.isPending ? 'Sending...' : 'Resend Invite'}
+            </Button>
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleManualActivate}
+              disabled={activating || activated}
+              className="text-xs"
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              {activated ? 'Activated!' : activating ? 'Activating...' : 'Activate Now'}
+            </Button>
+          </>
         )}
         {!confirmDelete ? (
           <Button
