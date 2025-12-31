@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { participantsApi } from '../api';
+import { useAuth } from '@clerk/clerk-react';
+import { participantsApi, setAuthToken } from '../api';
 import type { InviteParticipantDto } from '../types';
 
 export function useParticipants(journalId: string) {
@@ -12,10 +13,14 @@ export function useParticipants(journalId: string) {
 
 export function useInviteParticipant() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: ({ journalId, data }: { journalId: string; data: InviteParticipantDto }) =>
-      participantsApi.invite(journalId, data),
+    mutationFn: async ({ journalId, data }: { journalId: string; data: InviteParticipantDto }) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return participantsApi.invite(journalId, data);
+    },
     onSuccess: (_, { journalId }) => {
       queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'participants'] });
     },

@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen } from 'lucide-react';
 import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry } from '../../hooks';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
-import { JournalSettingsModal } from '../../components/journal/JournalSettingsModal';
+import { JournalSettingsModal, InviteParticipantModal } from '../../components/journal';
 import { formatRelativeTime } from '../../lib/utils';
 import type { Entry } from '../../types';
 
@@ -14,6 +14,7 @@ export function JournalDetailPage() {
   const { data: participants, isLoading: participantsLoading } = useParticipants(id || '');
   const { data: entriesData, isLoading: entriesLoading } = useEntries(id || '');
   const [showSettings, setShowSettings] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
 
   if (!isLoaded || journalLoading || participantsLoading) {
     return <PageLoader />;
@@ -94,6 +95,13 @@ export function JournalDetailPage() {
         journal={journal}
       />
 
+      {/* Invite Participant Modal */}
+      <InviteParticipantModal
+        isOpen={showInvite}
+        onClose={() => setShowInvite(false)}
+        journalId={id || ''}
+      />
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Main content area - Entry Timeline */}
         <div className="md:col-span-2">
@@ -135,7 +143,7 @@ export function JournalDetailPage() {
                 <Users className="h-5 w-5" />
                 Participants
               </CardTitle>
-              <Button size="sm">
+              <Button size="sm" onClick={() => setShowInvite(true)}>
                 <UserPlus className="h-4 w-4 mr-1" />
                 Add
               </Button>

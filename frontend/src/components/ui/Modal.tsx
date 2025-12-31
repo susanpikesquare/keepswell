@@ -59,18 +59,18 @@ export function Modal({
     <div
       ref={overlayRef}
       onClick={handleOverlayClick}
-      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
     >
       <div
         className={cn(
-          'bg-background rounded-xl shadow-xl w-full animate-in fade-in zoom-in-95 duration-200',
+          'bg-background rounded-xl shadow-xl w-full animate-in fade-in zoom-in-95 duration-200 my-8 max-h-[90vh] flex flex-col',
           sizeClasses[size],
           className
         )}
       >
         {/* Header */}
         {(title || description) && (
-          <div className="flex items-start justify-between p-6 pb-0">
+          <div className="flex items-start justify-between p-6 pb-0 flex-shrink-0">
             <div>
               {title && <h2 className="text-lg font-semibold">{title}</h2>}
               {description && (
@@ -86,8 +86,8 @@ export function Modal({
           </div>
         )}
 
-        {/* Content */}
-        <div className={cn('p-6', !title && !description && 'pt-6')}>
+        {/* Content - scrollable */}
+        <div className={cn('p-6 overflow-y-auto flex-1', !title && !description && 'pt-6')}>
           {children}
         </div>
       </div>
