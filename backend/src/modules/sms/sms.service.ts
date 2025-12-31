@@ -57,4 +57,14 @@ export class SmsService {
     const message = `${journalTitle}: ${promptText}\n\nReply to this message with your response.`;
     return this.sendSms(to, message);
   }
+
+  async sendInvite(
+    to: string,
+    participantName: string,
+    journalTitle: string,
+    ownerName: string,
+  ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    const message = `Hi ${participantName}! ${ownerName} has invited you to contribute to "${journalTitle}" - a memory journal to collect and share special moments.\n\nYou'll receive prompts via text. Simply reply with your thoughts, stories, or photos to share memories.\n\nReply YES to confirm you'd like to participate, or STOP to opt out.`;
+    return this.sendSms(to, message);
+  }
 }

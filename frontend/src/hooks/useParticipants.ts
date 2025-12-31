@@ -4,9 +4,15 @@ import { participantsApi, setAuthToken } from '../api';
 import type { InviteParticipantDto } from '../types';
 
 export function useParticipants(journalId: string) {
+  const { getToken } = useAuth();
+
   return useQuery({
     queryKey: ['journals', journalId, 'participants'],
-    queryFn: () => participantsApi.list(journalId),
+    queryFn: async () => {
+      const token = await getToken();
+      setAuthToken(token);
+      return participantsApi.list(journalId);
+    },
     enabled: !!journalId,
   });
 }
@@ -29,16 +35,21 @@ export function useInviteParticipant() {
 
 export function useUpdateParticipant() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: ({
+    mutationFn: async ({
       id,
       data,
     }: {
       id: string;
       journalId: string;
       data: Partial<{ display_name: string; status: string }>;
-    }) => participantsApi.update(id, data),
+    }) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return participantsApi.update(id, data);
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['journals', variables.journalId, 'participants'] });
     },
@@ -47,10 +58,14 @@ export function useUpdateParticipant() {
 
 export function useRemoveParticipant() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: ({ id }: { id: string; journalId: string }) =>
-      participantsApi.remove(id),
+    mutationFn: async ({ id }: { id: string; journalId: string }) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return participantsApi.remove(id);
+    },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['journals', variables.journalId, 'participants'] });
     },
@@ -58,7 +73,13 @@ export function useRemoveParticipant() {
 }
 
 export function useResendInvite() {
+  const { getToken } = useAuth();
+
   return useMutation({
-    mutationFn: (id: string) => participantsApi.resendInvite(id),
+    mutationFn: async (id: string) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return participantsApi.resendInvite(id);
+    },
   });
 }

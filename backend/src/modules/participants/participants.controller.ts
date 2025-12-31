@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Body,
   Param,
@@ -13,9 +14,10 @@ import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
 
+// Controller for journal-scoped participant routes
 @Controller('journals/:journalId/participants')
 @UseGuards(ClerkAuthGuard)
-export class ParticipantsController {
+export class JournalParticipantsController {
   constructor(private readonly participantsService: ParticipantsService) {}
 
   @Post()
@@ -34,9 +36,30 @@ export class ParticipantsController {
   ) {
     return this.participantsService.findByJournal(journalId, user.clerkId);
   }
+}
+
+// Controller for participant-scoped routes (update, delete, resend)
+@Controller('participants')
+@UseGuards(ClerkAuthGuard)
+export class ParticipantsController {
+  constructor(private readonly participantsService: ParticipantsService) {}
+
+  @Patch(':id')
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() data: Partial<{ display_name: string; status: string; relationship: string }>,
+  ) {
+    return this.participantsService.update(id, user.clerkId, data);
+  }
 
   @Delete(':id')
   remove(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.participantsService.remove(id, user.clerkId);
+  }
+
+  @Post(':id/resend-invite')
+  resendInvite(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.participantsService.resendInvite(id, user.clerkId);
   }
 }

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen } from 'lucide-react';
-import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry } from '../../hooks';
+import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, X } from 'lucide-react';
+import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite } from '../../hooks';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
 import { JournalSettingsModal, InviteParticipantModal } from '../../components/journal';
 import { formatRelativeTime } from '../../lib/utils';
-import type { Entry } from '../../types';
+import type { Entry, Participant } from '../../types';
 
 export function JournalDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -152,30 +152,11 @@ export function JournalDetailPage() {
               {participantList.length > 0 ? (
                 <ul className="space-y-3">
                   {participantList.map((participant) => (
-                    <li key={participant.id} className="flex items-center gap-3">
-                      <Avatar
-                        src={participant.avatar_url}
-                        name={participant.display_name}
-                        size="sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium truncate">{participant.display_name}</p>
-                        {participant.relationship && (
-                          <p className="text-xs text-muted-foreground">{participant.relationship}</p>
-                        )}
-                      </div>
-                      <span
-                        className={`text-xs px-2 py-0.5 rounded-full ${
-                          participant.status === 'active'
-                            ? 'bg-green-100 text-green-800'
-                            : participant.status === 'pending'
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {participant.status}
-                      </span>
-                    </li>
+                    <ParticipantItem
+                      key={participant.id}
+                      participant={participant}
+                      journalId={id || ''}
+                    />
                   ))}
                 </ul>
               ) : (
@@ -344,5 +325,112 @@ function EmptyEntriesState() {
         Entries will appear here when participants respond to prompts
       </p>
     </div>
+  );
+}
+
+function ParticipantItem({ participant, journalId }: { participant: Participant; journalId: string }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const removeParticipant = useRemoveParticipant();
+  const resendInvite = useResendInvite();
+
+  const handleRemove = async () => {
+    try {
+      await removeParticipant.mutateAsync({ id: participant.id, journalId });
+      setConfirmDelete(false);
+      setShowMenu(false);
+    } catch (error) {
+      console.error('Failed to remove participant:', error);
+    }
+  };
+
+  const handleResendInvite = async () => {
+    try {
+      await resendInvite.mutateAsync(participant.id);
+      setShowMenu(false);
+    } catch (error) {
+      console.error('Failed to resend invite:', error);
+    }
+  };
+
+  return (
+    <li className="flex items-center gap-3 group relative">
+      <Avatar
+        src={participant.avatar_url}
+        name={participant.display_name}
+        size="sm"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="font-medium truncate">{participant.display_name}</p>
+        {participant.relationship && (
+          <p className="text-xs text-muted-foreground">{participant.relationship}</p>
+        )}
+      </div>
+      <span
+        className={`text-xs px-2 py-0.5 rounded-full ${
+          participant.status === 'active'
+            ? 'bg-green-100 text-green-800'
+            : participant.status === 'pending'
+            ? 'bg-yellow-100 text-yellow-800'
+            : 'bg-gray-100 text-gray-800'
+        }`}
+      >
+        {participant.status}
+      </span>
+      {/* Actions menu */}
+      <div className="relative">
+        <button
+          onClick={() => setShowMenu(!showMenu)}
+          className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
+        >
+          <MoreVertical className="h-4 w-4 text-muted-foreground" />
+        </button>
+        {showMenu && (
+          <div className="absolute right-0 mt-1 w-44 bg-background border rounded-lg shadow-lg z-10">
+            {participant.status === 'pending' && (
+              <button
+                onClick={handleResendInvite}
+                disabled={resendInvite.isPending}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 disabled:opacity-50"
+              >
+                <RefreshCw className={`h-4 w-4 ${resendInvite.isPending ? 'animate-spin' : ''}`} />
+                {resendInvite.isPending ? 'Sending...' : 'Resend invite'}
+              </button>
+            )}
+            <button
+              onClick={() => setConfirmDelete(true)}
+              className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-destructive"
+            >
+              <X className="h-4 w-4" />
+              Remove participant
+            </button>
+          </div>
+        )}
+      </div>
+      {/* Delete confirmation */}
+      {confirmDelete && (
+        <div className="absolute right-0 mt-1 p-3 bg-background border rounded-lg shadow-lg z-20 w-56">
+          <p className="text-sm font-medium">Remove {participant.display_name}?</p>
+          <p className="text-xs text-muted-foreground mt-1">They will no longer receive prompts.</p>
+          <div className="flex gap-2 mt-2">
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={handleRemove}
+              disabled={removeParticipant.isPending}
+            >
+              {removeParticipant.isPending ? 'Removing...' : 'Remove'}
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setConfirmDelete(false)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      )}
+    </li>
   );
 }
