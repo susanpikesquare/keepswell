@@ -13,7 +13,13 @@ async function bootstrap() {
 
   // Enable CORS for frontend
   app.enableCors({
-    origin: [frontendUrl, 'http://localhost:5173'],
+    origin: [
+      frontendUrl,
+      'http://localhost:5173',
+      'https://keepswell-app.onrender.com',
+      'https://keepswell.com',
+      'https://www.keepswell.com',
+    ],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
