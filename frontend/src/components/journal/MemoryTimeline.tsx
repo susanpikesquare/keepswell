@@ -10,9 +10,10 @@ interface MemoryTimelineProps {
   templateType: TemplateType;
   journalTitle: string;
   journalId?: string; // Optional: if provided, fetches config from API
+  coverImageUrl?: string; // Optional cover image for the header
 }
 
-export function MemoryTimeline({ entries, templateType, journalTitle, journalId }: MemoryTimelineProps) {
+export function MemoryTimeline({ entries, templateType, journalTitle, journalId, coverImageUrl }: MemoryTimelineProps) {
   // Fetch config from API if journalId is provided
   const { data: config } = useJournalConfig(journalId || '');
 
@@ -30,18 +31,45 @@ export function MemoryTimeline({ entries, templateType, journalTitle, journalId 
 
   return (
     <div className={`min-h-screen ${theme.bgGradient} ${theme.bgPattern}`}>
-      {/* Header */}
-      <div className="pt-12 pb-8 px-6 text-center">
-        <div className="inline-flex items-center gap-2 mb-4">
-          <TemplateIcon templateType={templateType} className={`h-6 w-6 ${theme.accentColor}`} />
+      {/* Header with optional cover image */}
+      {coverImageUrl ? (
+        <div className="relative">
+          {/* Cover image */}
+          <div className="h-64 md:h-80 overflow-hidden">
+            <img
+              src={coverImageUrl}
+              alt="Journal cover"
+              className="w-full h-full object-cover"
+            />
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
+          </div>
+          {/* Title overlay */}
+          <div className="absolute bottom-0 left-0 right-0 p-6 text-center text-white">
+            <div className="inline-flex items-center gap-2 mb-2">
+              <TemplateIcon templateType={templateType} className="h-6 w-6 text-white/80" />
+            </div>
+            <h1 className="text-4xl font-serif font-bold drop-shadow-lg mb-2">
+              {journalTitle}
+            </h1>
+            <p className="text-white/80 drop-shadow">
+              {entries.length} {entries.length === 1 ? 'memory' : 'memories'} collected
+            </p>
+          </div>
         </div>
-        <h1 className={`text-4xl font-serif font-bold ${theme.primaryColor} mb-2`}>
-          {journalTitle}
-        </h1>
-        <p className={`${theme.mutedColor}`}>
-          {entries.length} {entries.length === 1 ? 'memory' : 'memories'} collected
-        </p>
-      </div>
+      ) : (
+        <div className="pt-12 pb-8 px-6 text-center">
+          <div className="inline-flex items-center gap-2 mb-4">
+            <TemplateIcon templateType={templateType} className={`h-6 w-6 ${theme.accentColor}`} />
+          </div>
+          <h1 className={`text-4xl font-serif font-bold ${theme.primaryColor} mb-2`}>
+            {journalTitle}
+          </h1>
+          <p className={`${theme.mutedColor}`}>
+            {entries.length} {entries.length === 1 ? 'memory' : 'memories'} collected
+          </p>
+        </div>
+      )}
 
       {/* Timeline */}
       <div className="max-w-3xl mx-auto px-6 pb-16">

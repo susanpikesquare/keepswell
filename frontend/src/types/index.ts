@@ -188,6 +188,7 @@ export interface CreateJournalDto {
   prompt_day_of_week?: number;
   prompt_time?: string;
   timezone?: string;
+  cover_image_url?: string | null;
 }
 
 export interface InviteParticipantDto {

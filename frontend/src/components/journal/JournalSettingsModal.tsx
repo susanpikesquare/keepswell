@@ -1,9 +1,61 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Clock, AlertTriangle, Sparkles, Check } from 'lucide-react';
+import { Trash2, Clock, AlertTriangle, Sparkles, Check, Image, X } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { useUpdateJournal, useDeleteJournal, useGenerateDemoData } from '../../hooks';
 import type { Journal } from '../../types';
+
+// Cover image templates - using Unsplash for high-quality free images
+const COVER_TEMPLATES = [
+  {
+    id: 'family-1',
+    name: 'Warm Sunset',
+    url: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1200&h=400&fit=crop',
+    category: 'family',
+  },
+  {
+    id: 'family-2',
+    name: 'Cozy Home',
+    url: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=1200&h=400&fit=crop',
+    category: 'family',
+  },
+  {
+    id: 'nature-1',
+    name: 'Mountain View',
+    url: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1200&h=400&fit=crop',
+    category: 'nature',
+  },
+  {
+    id: 'nature-2',
+    name: 'Ocean Waves',
+    url: 'https://images.unsplash.com/photo-1505142468610-359e7d316be0?w=1200&h=400&fit=crop',
+    category: 'nature',
+  },
+  {
+    id: 'minimal-1',
+    name: 'Soft Gradient',
+    url: 'https://images.unsplash.com/photo-1557682250-33bd709cbe85?w=1200&h=400&fit=crop',
+    category: 'minimal',
+  },
+  {
+    id: 'minimal-2',
+    name: 'Abstract',
+    url: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1200&h=400&fit=crop',
+    category: 'minimal',
+  },
+  {
+    id: 'floral-1',
+    name: 'Spring Flowers',
+    url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?w=1200&h=400&fit=crop',
+    category: 'floral',
+  },
+  {
+    id: 'vintage-1',
+    name: 'Vintage Paper',
+    url: 'https://images.unsplash.com/photo-1516541196182-6bdb0516ed27?w=1200&h=400&fit=crop',
+    category: 'vintage',
+  },
+];
 
 interface JournalSettingsModalProps {
   isOpen: boolean;
@@ -62,6 +114,10 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
+  // Cover image
+  const [coverImage, setCoverImage] = useState(journal.cover_image_url || '');
+  const [showCoverPicker, setShowCoverPicker] = useState(false);
+
   const hasScheduleChanges =
     frequency !== journal.prompt_frequency ||
     dayOfWeek !== journal.prompt_day_of_week ||
@@ -115,8 +171,125 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
       size="lg"
     >
       <div className="space-y-8">
-        {/* Prompt Schedule Section */}
+        {/* Cover Image Section */}
         <section>
+          <h3 className="font-medium flex items-center gap-2 mb-4">
+            <Image className="h-4 w-4" />
+            Cover Image
+          </h3>
+
+          {/* Current cover preview */}
+          <div className="mb-4">
+            {coverImage ? (
+              <div className="relative rounded-lg overflow-hidden">
+                <img
+                  src={coverImage}
+                  alt="Cover"
+                  className="w-full h-32 object-cover"
+                />
+                <button
+                  onClick={() => setCoverImage('')}
+                  className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="w-full h-32 bg-muted rounded-lg flex items-center justify-center">
+                <p className="text-muted-foreground text-sm">No cover image selected</p>
+              </div>
+            )}
+          </div>
+
+          {/* Cover picker toggle */}
+          {!showCoverPicker ? (
+            <Button
+              variant="outline"
+              onClick={() => setShowCoverPicker(true)}
+              className="w-full"
+            >
+              <Image className="h-4 w-4 mr-2" />
+              {coverImage ? 'Change Cover Image' : 'Add Cover Image'}
+            </Button>
+          ) : (
+            <div className="space-y-4">
+              {/* Template grid */}
+              <div>
+                <p className="text-sm font-medium mb-2">Choose a template</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {COVER_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => {
+                        setCoverImage(template.url);
+                        setShowCoverPicker(false);
+                      }}
+                      className={`relative aspect-[3/1] rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
+                        coverImage === template.url
+                          ? 'border-primary ring-2 ring-primary/20'
+                          : 'border-transparent hover:border-muted-foreground/30'
+                      }`}
+                    >
+                      <img
+                        src={template.url}
+                        alt={template.name}
+                        className="w-full h-full object-cover"
+                      />
+                      {coverImage === template.url && (
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <Check className="h-4 w-4 text-white drop-shadow-lg" />
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom URL input */}
+              <div>
+                <p className="text-sm font-medium mb-2">Or enter an image URL</p>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="https://example.com/image.jpg"
+                    value={coverImage.startsWith('https://images.unsplash.com') ? '' : coverImage}
+                    onChange={(e) => setCoverImage(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCoverPicker(false)}
+                  >
+                    Done
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Save cover changes */}
+          {coverImage !== (journal.cover_image_url || '') && (
+            <Button
+              onClick={async () => {
+                try {
+                  await updateJournal.mutateAsync({
+                    id: journal.id,
+                    data: { cover_image_url: coverImage || null },
+                  });
+                } catch (error) {
+                  console.error('Failed to update cover:', error);
+                }
+              }}
+              disabled={updateJournal.isPending}
+              className="w-full mt-4"
+            >
+              {updateJournal.isPending ? 'Saving...' : 'Save Cover Image'}
+            </Button>
+          )}
+        </section>
+
+        {/* Prompt Schedule Section */}
+        <section className="border-t pt-6">
           <h3 className="font-medium flex items-center gap-2 mb-4">
             <Clock className="h-4 w-4" />
             Prompt Schedule

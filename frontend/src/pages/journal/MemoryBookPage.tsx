@@ -88,6 +88,7 @@ export function MemoryBookPage() {
           entries={entries}
           templateType={journal.template_type}
           journalTitle={journal.title}
+          coverImageUrl={journal.cover_image_url || undefined}
         />
       )}
     </div>
