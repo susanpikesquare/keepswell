@@ -31,6 +31,23 @@ export class AdminController {
     return { success: true, message: `Admin access granted to ${body.email}` };
   }
 
+  // Debug endpoint to check user status - no admin required
+  @Get('debug/:email')
+  @Public()
+  async debugUser(@Param('email') email: string) {
+    const user = await this.adminService.getUserByEmail(email);
+    if (!user) {
+      return { found: false, message: 'User not found in database' };
+    }
+    return {
+      found: true,
+      id: user.id,
+      email: user.email,
+      clerk_id: user.clerk_id,
+      is_admin: user.is_admin,
+    };
+  }
+
   @UseGuards(AdminGuard)
   @Get('stats')
   async getStats(): Promise<PlatformStats> {

@@ -203,4 +203,8 @@ export class AdminService {
     await this.userRepo.update(user.id, { is_admin: true });
     return this.userRepo.findOneOrFail({ where: { id: user.id } });
   }
+
+  async getUserByEmail(email: string): Promise<User | null> {
+    return this.userRepo.findOne({ where: { email } });
+  }
 }
