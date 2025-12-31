@@ -24,7 +24,19 @@ export class SmsController {
     private mediaRepo: Repository<MediaAttachment>,
     private storageService: StorageService,
     private smsService: SmsService,
-  ) {}
+  ) {
+    this.logger.log('SmsController initialized - webhooks ready at /api/webhooks/sms/*');
+  }
+
+  /**
+   * Simple test endpoint to verify webhook URL is reachable
+   */
+  @Public()
+  @Get('test')
+  testWebhook(): string {
+    this.logger.log('Test webhook endpoint hit successfully!');
+    return 'Webhook endpoint is working! Configure Vonage to POST to /api/webhooks/sms/incoming';
+  }
 
   /**
    * Handle incoming SMS from Vonage (legacy SMS API)
