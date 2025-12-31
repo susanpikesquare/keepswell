@@ -39,6 +39,27 @@ export class SmsController {
   }
 
   /**
+   * Test sending an SMS - returns the full Vonage response
+   * Usage: POST /api/webhooks/sms/test-send with { "to": "+1234567890", "message": "Test" }
+   */
+  @Public()
+  @Post('test-send')
+  async testSendSms(@Body() body: { to: string; message?: string }): Promise<any> {
+    const testMessage = body.message || 'Keepswell test message. Reply STOP to opt out.';
+    this.logger.log(`Test SMS requested to: ${body.to}`);
+
+    const result = await this.smsService.sendSms(body.to, testMessage);
+
+    this.logger.log(`Test SMS result: ${JSON.stringify(result)}`);
+    return {
+      ...result,
+      sentTo: body.to,
+      sentMessage: testMessage,
+      timestamp: new Date().toISOString(),
+    };
+  }
+
+  /**
    * Handle incoming SMS from Vonage (legacy SMS API)
    */
   @Public()
