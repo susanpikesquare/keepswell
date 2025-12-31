@@ -25,6 +25,7 @@ export interface Journal {
   prompt_day_of_week: number | null;
   prompt_time: string;
   timezone: string;
+  join_keyword: string | null;
   created_at: string;
   updated_at: string;
   participants?: Participant[];

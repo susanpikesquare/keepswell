@@ -1,11 +1,13 @@
 import { Controller, Post, Body, Get, Query, Logger, HttpCode, HttpStatus } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
+import { randomBytes } from 'crypto';
 import { Public } from '../../common/decorators';
 import { IncomingSmsDto, IncomingMessageDto } from './dto/incoming-sms.dto';
-import { Entry, Participant, MediaAttachment } from '../../database/entities';
+import { Entry, Participant, MediaAttachment, Journal } from '../../database/entities';
 import { StorageService } from '../storage/storage.service';
 import { SmsService } from './sms.service';
+import { JournalsService } from '../journals/journals.service';
 
 // Keywords for opt-in/opt-out
 const OPT_IN_KEYWORDS = ['yes', 'y', 'start', 'subscribe', 'optin', 'opt-in'];
@@ -22,8 +24,11 @@ export class SmsController {
     private participantRepo: Repository<Participant>,
     @InjectRepository(MediaAttachment)
     private mediaRepo: Repository<MediaAttachment>,
+    @InjectRepository(Journal)
+    private journalRepo: Repository<Journal>,
     private storageService: StorageService,
     private smsService: SmsService,
+    private journalsService: JournalsService,
   ) {
     this.logger.log('SmsController initialized - webhooks ready at /api/webhooks/sms/*');
   }
@@ -107,6 +112,12 @@ export class SmsController {
         return 'OK';
       }
 
+      // Check for JOIN keyword
+      const joinResult = await this.handleJoinKeyword(fromNumber, messageText);
+      if (joinResult) {
+        return 'OK';
+      }
+
       // Regular message - find active participant
       const participant = await this.findParticipant(fromNumber);
 
@@ -139,6 +150,12 @@ export class SmsController {
       if (messageText && !dto.image?.url && !dto.message?.content?.image?.url) {
         const optInOutResult = await this.handleOptInOut(fromNumber, messageText);
         if (optInOutResult) {
+          return 'OK';
+        }
+
+        // Check for JOIN keyword
+        const joinResult = await this.handleJoinKeyword(fromNumber, messageText);
+        if (joinResult) {
           return 'OK';
         }
       }
@@ -177,6 +194,86 @@ export class SmsController {
       this.logger.error(`Error processing incoming message: ${error.message}`);
       return 'OK';
     }
+  }
+
+  /**
+   * Handle JOIN keyword to join a journal
+   * Format: "JOIN KEYWORD" or just "KEYWORD"
+   * Returns true if the message was a join command
+   */
+  private async handleJoinKeyword(phoneNumber: string, messageText: string): Promise<boolean> {
+    // Check for "JOIN KEYWORD" format
+    const joinMatch = messageText.match(/^join\s+(\w+)$/i);
+    const keyword = joinMatch ? joinMatch[1].toUpperCase() : null;
+
+    if (!keyword) {
+      return false;
+    }
+
+    // Find journal by keyword
+    const journal = await this.journalsService.findByJoinKeyword(keyword);
+
+    if (!journal) {
+      this.logger.log(`No journal found for keyword: ${keyword}`);
+      await this.smsService.sendSms(
+        phoneNumber,
+        `Keepswell: We couldn't find a journal with that keyword. Please check and try again.`,
+      );
+      return true;
+    }
+
+    // Check if this phone is already a participant
+    const existingParticipant = await this.participantRepo.findOne({
+      where: { journal_id: journal.id, phone_number: phoneNumber },
+    });
+
+    if (existingParticipant) {
+      if (existingParticipant.status === 'active') {
+        await this.smsService.sendSms(
+          phoneNumber,
+          `Keepswell: You're already a member of "${journal.title}". Reply with your memories anytime!`,
+        );
+      } else {
+        // Reactivate
+        await this.participantRepo.update(existingParticipant.id, {
+          status: 'active',
+          opted_in: true,
+          opted_in_at: new Date(),
+        });
+        await this.smsService.sendSms(
+          phoneNumber,
+          `Keepswell: Welcome back to "${journal.title}"! You're all set to receive prompts and share memories.`,
+        );
+      }
+      return true;
+    }
+
+    // Create new participant
+    const magicToken = randomBytes(32).toString('hex');
+    const tokenExpiry = new Date();
+    tokenExpiry.setFullYear(tokenExpiry.getFullYear() + 1);
+
+    const participant = this.participantRepo.create({
+      journal_id: journal.id,
+      phone_number: phoneNumber,
+      display_name: `Member ${phoneNumber.slice(-4)}`, // Default name from last 4 digits
+      status: 'active',
+      opted_in: true,
+      opted_in_at: new Date(),
+      magic_token: magicToken,
+      magic_token_expires_at: tokenExpiry,
+    });
+
+    await this.participantRepo.save(participant);
+
+    this.logger.log(`New participant joined "${journal.title}" via keyword ${keyword}`);
+
+    await this.smsService.sendSms(
+      phoneNumber,
+      `Keepswell: Welcome to "${journal.title}"! You're now part of this memory journal. Reply to prompts with your stories and photos. Text STOP to opt out anytime.`,
+    );
+
+    return true;
   }
 
   /**

@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Clock, AlertTriangle, Sparkles, Check, Image, X } from 'lucide-react';
+import { Trash2, Clock, AlertTriangle, Sparkles, Check, Image, X, MessageSquare, Copy, CheckCircle } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { useUpdateJournal, useDeleteJournal, useGenerateDemoData } from '../../hooks';
 import type { Journal } from '../../types';
+
+// SMS phone number (Vonage number)
+const SMS_PHONE_NUMBER = '+1 (224) 426-2059';
 
 // Cover image templates - using Unsplash for high-quality free images
 const COVER_TEMPLATES = [
@@ -118,6 +121,19 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
   const [coverImage, setCoverImage] = useState(journal.cover_image_url || '');
   const [showCoverPicker, setShowCoverPicker] = useState(false);
 
+  // Copy feedback
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const handleCopy = async (text: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      setTimeout(() => setCopiedField(null), 2000);
+    } catch (error) {
+      console.error('Failed to copy:', error);
+    }
+  };
+
   const hasScheduleChanges =
     frequency !== journal.prompt_frequency ||
     dayOfWeek !== journal.prompt_day_of_week ||
@@ -171,8 +187,88 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
       size="lg"
     >
       <div className="space-y-8">
-        {/* Cover Image Section */}
+        {/* SMS Join Section */}
         <section>
+          <h3 className="font-medium flex items-center gap-2 mb-4">
+            <MessageSquare className="h-4 w-4" />
+            SMS Join Info
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Share this info so people can join your journal by text message.
+          </p>
+
+          <div className="space-y-3">
+            {/* Phone Number */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-muted rounded-lg px-4 py-3">
+                <p className="text-xs text-muted-foreground mb-1">SMS Number</p>
+                <p className="font-mono font-medium">{SMS_PHONE_NUMBER}</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleCopy(SMS_PHONE_NUMBER.replace(/[^0-9+]/g, ''), 'phone')}
+              >
+                {copiedField === 'phone' ? (
+                  <CheckCircle className="h-4 w-4 text-green-500" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
+
+            {/* Join Keyword */}
+            {journal.join_keyword && (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 bg-muted rounded-lg px-4 py-3">
+                  <p className="text-xs text-muted-foreground mb-1">Join Keyword</p>
+                  <p className="font-mono font-medium">JOIN {journal.join_keyword}</p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleCopy(`JOIN ${journal.join_keyword}`, 'keyword')}
+                >
+                  {copiedField === 'keyword' ? (
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* Full Instructions */}
+            <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
+              <p className="text-sm font-medium mb-2">How to join:</p>
+              <p className="text-sm text-muted-foreground">
+                Text <span className="font-mono font-medium bg-background px-1.5 py-0.5 rounded">JOIN {journal.join_keyword || 'KEYWORD'}</span> to{' '}
+                <span className="font-mono font-medium bg-background px-1.5 py-0.5 rounded">{SMS_PHONE_NUMBER}</span>
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => handleCopy(`Text "JOIN ${journal.join_keyword || 'KEYWORD'}" to ${SMS_PHONE_NUMBER} to join our memory journal!`, 'instructions')}
+              >
+                {copiedField === 'instructions' ? (
+                  <>
+                    <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                    Copied!
+                  </>
+                ) : (
+                  <>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy Instructions
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        {/* Cover Image Section */}
+        <section className="border-t pt-6">
           <h3 className="font-medium flex items-center gap-2 mb-4">
             <Image className="h-4 w-4" />
             Cover Image

@@ -131,6 +131,10 @@ export class Journal {
   @Column({ type: 'jsonb', nullable: true })
   ai_state: JournalAIState;
 
+  // SMS Join keyword (e.g., "JOIN SMITH" to join this journal)
+  @Column({ nullable: true, unique: true })
+  join_keyword: string;
+
   // Sharing
   @Column({ nullable: true, unique: true })
   share_token: string;

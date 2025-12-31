@@ -24,12 +24,50 @@ export class JournalsService {
       throw new NotFoundException('User not found');
     }
 
+    // Generate a unique join keyword
+    const joinKeyword = await this.generateUniqueKeyword(createJournalDto.title);
+
     const journal = this.journalRepository.create({
       ...createJournalDto,
       owner_id: user.id,
+      join_keyword: joinKeyword,
     });
 
     return this.journalRepository.save(journal);
+  }
+
+  /**
+   * Generate a unique join keyword from the journal title
+   */
+  private async generateUniqueKeyword(title: string): Promise<string> {
+    // Create base keyword from title: remove special chars, uppercase, max 12 chars
+    let baseKeyword = title
+      .toUpperCase()
+      .replace(/[^A-Z0-9]/g, '')
+      .substring(0, 12);
+
+    // If empty, use random string
+    if (!baseKeyword) {
+      baseKeyword = randomBytes(4).toString('hex').toUpperCase();
+    }
+
+    // Check if it's unique
+    let keyword = baseKeyword;
+    let attempts = 0;
+    while (attempts < 10) {
+      const existing = await this.journalRepository.findOne({
+        where: { join_keyword: keyword },
+      });
+      if (!existing) {
+        return keyword;
+      }
+      // Add random suffix
+      keyword = baseKeyword.substring(0, 8) + randomBytes(2).toString('hex').toUpperCase();
+      attempts++;
+    }
+
+    // Fallback to fully random
+    return randomBytes(6).toString('hex').toUpperCase();
   }
 
   async findAllByUser(clerkId: string): Promise<Journal[]> {
@@ -126,6 +164,42 @@ export class JournalsService {
       shareUrl: journal.is_shared ? `/shared/${journal.share_token}` : null,
       sharedAt: journal.shared_at,
     };
+  }
+
+  /**
+   * Find a journal by its join keyword (public - for SMS join)
+   */
+  async findByJoinKeyword(keyword: string): Promise<Journal | null> {
+    return this.journalRepository.findOne({
+      where: { join_keyword: keyword.toUpperCase() },
+      relations: ['owner'],
+    });
+  }
+
+  /**
+   * Update the join keyword for a journal
+   */
+  async updateJoinKeyword(id: string, clerkId: string, newKeyword: string): Promise<Journal> {
+    const journal = await this.findOne(id, clerkId);
+
+    // Validate and normalize the keyword
+    const normalizedKeyword = newKeyword.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 12);
+
+    if (normalizedKeyword.length < 3) {
+      throw new ForbiddenException('Keyword must be at least 3 characters');
+    }
+
+    // Check if keyword is already in use by another journal
+    const existing = await this.journalRepository.findOne({
+      where: { join_keyword: normalizedKeyword },
+    });
+
+    if (existing && existing.id !== id) {
+      throw new ForbiddenException('This keyword is already in use');
+    }
+
+    journal.join_keyword = normalizedKeyword;
+    return this.journalRepository.save(journal);
   }
 
   /**
