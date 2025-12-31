@@ -1,16 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
+import axios from 'axios';
 
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private isConfigured = false;
+  private vonageApiKey: string;
+  private vonageApiSecret: string;
 
   constructor(private configService: ConfigService) {
     const cloudName = this.configService.get<string>('storage.cloudinaryCloudName');
     const apiKey = this.configService.get<string>('storage.cloudinaryApiKey');
     const apiSecret = this.configService.get<string>('storage.cloudinaryApiSecret');
+
+    // Store Vonage credentials for authenticated image downloads
+    this.vonageApiKey = this.configService.get<string>('vonage.apiKey') || '';
+    this.vonageApiSecret = this.configService.get<string>('vonage.apiSecret') || '';
 
     if (cloudName && apiKey && apiSecret) {
       cloudinary.config({
@@ -26,6 +33,31 @@ export class StorageService {
   }
 
   /**
+   * Check if a URL is a Vonage media URL that requires authentication
+   */
+  private isVonageUrl(url: string): boolean {
+    return url.includes('api.nexmo.com') || url.includes('api-us.nexmo.com') || url.includes('api-eu.nexmo.com');
+  }
+
+  /**
+   * Download an image from Vonage with authentication
+   */
+  private async downloadVonageImage(imageUrl: string): Promise<Buffer> {
+    this.logger.log(`Downloading Vonage image with authentication: ${imageUrl}`);
+
+    const response = await axios.get(imageUrl, {
+      responseType: 'arraybuffer',
+      auth: {
+        username: this.vonageApiKey,
+        password: this.vonageApiSecret,
+      },
+      timeout: 30000,
+    });
+
+    return Buffer.from(response.data);
+  }
+
+  /**
    * Upload an image from a URL to Cloudinary
    */
   async uploadFromUrl(
@@ -38,14 +70,44 @@ export class StorageService {
     }
 
     try {
-      const result: UploadApiResponse = await cloudinary.uploader.upload(imageUrl, {
-        folder,
-        resource_type: 'image',
-        transformation: [
-          { quality: 'auto:good' },
-          { fetch_format: 'auto' },
-        ],
-      });
+      let result: UploadApiResponse;
+
+      // Check if this is a Vonage URL that requires authentication
+      if (this.isVonageUrl(imageUrl)) {
+        this.logger.log(`Detected Vonage media URL, downloading with auth...`);
+
+        // Download the image with Vonage credentials
+        const imageBuffer = await this.downloadVonageImage(imageUrl);
+
+        // Upload buffer to Cloudinary
+        result = await new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              folder,
+              resource_type: 'image',
+              transformation: [
+                { quality: 'auto:good' },
+                { fetch_format: 'auto' },
+              ],
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result as UploadApiResponse);
+            },
+          );
+          uploadStream.end(imageBuffer);
+        });
+      } else {
+        // Direct URL upload for non-Vonage URLs
+        result = await cloudinary.uploader.upload(imageUrl, {
+          folder,
+          resource_type: 'image',
+          transformation: [
+            { quality: 'auto:good' },
+            { fetch_format: 'auto' },
+          ],
+        });
+      }
 
       // Generate thumbnail URL
       const thumbnailUrl = cloudinary.url(result.public_id, {

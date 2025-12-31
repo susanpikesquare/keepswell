@@ -161,6 +161,7 @@ export class SmsController {
    */
   private async processIncomingMessage(dto: IncomingMessageDto): Promise<string> {
     this.logger.log(`Received message from ${dto.from}, type: ${dto.message_type || dto.channel}`);
+    this.logger.log(`[MMS DEBUG] Full DTO: ${JSON.stringify(dto)}`);
 
     try {
       const fromNumber = this.normalizePhoneNumber(dto.from);
@@ -210,6 +211,9 @@ export class SmsController {
       }
 
       this.logger.log(`Message content: "${textContent?.substring(0, 50)}", images: ${imageUrls.length}`);
+      if (imageUrls.length > 0) {
+        this.logger.log(`[MMS DEBUG] Image URLs: ${JSON.stringify(imageUrls)}`);
+      }
 
       await this.createEntry(participant, textContent, imageUrls);
       return 'OK';
