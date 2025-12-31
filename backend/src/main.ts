@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { AdminService } from './modules/admin';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -35,6 +36,17 @@ async function bootstrap() {
 
   const port = configService.get<number>('PORT') || 3000;
   await app.listen(port);
+
+  // Set up initial admin user
+  try {
+    const adminService = app.get(AdminService);
+    const adminUser = await adminService.makeUserAdminByEmail('susan@pikesquare.co');
+    if (adminUser) {
+      logger.log(`Admin access granted to: susan@pikesquare.co`);
+    }
+  } catch (error) {
+    logger.warn('Could not set up admin user (user may not exist yet)');
+  }
 
   logger.log(`Application running on http://localhost:${port}`);
   logger.log(`API available at http://localhost:${port}/api`);
