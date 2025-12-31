@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { journalsApi } from '../api';
+import { useAuth } from '@clerk/clerk-react';
+import { journalsApi, setAuthToken } from '../api';
 import type { CreateJournalDto } from '../types';
 
 export function useJournals() {
@@ -30,10 +31,15 @@ export function useCreateJournal() {
 
 export function useUpdateJournal() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<CreateJournalDto> }) =>
-      journalsApi.update(id, data),
+    mutationFn: async ({ id, data }: { id: string; data: Partial<CreateJournalDto> }) => {
+      // Ensure token is set before making the request
+      const token = await getToken();
+      setAuthToken(token);
+      return journalsApi.update(id, data);
+    },
     onSuccess: (_, { id }) => {
       queryClient.invalidateQueries({ queryKey: ['journals'] });
       queryClient.invalidateQueries({ queryKey: ['journals', id] });
