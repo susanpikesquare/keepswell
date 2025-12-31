@@ -16,6 +16,7 @@ import { ParticipantViewPage } from './pages/participant/ParticipantViewPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { SmsConsentPage } from './pages/SmsConsentPage';
+import { SupportPage } from './pages/SupportPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/sms-consent" element={<SmsConsentPage />} />
+        <Route path="/support" element={<SupportPage />} />
 
         {/* Protected routes */}
         <Route
