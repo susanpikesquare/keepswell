@@ -65,6 +65,24 @@ export class SmsController {
   }
 
   /**
+   * Ultra-simple debug endpoint - accepts anything
+   */
+  @Public()
+  @Post('debug')
+  @HttpCode(HttpStatus.OK)
+  handleDebug(@Body() body: any): string {
+    this.logger.log(`[DEBUG POST] Received: ${JSON.stringify(body)}`);
+    return 'OK';
+  }
+
+  @Public()
+  @Get('debug')
+  handleDebugGet(@Query() query: any): string {
+    this.logger.log(`[DEBUG GET] Received: ${JSON.stringify(query)}`);
+    return 'OK';
+  }
+
+  /**
    * Handle incoming SMS from Vonage (legacy SMS API)
    */
   @Public()
