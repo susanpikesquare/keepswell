@@ -36,3 +36,9 @@ export {
   usePromptUsageStats,
   useUpdateJournalCustomizations,
 } from './useTemplates';
+export {
+  useAdminAccess,
+  useAdminStats,
+  useAdminUsers,
+  useSetAdminStatus,
+} from './useAdmin';

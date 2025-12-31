@@ -37,6 +37,9 @@ export class User {
   @Column({ nullable: true })
   stripe_customer_id: string;
 
+  @Column({ default: false })
+  is_admin: boolean;
+
   @CreateDateColumn()
   created_at: Date;
 

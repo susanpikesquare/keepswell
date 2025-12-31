@@ -36,6 +36,7 @@ import { ParticipantsModule } from './modules/participants/participants.module';
 import { EntriesModule } from './modules/entries/entries.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { SmsModule } from './modules/sms/sms.module';
+import { AdminModule } from './modules/admin/admin.module';
 
 @Module({
   imports: [
@@ -90,6 +91,7 @@ import { SmsModule } from './modules/sms/sms.module';
     EntriesModule,
     TemplatesModule,
     SmsModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [

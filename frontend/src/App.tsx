@@ -11,6 +11,7 @@ import { CreateJournalPage } from './pages/journal/CreateJournalPage';
 import { JournalDetailPage } from './pages/journal/JournalDetailPage';
 import { MemoryBookPage } from './pages/journal/MemoryBookPage';
 import { SharedBookPage } from './pages/shared/SharedBookPage';
+import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 
 function App() {
   return (
@@ -43,6 +44,14 @@ function App() {
           element={
             <ProtectedRoute>
               <JournalDetailPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute>
+              <AdminDashboardPage />
             </ProtectedRoute>
           }
         />
