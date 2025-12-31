@@ -17,7 +17,7 @@ export class AdminGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const clerkId = request.user?.id;
+    const clerkId = request.user?.clerkId;
 
     if (!clerkId) {
       throw new ForbiddenException('Not authenticated');
