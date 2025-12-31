@@ -258,7 +258,10 @@ function EntryCard({ entry }: { entry: Entry }) {
                     Hide entry
                   </button>
                   <button
-                    onClick={() => setConfirmDelete(true)}
+                    onClick={() => {
+                      setConfirmDelete(true);
+                      setShowMenu(false);
+                    }}
                     className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 text-destructive"
                   >
                     <Trash2 className="h-4 w-4" />
