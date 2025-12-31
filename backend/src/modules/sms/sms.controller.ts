@@ -40,7 +40,7 @@ export class SmsController {
   @Get('test')
   testWebhook(): string {
     this.logger.log('Test webhook endpoint hit successfully!');
-    return 'Webhook endpoint is working! Configure Vonage to POST to /api/webhooks/sms/incoming';
+    return 'Webhook endpoint is working! Configure Telnyx to POST to /api/webhooks/sms/incoming';
   }
 
   /**
@@ -83,7 +83,7 @@ export class SmsController {
   }
 
   /**
-   * Handle incoming SMS from Vonage (legacy SMS API)
+   * Handle incoming SMS/MMS webhooks from Telnyx (or legacy Vonage)
    */
   @Public()
   @Post('incoming')
@@ -93,10 +93,18 @@ export class SmsController {
     this.logger.log(`[POST] Incoming webhook received`);
     this.logger.log(`[POST] Body: ${JSON.stringify(body)}`);
 
-    // Check if this is Messages API format (has 'from' field) or SMS API format (has 'msisdn' field)
-    if (body.from) {
+    // Check for Telnyx format (has data.event_type)
+    if (body.data?.event_type) {
+      return this.processTelnyxWebhook(body);
+    }
+
+    // Legacy Vonage Messages API format (has 'from' field as string)
+    if (body.from && typeof body.from === 'string') {
       return this.processIncomingMessage(body as IncomingMessageDto);
-    } else if (body.msisdn) {
+    }
+
+    // Legacy Vonage SMS API format (has 'msisdn' field)
+    if (body.msisdn) {
       return this.processIncomingSms(body as IncomingSmsDto);
     }
 
@@ -117,6 +125,78 @@ export class SmsController {
     }
     this.logger.warn(`[GET] Unknown query format`);
     return 'OK';
+  }
+
+  /**
+   * Process Telnyx webhook format
+   */
+  private async processTelnyxWebhook(body: any): Promise<string> {
+    const eventType = body.data?.event_type;
+    const payload = body.data?.payload;
+
+    // Only process inbound messages
+    if (eventType !== 'message.received') {
+      this.logger.log(`Ignoring Telnyx event: ${eventType}`);
+      return 'OK';
+    }
+
+    if (!payload) {
+      this.logger.warn('Telnyx webhook missing payload');
+      return 'OK';
+    }
+
+    try {
+      // Extract phone number (Telnyx format: { phone_number: "+1..." })
+      const fromNumber = this.normalizePhoneNumber(
+        payload.from?.phone_number || payload.from || ''
+      );
+
+      // Extract text content
+      const textContent = payload.text || '';
+      const messageText = textContent.trim().toLowerCase();
+
+      this.logger.log(`Received Telnyx message from ${fromNumber}: ${textContent.substring(0, 50)}...`);
+
+      // Extract media URLs (for MMS)
+      const imageUrls: string[] = [];
+      if (payload.media && Array.isArray(payload.media)) {
+        for (const media of payload.media) {
+          if (media.url && media.content_type?.startsWith('image/')) {
+            imageUrls.push(media.url);
+            this.logger.log(`[MMS] Found image: ${media.url}`);
+          }
+        }
+      }
+
+      // Check for opt-in/opt-out keywords first (only for text-only messages)
+      if (messageText && imageUrls.length === 0) {
+        const optInOutResult = await this.handleOptInOut(fromNumber, messageText);
+        if (optInOutResult) {
+          return 'OK';
+        }
+
+        // Check for JOIN keyword
+        const joinResult = await this.handleJoinKeyword(fromNumber, messageText);
+        if (joinResult) {
+          return 'OK';
+        }
+      }
+
+      // Regular message - find active participant
+      const participant = await this.findParticipant(fromNumber);
+
+      if (!participant) {
+        return 'OK';
+      }
+
+      this.logger.log(`Message content: "${textContent?.substring(0, 50)}", images: ${imageUrls.length}`);
+
+      await this.createEntry(participant, textContent, imageUrls);
+      return 'OK';
+    } catch (error) {
+      this.logger.error(`Error processing Telnyx webhook: ${error.message}`);
+      return 'OK';
+    }
   }
 
   /**

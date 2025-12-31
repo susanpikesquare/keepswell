@@ -5,8 +5,8 @@ import { Modal, Button, Input } from '../ui';
 import { useUpdateJournal, useDeleteJournal, useGenerateDemoData } from '../../hooks';
 import type { Journal } from '../../types';
 
-// SMS phone number (Vonage number)
-const SMS_PHONE_NUMBER = '+1 (224) 426-2059';
+// SMS phone number (Telnyx number)
+const SMS_PHONE_NUMBER = '+1 (916) 439-8709';
 
 // Cover image templates - using Unsplash for high-quality free images
 const COVER_TEMPLATES = [

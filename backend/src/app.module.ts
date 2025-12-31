@@ -6,7 +6,7 @@ import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 
 import {
   databaseConfig,
-  vonageConfig,
+  telnyxConfig,
   clerkConfig,
   storageConfig,
 } from './config';
@@ -44,7 +44,7 @@ import { AdminModule } from './modules/admin/admin.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env.local', '.env'],
-      load: [databaseConfig, vonageConfig, clerkConfig, storageConfig],
+      load: [databaseConfig, telnyxConfig, clerkConfig, storageConfig],
     }),
 
     // Database

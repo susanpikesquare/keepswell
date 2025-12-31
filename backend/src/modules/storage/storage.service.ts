@@ -7,17 +7,15 @@ import axios from 'axios';
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
   private isConfigured = false;
-  private vonageApiKey: string;
-  private vonageApiSecret: string;
+  private telnyxApiKey: string;
 
   constructor(private configService: ConfigService) {
     const cloudName = this.configService.get<string>('storage.cloudinaryCloudName');
     const apiKey = this.configService.get<string>('storage.cloudinaryApiKey');
     const apiSecret = this.configService.get<string>('storage.cloudinaryApiSecret');
 
-    // Store Vonage credentials for authenticated image downloads
-    this.vonageApiKey = this.configService.get<string>('vonage.apiKey') || '';
-    this.vonageApiSecret = this.configService.get<string>('vonage.apiSecret') || '';
+    // Store Telnyx API key for authenticated image downloads
+    this.telnyxApiKey = this.configService.get<string>('telnyx.apiKey') || '';
 
     if (cloudName && apiKey && apiSecret) {
       cloudinary.config({
@@ -33,23 +31,22 @@ export class StorageService {
   }
 
   /**
-   * Check if a URL is a Vonage media URL that requires authentication
+   * Check if a URL is a Telnyx media URL that requires authentication
    */
-  private isVonageUrl(url: string): boolean {
-    return url.includes('api.nexmo.com') || url.includes('api-us.nexmo.com') || url.includes('api-eu.nexmo.com');
+  private isTelnyxUrl(url: string): boolean {
+    return url.includes('telnyx.com') || url.includes('telnyx-mms');
   }
 
   /**
-   * Download an image from Vonage with authentication
+   * Download an image from Telnyx with authentication
    */
-  private async downloadVonageImage(imageUrl: string): Promise<Buffer> {
-    this.logger.log(`Downloading Vonage image with authentication: ${imageUrl}`);
+  private async downloadTelnyxImage(imageUrl: string): Promise<Buffer> {
+    this.logger.log(`Downloading Telnyx image with authentication: ${imageUrl}`);
 
     const response = await axios.get(imageUrl, {
       responseType: 'arraybuffer',
-      auth: {
-        username: this.vonageApiKey,
-        password: this.vonageApiSecret,
+      headers: {
+        'Authorization': `Bearer ${this.telnyxApiKey}`,
       },
       timeout: 30000,
     });
@@ -72,12 +69,12 @@ export class StorageService {
     try {
       let result: UploadApiResponse;
 
-      // Check if this is a Vonage URL that requires authentication
-      if (this.isVonageUrl(imageUrl)) {
-        this.logger.log(`Detected Vonage media URL, downloading with auth...`);
+      // Check if this is a Telnyx URL that requires authentication
+      if (this.isTelnyxUrl(imageUrl)) {
+        this.logger.log(`Detected Telnyx media URL, downloading with auth...`);
 
-        // Download the image with Vonage credentials
-        const imageBuffer = await this.downloadVonageImage(imageUrl);
+        // Download the image with Telnyx credentials
+        const imageBuffer = await this.downloadTelnyxImage(imageUrl);
 
         // Upload buffer to Cloudinary
         result = await new Promise((resolve, reject) => {
