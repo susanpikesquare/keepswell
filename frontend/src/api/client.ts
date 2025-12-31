@@ -1,6 +1,21 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+// Use environment variable, or production API URL if on Render, or /api for local dev
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  // Production fallback
+  if (typeof window !== 'undefined' && window.location.hostname.includes('onrender.com')) {
+    return 'https://keepswell-api.onrender.com/api';
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('keepswell.com')) {
+    return 'https://keepswell-api.onrender.com/api';
+  }
+  return '/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
