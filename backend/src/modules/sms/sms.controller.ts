@@ -72,7 +72,8 @@ export class SmsController {
   @HttpCode(HttpStatus.OK)
   async handleIncomingSms(@Body() body: any): Promise<string> {
     // Log the full incoming webhook for debugging
-    this.logger.log(`Incoming webhook: ${JSON.stringify(body)}`);
+    this.logger.log(`[POST] Incoming webhook received`);
+    this.logger.log(`[POST] Body: ${JSON.stringify(body)}`);
 
     // Check if this is Messages API format (has 'from' field) or SMS API format (has 'msisdn' field)
     if (body.from) {
@@ -88,11 +89,15 @@ export class SmsController {
   @Public()
   @Get('incoming')
   async handleIncomingSmsGet(@Query() query: any): Promise<string> {
+    this.logger.log(`[GET] Incoming webhook received`);
+    this.logger.log(`[GET] Query: ${JSON.stringify(query)}`);
+
     if (query.from) {
       return this.processIncomingMessage(query as IncomingMessageDto);
     } else if (query.msisdn) {
       return this.processIncomingSms(query as IncomingSmsDto);
     }
+    this.logger.warn(`[GET] Unknown query format`);
     return 'OK';
   }
 
