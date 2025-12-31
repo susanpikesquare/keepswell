@@ -71,7 +71,7 @@ import { AdminModule } from './modules/admin/admin.module';
           PromptUsageLog,
           AIContent,
         ],
-        synchronize: configService.get<string>('NODE_ENV') !== 'production',
+        synchronize: true, // Enabled for early development - TODO: use migrations in production
         logging: configService.get<string>('NODE_ENV') !== 'production',
         ssl:
           configService.get<string>('NODE_ENV') === 'production'
