@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Sparkles, Plane, BookOpen, Crown, Users, ChevronDown, ChevronUp, MessageCircle, Camera, Lightbulb } from 'lucide-react';
+import { ArrowLeft, Heart, Sparkles, Plane, BookOpen, Crown, Users, ChevronDown, ChevronUp, MessageCircle, Camera, Lightbulb, Phone } from 'lucide-react';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription } from '../../components/ui';
 import { useCreateJournal, useStarterPrompts } from '../../hooks';
 import { cn } from '../../lib/utils';
@@ -85,6 +85,19 @@ export function CreateJournalPage() {
   const [expandedTemplate, setExpandedTemplate] = useState<TemplateType | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [includeOwner, setIncludeOwner] = useState(false);
+  const [ownerPhone, setOwnerPhone] = useState('');
+
+  const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  };
+
+  const handleOwnerPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setOwnerPhone(formatPhoneNumber(e.target.value));
+  };
 
   // Get all template types from themes
   const templates = getTemplateTypes().map((type) => templateInfo[type]);
@@ -97,11 +110,19 @@ export function CreateJournalPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    // Validate owner phone if they want to participate
+    const ownerPhoneDigits = ownerPhone.replace(/\D/g, '');
+    if (includeOwner && ownerPhoneDigits.length < 10) {
+      return; // Form validation will handle this
+    }
+
     try {
       const journal = await createJournal.mutateAsync({
         title,
         description: description || undefined,
         template_type: selectedTemplate,
+        owner_phone: includeOwner ? `+1${ownerPhoneDigits}` : undefined,
+        owner_participate: includeOwner,
       });
 
       navigate(`/journals/${journal.id}`);
@@ -219,6 +240,55 @@ export function CreateJournalPage() {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
             />
+          </div>
+
+          {/* Owner participation option */}
+          <div className="border rounded-lg p-4 space-y-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={includeOwner}
+                onChange={(e) => setIncludeOwner(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <div>
+                <span className="font-medium text-foreground">Include me as a contributor</span>
+                <p className="text-sm text-muted-foreground">
+                  Receive prompts via SMS and contribute my own memories to this journal
+                </p>
+              </div>
+            </label>
+
+            {includeOwner && (
+              <div className="pl-7 space-y-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">
+                    <Phone className="h-4 w-4 inline mr-1" />
+                    Your Phone Number
+                  </label>
+                  <Input
+                    type="tel"
+                    value={ownerPhone}
+                    onChange={handleOwnerPhoneChange}
+                    placeholder="(555) 123-4567"
+                    required={includeOwner}
+                  />
+                </div>
+
+                {/* SMS Consent */}
+                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-2">
+                  <p>
+                    <strong>SMS Consent:</strong> By providing your phone number, you agree to receive
+                    text messages from Keepswell (a service of PikeSquare, LLC) including journal prompts
+                    and notifications.
+                  </p>
+                  <p>
+                    Message frequency varies based on journal settings. Message and data rates may apply.
+                    Reply STOP at any time to opt out, or HELP for assistance.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           <Button

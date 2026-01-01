@@ -71,4 +71,22 @@ export const journalsApi = {
     const response = await apiClient.get(`/journals/shared/${token}`);
     return response.data;
   },
+
+  // Phone verification for shared journals
+  sendVerificationCode: async (token: string, phoneNumber: string): Promise<{
+    success: boolean;
+    message: string;
+  }> => {
+    const response = await apiClient.post(`/journals/shared/${token}/verify/send`, { phoneNumber });
+    return response.data;
+  },
+
+  verifyAndGetSharedJournal: async (token: string, phoneNumber: string, code: string): Promise<{
+    journal: Partial<Journal>;
+    entries: Entry[];
+    participantId: string;
+  }> => {
+    const response = await apiClient.post(`/journals/shared/${token}/verify`, { phoneNumber, code });
+    return response.data;
+  },
 };

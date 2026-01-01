@@ -190,6 +190,8 @@ export interface CreateJournalDto {
   prompt_time?: string;
   timezone?: string;
   cover_image_url?: string | null;
+  owner_phone?: string;
+  owner_participate?: boolean;
 }
 
 export interface InviteParticipantDto {

@@ -119,3 +119,18 @@ export function useSharedJournal(token: string) {
     retry: false, // Don't retry on 404
   });
 }
+
+// Phone verification hooks for shared journals
+export function useSendVerificationCode() {
+  return useMutation({
+    mutationFn: ({ token, phoneNumber }: { token: string; phoneNumber: string }) =>
+      journalsApi.sendVerificationCode(token, phoneNumber),
+  });
+}
+
+export function useVerifyAndGetSharedJournal() {
+  return useMutation({
+    mutationFn: ({ token, phoneNumber, code }: { token: string; phoneNumber: string; code: string }) =>
+      journalsApi.verifyAndGetSharedJournal(token, phoneNumber, code),
+  });
+}

@@ -52,6 +52,12 @@ export class Participant {
   @Column({ type: 'timestamptz', nullable: true })
   magic_token_expires_at: Date;
 
+  @Column({ nullable: true })
+  verification_code: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  verification_code_expires_at: Date;
+
   @Column({ default: false })
   opted_in: boolean;
 

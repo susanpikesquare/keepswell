@@ -25,6 +25,12 @@ export class User {
   @Column({ nullable: true })
   phone_number: string;
 
+  @Column({ default: false })
+  sms_opted_in: boolean;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  sms_opted_in_at: Date;
+
   @Column({ nullable: true })
   avatar_url: string;
 

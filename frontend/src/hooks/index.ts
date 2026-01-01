@@ -11,6 +11,8 @@ export {
   useEnableSharing,
   useDisableSharing,
   useSharedJournal,
+  useSendVerificationCode,
+  useVerifyAndGetSharedJournal,
 } from './useJournals';
 export {
   useParticipants,

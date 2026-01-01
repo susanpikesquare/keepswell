@@ -1,13 +1,16 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomBytes } from 'crypto';
-import { Journal, User, Entry } from '../../database/entities';
+import { randomBytes, randomInt } from 'crypto';
+import { Journal, User, Entry, Participant } from '../../database/entities';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
+import { SmsService } from '../sms/sms.service';
 
 @Injectable()
 export class JournalsService {
+  private readonly logger = new Logger(JournalsService.name);
+
   constructor(
     @InjectRepository(Journal)
     private journalRepository: Repository<Journal>,
@@ -15,6 +18,10 @@ export class JournalsService {
     private userRepository: Repository<User>,
     @InjectRepository(Entry)
     private entryRepository: Repository<Entry>,
+    @InjectRepository(Participant)
+    private participantRepository: Repository<Participant>,
+    @Inject(forwardRef(() => SmsService))
+    private smsService: SmsService,
   ) {}
 
   async create(clerkId: string, createJournalDto: CreateJournalDto): Promise<Journal> {
@@ -27,13 +34,42 @@ export class JournalsService {
     // Generate a unique join keyword
     const joinKeyword = await this.generateUniqueKeyword(createJournalDto.title);
 
+    // Extract owner participation fields before creating journal
+    const { owner_phone, owner_participate, ...journalData } = createJournalDto;
+
     const journal = this.journalRepository.create({
-      ...createJournalDto,
+      ...journalData,
       owner_id: user.id,
       join_keyword: joinKeyword,
     });
 
-    return this.journalRepository.save(journal);
+    const savedJournal = await this.journalRepository.save(journal);
+
+    // If owner wants to participate, create a participant record for them
+    if (owner_participate && owner_phone) {
+      // Update user's phone and SMS opt-in
+      await this.userRepository.update(user.id, {
+        phone_number: owner_phone,
+        sms_opted_in: true,
+        sms_opted_in_at: new Date(),
+      });
+
+      // Create participant record for owner
+      const ownerParticipant = this.participantRepository.create({
+        journal_id: savedJournal.id,
+        phone_number: owner_phone,
+        display_name: user.full_name || 'Me',
+        relationship: 'Owner',
+        status: 'active',
+        opted_in: true,
+        opted_in_at: new Date(),
+      });
+
+      await this.participantRepository.save(ownerParticipant);
+      this.logger.log(`Owner added as participant to journal ${savedJournal.id}`);
+    }
+
+    return savedJournal;
   }
 
   /**
@@ -242,5 +278,179 @@ export class JournalsService {
       },
       entries,
     };
+  }
+
+  /**
+   * Check if a phone number is a participant in a shared journal
+   */
+  async checkSharedJournalAccess(shareToken: string, phoneNumber: string): Promise<{
+    hasAccess: boolean;
+    journalTitle?: string;
+  }> {
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+
+    const journal = await this.journalRepository.findOne({
+      where: { share_token: shareToken, is_shared: true },
+      relations: ['participants'],
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Shared journal not found');
+    }
+
+    const participant = journal.participants?.find(
+      p => this.normalizePhoneNumber(p.phone_number) === normalizedPhone
+    );
+
+    return {
+      hasAccess: !!participant,
+      journalTitle: journal.title,
+    };
+  }
+
+  /**
+   * Send verification code to a phone number for shared journal access
+   */
+  async sendVerificationCode(shareToken: string, phoneNumber: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+
+    const journal = await this.journalRepository.findOne({
+      where: { share_token: shareToken, is_shared: true },
+      relations: ['participants'],
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Shared journal not found');
+    }
+
+    // Find participant with this phone number
+    const participant = journal.participants?.find(
+      p => this.normalizePhoneNumber(p.phone_number) === normalizedPhone
+    );
+
+    if (!participant) {
+      // Don't reveal whether the phone number exists - return generic message
+      this.logger.log(`Verification attempt for non-participant phone: ${normalizedPhone}`);
+      return {
+        success: true,
+        message: 'If this phone number is a participant, a verification code will be sent.',
+      };
+    }
+
+    // Generate 6-digit code
+    const code = randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Save code to participant
+    participant.verification_code = code;
+    participant.verification_code_expires_at = expiresAt;
+    await this.participantRepository.save(participant);
+
+    // Send SMS
+    const smsResult = await this.smsService.sendSms(
+      normalizedPhone,
+      `Your Keepswell (PikeSquare, LLC) verification code is: ${code}\n\nThis code expires in 10 minutes.`
+    );
+
+    if (!smsResult.success) {
+      this.logger.error(`Failed to send verification SMS: ${smsResult.error}`);
+      throw new BadRequestException('Failed to send verification code. Please try again.');
+    }
+
+    this.logger.log(`Verification code sent to ${normalizedPhone} for journal ${journal.id}`);
+
+    return {
+      success: true,
+      message: 'Verification code sent.',
+    };
+  }
+
+  /**
+   * Verify code and return shared journal data
+   */
+  async verifyAndGetSharedJournal(shareToken: string, phoneNumber: string, code: string): Promise<{
+    journal: Partial<Journal>;
+    entries: Entry[];
+    participantId: string;
+  }> {
+    const normalizedPhone = this.normalizePhoneNumber(phoneNumber);
+
+    const journal = await this.journalRepository.findOne({
+      where: { share_token: shareToken, is_shared: true },
+      relations: ['participants'],
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Shared journal not found');
+    }
+
+    // Find participant with this phone number
+    const participant = journal.participants?.find(
+      p => this.normalizePhoneNumber(p.phone_number) === normalizedPhone
+    );
+
+    if (!participant) {
+      throw new ForbiddenException('You are not a participant in this memory book.');
+    }
+
+    // Check verification code
+    if (!participant.verification_code || participant.verification_code !== code) {
+      throw new ForbiddenException('Invalid verification code.');
+    }
+
+    // Check if code expired
+    if (!participant.verification_code_expires_at || new Date() > participant.verification_code_expires_at) {
+      throw new ForbiddenException('Verification code has expired. Please request a new one.');
+    }
+
+    // Clear verification code after successful verification
+    await this.participantRepository.update(participant.id, {
+      verification_code: null as any,
+      verification_code_expires_at: null as any,
+    });
+
+    this.logger.log(`Phone verified for participant ${participant.id} viewing journal ${journal.id}`);
+
+    // Get entries for the shared journal
+    const entries = await this.entryRepository.find({
+      where: { journal_id: journal.id, is_hidden: false },
+      relations: ['participant', 'media_attachments'],
+      order: { created_at: 'DESC' },
+    });
+
+    return {
+      journal: {
+        id: journal.id,
+        title: journal.title,
+        description: journal.description,
+        template_type: journal.template_type,
+        created_at: journal.created_at,
+        participants: journal.participants?.map(p => ({
+          id: p.id,
+          display_name: p.display_name,
+          relationship: p.relationship,
+          avatar_url: p.avatar_url,
+        })) as any,
+      },
+      entries,
+      participantId: participant.id,
+    };
+  }
+
+  /**
+   * Normalize phone number to E.164 format
+   */
+  private normalizePhoneNumber(phone: string): string {
+    const digits = phone.replace(/\D/g, '');
+    if (digits.length === 10) {
+      return `+1${digits}`;
+    }
+    if (digits.length === 11 && digits.startsWith('1')) {
+      return `+${digits}`;
+    }
+    return `+${digits}`;
   }
 }

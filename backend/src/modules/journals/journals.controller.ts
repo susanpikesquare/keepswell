@@ -81,10 +81,39 @@ export class JournalsController {
 
   /**
    * Get shared journal by token (PUBLIC - no auth required)
+   * Note: This endpoint returns journal data without verification.
+   * For protected access, use the verify endpoints below.
    */
   @Public()
   @Get('shared/:token')
   getSharedJournal(@Param('token') token: string) {
     return this.journalsService.findByShareToken(token);
+  }
+
+  // ============ Phone Verification Endpoints ============
+
+  /**
+   * Send verification code to a phone number (PUBLIC)
+   */
+  @Public()
+  @Post('shared/:token/verify/send')
+  sendVerificationCode(
+    @Param('token') token: string,
+    @Body('phoneNumber') phoneNumber: string,
+  ) {
+    return this.journalsService.sendVerificationCode(token, phoneNumber);
+  }
+
+  /**
+   * Verify code and get shared journal (PUBLIC)
+   */
+  @Public()
+  @Post('shared/:token/verify')
+  verifyAndGetSharedJournal(
+    @Param('token') token: string,
+    @Body('phoneNumber') phoneNumber: string,
+    @Body('code') code: string,
+  ) {
+    return this.journalsService.verifyAndGetSharedJournal(token, phoneNumber, code);
   }
 }

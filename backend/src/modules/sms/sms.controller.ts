@@ -4,14 +4,15 @@ import { Repository, In } from 'typeorm';
 import { randomBytes } from 'crypto';
 import { Public } from '../../common/decorators';
 import { IncomingSmsDto, IncomingMessageDto } from './dto/incoming-sms.dto';
-import { Entry, Participant, MediaAttachment, Journal } from '../../database/entities';
+import { Entry, Participant, MediaAttachment, Journal, PromptSend } from '../../database/entities';
 import { StorageService } from '../storage/storage.service';
 import { SmsService } from './sms.service';
 import { JournalsService } from '../journals/journals.service';
 
-// Keywords for opt-in/opt-out
+// Keywords for opt-in/opt-out/help
 const OPT_IN_KEYWORDS = ['yes', 'y', 'start', 'subscribe', 'optin', 'opt-in'];
 const OPT_OUT_KEYWORDS = ['stop', 'unsubscribe', 'cancel', 'end', 'quit', 'optout', 'opt-out'];
+const HELP_KEYWORDS = ['help', 'info', 'support'];
 
 @Controller('webhooks/sms')
 export class SmsController {
@@ -26,6 +27,8 @@ export class SmsController {
     private mediaRepo: Repository<MediaAttachment>,
     @InjectRepository(Journal)
     private journalRepo: Repository<Journal>,
+    @InjectRepository(PromptSend)
+    private promptSendRepo: Repository<PromptSend>,
     private storageService: StorageService,
     private smsService: SmsService,
     private journalsService: JournalsService,
@@ -168,8 +171,17 @@ export class SmsController {
         }
       }
 
-      // Check for opt-in/opt-out keywords first (only for text-only messages)
+      // Check for opt-in/opt-out/help keywords first (only for text-only messages)
       if (messageText && imageUrls.length === 0) {
+        // Check for HELP keyword
+        if (HELP_KEYWORDS.includes(messageText)) {
+          await this.smsService.sendSms(
+            fromNumber,
+            `Keepswell (PikeSquare, LLC): You're receiving memory journal prompts. Reply to share memories, photos & stories. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out. For support visit keepswell.com/support`,
+          );
+          return 'OK';
+        }
+
         const optInOutResult = await this.handleOptInOut(fromNumber, messageText);
         if (optInOutResult) {
           return 'OK';
@@ -377,7 +389,7 @@ export class SmsController {
 
     await this.smsService.sendSms(
       phoneNumber,
-      `Keepswell: Welcome to "${journal.title}"! You're now part of this memory journal. Reply to prompts with your stories and photos. Text STOP to opt out anytime.`,
+      `Keepswell (PikeSquare, LLC): Welcome to "${journal.title}"! You've opted in to receive memory journal prompts. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help. We will not share your mobile info with third parties for marketing.`,
     );
 
     return true;
@@ -410,13 +422,14 @@ export class SmsController {
         await this.participantRepo.update(participant.id, {
           status: 'active',
           opted_in: true,
+          opted_in_at: new Date(),
         });
         this.logger.log(`Participant ${participant.display_name} opted in for journal ${participant.journal?.title}`);
 
-        // Send confirmation
+        // Send confirmation with all required elements
         await this.smsService.sendSms(
           phoneNumber,
-          `Welcome to "${participant.journal?.title}"! You're all set to receive prompts and share your memories. Reply anytime to contribute.`,
+          `Keepswell (PikeSquare, LLC): Welcome to "${participant.journal?.title}"! You've opted in to receive memory journal prompts. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help.`,
         );
       }
 
@@ -438,7 +451,7 @@ export class SmsController {
         // Send confirmation
         await this.smsService.sendSms(
           phoneNumber,
-          `You've been unsubscribed from memory journal prompts. Reply YES anytime to rejoin.`,
+          `Keepswell (PikeSquare, LLC): You've been unsubscribed from all memory journal prompts. Reply YES anytime to rejoin.`,
         );
       }
     }
@@ -462,36 +475,63 @@ export class SmsController {
   }
 
   /**
-   * Find participant by phone number
+   * Find participant by phone number using context-based routing.
+   * If the same phone is in multiple journals, route to the journal that
+   * most recently sent them a prompt.
    */
   private async findParticipant(phoneNumber: string): Promise<Participant | null> {
-    // Try exact match first
-    let participant = await this.participantRepo.findOne({
-      where: { phone_number: phoneNumber, status: 'active' },
+    // Get all phone number variants
+    const phoneVariants = [
+      phoneNumber,
+      phoneNumber.startsWith('+') ? phoneNumber.substring(1) : `+${phoneNumber}`,
+    ];
+
+    // Find all active participants with this phone number
+    const participants = await this.participantRepo.find({
+      where: phoneVariants.map(phone => ({ phone_number: phone, status: 'active' })),
       relations: ['journal'],
     });
 
-    // Try without + prefix
-    if (!participant && phoneNumber.startsWith('+')) {
-      participant = await this.participantRepo.findOne({
-        where: { phone_number: phoneNumber.substring(1), status: 'active' },
-        relations: ['journal'],
-      });
-    }
-
-    // Try with + prefix
-    if (!participant && !phoneNumber.startsWith('+')) {
-      participant = await this.participantRepo.findOne({
-        where: { phone_number: `+${phoneNumber}`, status: 'active' },
-        relations: ['journal'],
-      });
-    }
-
-    if (!participant) {
+    if (participants.length === 0) {
       this.logger.warn(`No active participant found for phone: ${phoneNumber}`);
+      return null;
     }
 
-    return participant;
+    // If only one participant, return it
+    if (participants.length === 1) {
+      return participants[0];
+    }
+
+    // Multiple participants - find the one who most recently received a prompt
+    this.logger.log(`Phone ${phoneNumber} is in ${participants.length} journals, using context-based routing`);
+
+    const participantIds = participants.map(p => p.id);
+
+    // Find the most recent prompt sent to any of these participants
+    const recentPromptSend = await this.promptSendRepo
+      .createQueryBuilder('ps')
+      .where('ps.participant_id IN (:...participantIds)', { participantIds })
+      .andWhere('ps.status = :status', { status: 'sent' })
+      .orderBy('ps.sent_at', 'DESC')
+      .getOne();
+
+    if (recentPromptSend) {
+      const contextParticipant = participants.find(p => p.id === recentPromptSend.participant_id);
+      if (contextParticipant) {
+        this.logger.log(`Routing to journal "${contextParticipant.journal?.title}" based on recent prompt`);
+        return contextParticipant;
+      }
+    }
+
+    // Fallback: return participant with most recent activity (last_response_at)
+    const sortedByActivity = participants.sort((a, b) => {
+      const aTime = a.last_response_at?.getTime() || 0;
+      const bTime = b.last_response_at?.getTime() || 0;
+      return bTime - aTime;
+    });
+
+    this.logger.log(`No recent prompt found, routing to journal "${sortedByActivity[0].journal?.title}" based on last activity`);
+    return sortedByActivity[0];
   }
 
   /**

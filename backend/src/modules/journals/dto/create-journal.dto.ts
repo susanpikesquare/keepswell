@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsIn } from 'class-validator';
+import { IsString, IsOptional, IsIn, IsBoolean } from 'class-validator';
 
 export class CreateJournalDto {
   @IsString()
@@ -27,4 +27,12 @@ export class CreateJournalDto {
   @IsString()
   @IsOptional()
   timezone?: string;
+
+  @IsString()
+  @IsOptional()
+  owner_phone?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  owner_participate?: boolean;
 }

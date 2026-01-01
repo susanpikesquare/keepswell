@@ -251,7 +251,7 @@ export function LandingPage() {
               Support
             </Link>
           </div>
-          <p>&copy; {new Date().getFullYear()} Keepswell. Made with love for families everywhere.</p>
+          <p>&copy; {new Date().getFullYear()} Keepswell. A product of PikeSquare, LLC.</p>
         </div>
       </footer>
     </div>

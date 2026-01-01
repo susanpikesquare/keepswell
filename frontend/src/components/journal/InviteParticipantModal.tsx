@@ -124,9 +124,6 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
             placeholder="(555) 123-4567"
             required
           />
-          <p className="text-xs text-muted-foreground mt-1">
-            They'll receive prompts via SMS
-          </p>
         </div>
 
         {/* Display Name */}
@@ -177,6 +174,20 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
           />
           <p className="text-xs text-muted-foreground mt-1">
             For sending a link to view the memory book
+          </p>
+        </div>
+
+        {/* SMS Consent Disclosure */}
+        <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-2">
+          <p>
+            <strong>SMS Consent:</strong> By inviting this person, you confirm they have agreed
+            to receive text messages from Keepswell (a service of PikeSquare, LLC) at the phone
+            number provided. They will receive an invitation SMS asking them to reply YES to
+            confirm their participation.
+          </p>
+          <p>
+            Message frequency varies based on journal settings. Message and data rates may apply.
+            They can reply STOP at any time to opt out, or HELP for assistance.
           </p>
         </div>
 
