@@ -83,3 +83,35 @@ export function useResendInvite() {
     },
   });
 }
+
+export function useApproveParticipant() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; journalId: string }) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return participantsApi.approve(id);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', variables.journalId, 'participants'] });
+    },
+  });
+}
+
+export function useDeclineParticipant() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ id }: { id: string; journalId: string }) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return participantsApi.decline(id);
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['journals', variables.journalId, 'participants'] });
+    },
+  });
+}

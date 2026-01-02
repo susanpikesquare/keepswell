@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle, QrCode, Copy, Check, X } from 'lucide-react';
-import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite } from '../../hooks';
+import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite, useApproveParticipant, useDeclineParticipant } from '../../hooks';
 import { apiClient } from '../../api';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
 import { JournalSettingsModal, InviteParticipantModal } from '../../components/journal';
@@ -468,11 +468,10 @@ function QRCodeCard({ keyword, journalTitle, journalId }: { keyword: string | nu
 function ParticipantItem({ participant, journalId }: { participant: Participant; journalId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
-  const [approving, setApproving] = useState(false);
-  const [declining, setDeclining] = useState(false);
   const removeParticipant = useRemoveParticipant();
   const resendInvite = useResendInvite();
-  const queryClient = useQueryClient();
+  const approveParticipant = useApproveParticipant();
+  const declineParticipant = useDeclineParticipant();
 
   const handleRemove = async () => {
     try {
@@ -494,28 +493,18 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
   };
 
   const handleApprove = async () => {
-    setApproving(true);
     try {
-      await apiClient.post(`/participants/${participant.id}/approve`);
-      // Refresh participant list
-      queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'participants'] });
+      await approveParticipant.mutateAsync({ id: participant.id, journalId });
     } catch (error) {
       console.error('Failed to approve participant:', error);
-    } finally {
-      setApproving(false);
     }
   };
 
   const handleDecline = async () => {
-    setDeclining(true);
     try {
-      await apiClient.post(`/participants/${participant.id}/decline`);
-      // Refresh participant list
-      queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'participants'] });
+      await declineParticipant.mutateAsync({ id: participant.id, journalId });
     } catch (error) {
       console.error('Failed to decline participant:', error);
-    } finally {
-      setDeclining(false);
     }
   };
 
@@ -558,21 +547,21 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
               size="sm"
               variant="default"
               onClick={handleApprove}
-              disabled={approving}
+              disabled={approveParticipant.isPending}
               className="text-xs bg-green-600 hover:bg-green-700"
             >
               <CheckCircle className="h-3 w-3 mr-1" />
-              {approving ? 'Approving...' : 'Approve'}
+              {approveParticipant.isPending ? 'Approving...' : 'Approve'}
             </Button>
             <Button
               size="sm"
               variant="outline"
               onClick={handleDecline}
-              disabled={declining}
+              disabled={declineParticipant.isPending}
               className="text-xs text-red-600 border-red-200 hover:bg-red-50"
             >
               <X className="h-3 w-3 mr-1" />
-              {declining ? 'Declining...' : 'Decline'}
+              {declineParticipant.isPending ? 'Declining...' : 'Decline'}
             </Button>
             {/* Secondary actions */}
             <Button

@@ -20,6 +20,8 @@ export {
   useUpdateParticipant,
   useRemoveParticipant,
   useResendInvite,
+  useApproveParticipant,
+  useDeclineParticipant,
 } from './useParticipants';
 export {
   useEntries,

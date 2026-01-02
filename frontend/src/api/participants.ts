@@ -32,4 +32,13 @@ export const participantsApi = {
   resendInvite: async (id: string): Promise<void> => {
     await apiClient.post(`/participants/${id}/resend-invite`);
   },
+
+  approve: async (id: string): Promise<Participant> => {
+    const response = await apiClient.post<Participant>(`/participants/${id}/approve`);
+    return response.data;
+  },
+
+  decline: async (id: string): Promise<void> => {
+    await apiClient.post(`/participants/${id}/decline`);
+  },
 };
