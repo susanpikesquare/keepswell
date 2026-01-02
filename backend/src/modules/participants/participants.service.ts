@@ -271,11 +271,11 @@ export class ParticipantsService {
 
     this.logger.log(`Participant ${participant.display_name} approved for journal "${participant.journal.title}"`);
 
-    // Send opt-in confirmation SMS to the approved participant (10DLC compliant)
+    // Send opt-in confirmation SMS to the approved participant (10DLC compliant - keyword opt-in format)
     if (participant.phone_number) {
       await this.smsService.sendSms(
         participant.phone_number,
-        `Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help. Message frequency may vary. Msg&data rates may apply. Consent is not a condition of purchase. Reply STOP to opt out.`,
+        `Keepswell (PikeSquare, LLC): Welcome to "${participant.journal.title}"! You've opted in to receive memory journal prompts. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help. We will not share your mobile info with third parties for marketing.`,
       );
     }
 
