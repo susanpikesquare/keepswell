@@ -1,28 +1,49 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
-import { journalsApi, setAuthToken } from '../api';
+import { journalsApi, setAuthToken, setGetTokenFn } from '../api';
 import type { CreateJournalDto } from '../types';
 
 export function useJournals() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+
+  // Ensure getToken is registered before queries run
+  if (getToken) {
+    setGetTokenFn(getToken);
+  }
+
   return useQuery({
     queryKey: ['journals'],
     queryFn: journalsApi.list,
+    enabled: isLoaded && isSignedIn,
   });
 }
 
 export function useJournal(id: string) {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+
+  // Ensure getToken is registered before queries run
+  if (getToken) {
+    setGetTokenFn(getToken);
+  }
+
   return useQuery({
     queryKey: ['journals', id],
     queryFn: () => journalsApi.get(id),
-    enabled: !!id,
+    enabled: !!id && isLoaded && isSignedIn,
   });
 }
 
 export function useCreateJournal() {
   const queryClient = useQueryClient();
+  const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: (data: CreateJournalDto) => journalsApi.create(data),
+    mutationFn: async (data: CreateJournalDto) => {
+      // Ensure token is set before making the request
+      const token = await getToken();
+      setAuthToken(token);
+      return journalsApi.create(data);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journals'] });
     },

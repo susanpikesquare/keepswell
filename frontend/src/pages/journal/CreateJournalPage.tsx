@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Sparkles, Plane, BookOpen, Crown, Users, ChevronDown, ChevronUp, MessageCircle, Camera, Lightbulb, Phone } from 'lucide-react';
+import { ArrowLeft, Heart, Sparkles, Plane, BookOpen, Crown, Users, ChevronDown, ChevronUp, MessageCircle, Camera, Lightbulb, Phone, AlertCircle } from 'lucide-react';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription } from '../../components/ui';
 import { useCreateJournal, useStarterPrompts } from '../../hooks';
 import { cn } from '../../lib/utils';
@@ -87,6 +87,7 @@ export function CreateJournalPage() {
   const [description, setDescription] = useState('');
   const [includeOwner, setIncludeOwner] = useState(false);
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -97,6 +98,7 @@ export function CreateJournalPage() {
 
   const handleOwnerPhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setOwnerPhone(formatPhoneNumber(e.target.value));
+    setPhoneError(null); // Clear error when typing
   };
 
   // Get all template types from themes
@@ -109,11 +111,13 @@ export function CreateJournalPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setPhoneError(null);
 
     // Validate owner phone if they want to participate
     const ownerPhoneDigits = ownerPhone.replace(/\D/g, '');
     if (includeOwner && ownerPhoneDigits.length < 10) {
-      return; // Form validation will handle this
+      setPhoneError('Please enter a valid 10-digit phone number');
+      return;
     }
 
     try {
@@ -126,8 +130,9 @@ export function CreateJournalPage() {
       });
 
       navigate(`/journals/${journal.id}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to create journal:', error);
+      setPhoneError(error.response?.data?.message || 'Failed to create journal. Please try again.');
     }
   };
 
@@ -290,6 +295,14 @@ export function CreateJournalPage() {
               </div>
             )}
           </div>
+
+          {/* Error Display */}
+          {phoneError && (
+            <div className="bg-red-50 text-red-700 p-3 rounded-lg text-sm flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              {phoneError}
+            </div>
+          )}
 
           <Button
             type="submit"

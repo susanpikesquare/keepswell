@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle, QrCode, Copy, Check, X } from 'lucide-react';
 import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite } from '../../hooks';
 import { apiClient } from '../../api';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
@@ -189,6 +189,13 @@ export function JournalDetailPage() {
               <p className="mt-2 text-xs">Timezone: {journal.timezone}</p>
             </CardContent>
           </Card>
+
+          {/* QR Code for Easy Joining */}
+          <QRCodeCard
+            keyword={journal.join_keyword}
+            journalTitle={journal.title}
+            journalId={journal.id}
+          />
         </div>
       </div>
     </div>
@@ -333,11 +340,136 @@ function EmptyEntriesState() {
   );
 }
 
+function QRCodeCard({ keyword, journalTitle, journalId }: { keyword: string | null; journalTitle: string; journalId: string }) {
+  const [copied, setCopied] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [currentKeyword, setCurrentKeyword] = useState(keyword);
+  const queryClient = useQueryClient();
+
+  // Get the base URL for the join page
+  const baseUrl = currentKeyword
+    ? (typeof window !== 'undefined'
+        ? `${window.location.origin}/join/${currentKeyword}`
+        : `https://keepswell.com/join/${currentKeyword}`)
+    : '';
+
+  // QR code API URL (using a free service)
+  const qrCodeUrl = currentKeyword
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(baseUrl)}`
+    : '';
+
+  const handleCopyLink = () => {
+    if (!baseUrl) return;
+    navigator.clipboard.writeText(baseUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleDownloadQR = () => {
+    if (!qrCodeUrl) return;
+    const link = document.createElement('a');
+    link.href = qrCodeUrl;
+    link.download = `${journalTitle.replace(/\s+/g, '-')}-qr-code.png`;
+    link.click();
+  };
+
+  const handleGenerateKeyword = async () => {
+    setGenerating(true);
+    try {
+      // Call API to generate keyword for this journal
+      const response = await apiClient.post(`/journals/${journalId}/generate-keyword`);
+      setCurrentKeyword(response.data.keyword);
+      // Refresh journal data
+      queryClient.invalidateQueries({ queryKey: ['journals', journalId] });
+    } catch (error) {
+      console.error('Failed to generate keyword:', error);
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base flex items-center gap-2">
+          <QrCode className="h-4 w-4" />
+          QR Code Invite
+        </CardTitle>
+        <CardDescription className="text-xs">
+          Share this QR code for easy joining
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {currentKeyword ? (
+          <>
+            {/* QR Code Image */}
+            <div className="flex justify-center">
+              <div className="bg-white p-2 rounded-lg border shadow-sm">
+                <img
+                  src={qrCodeUrl}
+                  alt={`QR Code for ${journalTitle}`}
+                  className="w-32 h-32"
+                />
+              </div>
+            </div>
+
+            {/* Join Code */}
+            <div className="text-center">
+              <p className="text-xs text-muted-foreground mb-1">Join Code</p>
+              <p className="font-mono font-bold text-lg tracking-wider">{currentKeyword}</p>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs"
+                onClick={handleCopyLink}
+              >
+                {copied ? <Check className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                {copied ? 'Copied!' : 'Copy Link'}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1 text-xs"
+                onClick={handleDownloadQR}
+              >
+                <QrCode className="h-3 w-3 mr-1" />
+                Download
+              </Button>
+            </div>
+
+            {/* Instructions */}
+            <p className="text-xs text-muted-foreground text-center">
+              Guests scan to request joining. You'll approve each request.
+            </p>
+          </>
+        ) : (
+          /* No keyword yet - show generate button */
+          <div className="text-center py-4">
+            <p className="text-sm text-muted-foreground mb-4">
+              Generate a QR code so guests can easily request to join this journal.
+            </p>
+            <Button
+              onClick={handleGenerateKeyword}
+              disabled={generating}
+            >
+              {generating ? 'Generating...' : 'Generate QR Code'}
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function ParticipantItem({ participant, journalId }: { participant: Participant; journalId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
-  const [activating, setActivating] = useState(false);
-  const [activated, setActivated] = useState(false);
+  const [approving, setApproving] = useState(false);
+  const [declining, setDeclining] = useState(false);
   const removeParticipant = useRemoveParticipant();
   const resendInvite = useResendInvite();
   const queryClient = useQueryClient();
@@ -361,17 +493,29 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
     }
   };
 
-  const handleManualActivate = async () => {
-    setActivating(true);
+  const handleApprove = async () => {
+    setApproving(true);
     try {
-      await apiClient.post(`/admin/participants/${participant.id}/activate`);
-      setActivated(true);
+      await apiClient.post(`/participants/${participant.id}/approve`);
       // Refresh participant list
       queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'participants'] });
     } catch (error) {
-      console.error('Failed to activate participant:', error);
+      console.error('Failed to approve participant:', error);
     } finally {
-      setActivating(false);
+      setApproving(false);
+    }
+  };
+
+  const handleDecline = async () => {
+    setDeclining(true);
+    try {
+      await apiClient.post(`/participants/${participant.id}/decline`);
+      // Refresh participant list
+      queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'participants'] });
+    } catch (error) {
+      console.error('Failed to decline participant:', error);
+    } finally {
+      setDeclining(false);
     }
   };
 
@@ -409,25 +553,37 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
       <div className="flex flex-wrap gap-2 pt-1">
         {participant.status === 'pending' && (
           <>
+            {/* Approve/Decline buttons - primary actions for pending */}
+            <Button
+              size="sm"
+              variant="default"
+              onClick={handleApprove}
+              disabled={approving}
+              className="text-xs bg-green-600 hover:bg-green-700"
+            >
+              <CheckCircle className="h-3 w-3 mr-1" />
+              {approving ? 'Approving...' : 'Approve'}
+            </Button>
             <Button
               size="sm"
               variant="outline"
+              onClick={handleDecline}
+              disabled={declining}
+              className="text-xs text-red-600 border-red-200 hover:bg-red-50"
+            >
+              <X className="h-3 w-3 mr-1" />
+              {declining ? 'Declining...' : 'Decline'}
+            </Button>
+            {/* Secondary actions */}
+            <Button
+              size="sm"
+              variant="ghost"
               onClick={handleResendInvite}
               disabled={resendInvite.isPending || inviteSent}
               className="text-xs"
             >
               <RefreshCw className={`h-3 w-3 mr-1 ${resendInvite.isPending ? 'animate-spin' : ''}`} />
-              {inviteSent ? 'Sent!' : resendInvite.isPending ? 'Sending...' : 'Resend Invite'}
-            </Button>
-            <Button
-              size="sm"
-              variant="default"
-              onClick={handleManualActivate}
-              disabled={activating || activated}
-              className="text-xs"
-            >
-              <CheckCircle className="h-3 w-3 mr-1" />
-              {activated ? 'Activated!' : activating ? 'Activating...' : 'Activate Now'}
+              {inviteSent ? 'Sent!' : 'Resend'}
             </Button>
           </>
         )}

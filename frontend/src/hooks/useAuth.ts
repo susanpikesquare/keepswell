@@ -1,10 +1,17 @@
 import { useEffect } from 'react';
 import { useAuth as useClerkAuth, useUser } from '@clerk/clerk-react';
-import { setAuthToken, authApi } from '../api';
+import { setAuthToken, setGetTokenFn, authApi } from '../api';
 
 export function useAuthSync() {
   const { getToken, isSignedIn, isLoaded } = useClerkAuth();
   const { user } = useUser();
+
+  // Register the getToken function with the API client on mount
+  useEffect(() => {
+    if (getToken) {
+      setGetTokenFn(getToken);
+    }
+  }, [getToken]);
 
   useEffect(() => {
     async function syncAuth() {

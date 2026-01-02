@@ -5,6 +5,7 @@ import { randomBytes, randomInt } from 'crypto';
 import { Journal, User, Entry, Participant } from '../../database/entities';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
+import { JoinRequestDto } from './dto/join-request.dto';
 import { SmsService } from '../sms/sms.service';
 
 @Injectable()
@@ -73,36 +74,38 @@ export class JournalsService {
   }
 
   /**
-   * Generate a unique join keyword from the journal title
+   * Generate a unique join keyword from the journal title.
+   * Always includes a random suffix to prevent guessing.
+   * Format: TITLE + 4 random hex chars (e.g., "FAMILY3A7F")
    */
   private async generateUniqueKeyword(title: string): Promise<string> {
-    // Create base keyword from title: remove special chars, uppercase, max 12 chars
+    // Create base keyword from title: remove special chars, uppercase, max 8 chars
     let baseKeyword = title
       .toUpperCase()
       .replace(/[^A-Z0-9]/g, '')
-      .substring(0, 12);
+      .substring(0, 8);
 
-    // If empty, use random string
+    // If empty, use shorter random string
     if (!baseKeyword) {
-      baseKeyword = randomBytes(4).toString('hex').toUpperCase();
+      baseKeyword = randomBytes(2).toString('hex').toUpperCase();
     }
 
-    // Check if it's unique
-    let keyword = baseKeyword;
+    // Always add random suffix (4 hex chars) to prevent guessing
     let attempts = 0;
     while (attempts < 10) {
+      const randomSuffix = randomBytes(2).toString('hex').toUpperCase();
+      const keyword = `${baseKeyword}${randomSuffix}`;
+
       const existing = await this.journalRepository.findOne({
         where: { join_keyword: keyword },
       });
       if (!existing) {
         return keyword;
       }
-      // Add random suffix
-      keyword = baseKeyword.substring(0, 8) + randomBytes(2).toString('hex').toUpperCase();
       attempts++;
     }
 
-    // Fallback to fully random
+    // Fallback to fully random (very unlikely to reach here)
     return randomBytes(6).toString('hex').toUpperCase();
   }
 
@@ -438,6 +441,155 @@ export class JournalsService {
       entries,
       participantId: participant.id,
     };
+  }
+
+  // ============ QR Code / Web Join Methods ============
+
+  /**
+   * Get limited journal info by keyword for the public join page
+   */
+  async getJournalInfoByKeyword(keyword: string): Promise<{
+    found: boolean;
+    journal?: {
+      title: string;
+      description: string | null;
+      ownerName: string;
+      templateType: string;
+    };
+  }> {
+    const journal = await this.journalRepository.findOne({
+      where: { join_keyword: keyword.toUpperCase() },
+      relations: ['owner'],
+    });
+
+    if (!journal) {
+      return { found: false };
+    }
+
+    return {
+      found: true,
+      journal: {
+        title: journal.title,
+        description: journal.description,
+        ownerName: journal.owner?.full_name || 'Someone',
+        templateType: journal.template_type,
+      },
+    };
+  }
+
+  /**
+   * Submit a join request from the web form
+   * Creates a pending participant and notifies the owner
+   */
+  async submitWebJoinRequest(
+    keyword: string,
+    dto: JoinRequestDto,
+  ): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const journal = await this.journalRepository.findOne({
+      where: { join_keyword: keyword.toUpperCase() },
+      relations: ['owner'],
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Journal not found');
+    }
+
+    const normalizedPhone = this.normalizePhoneNumber(dto.phone_number);
+
+    // Check if already a participant
+    const existingParticipant = await this.participantRepository.findOne({
+      where: { journal_id: journal.id, phone_number: normalizedPhone },
+    });
+
+    if (existingParticipant) {
+      if (existingParticipant.status === 'active') {
+        return {
+          success: true,
+          message: `You're already a member of "${journal.title}". You'll receive prompts via SMS.`,
+        };
+      } else if (existingParticipant.status === 'pending') {
+        return {
+          success: true,
+          message: `Your request to join "${journal.title}" is still pending approval.`,
+        };
+      } else {
+        // Reactivate as pending
+        await this.participantRepository.update(existingParticipant.id, {
+          status: 'pending',
+          opted_in: false,
+          display_name: dto.display_name || existingParticipant.display_name,
+          relationship: dto.relationship || existingParticipant.relationship,
+        });
+      }
+    } else {
+      // Create new pending participant
+      const magicToken = randomBytes(32).toString('hex');
+      const tokenExpiry = new Date();
+      tokenExpiry.setFullYear(tokenExpiry.getFullYear() + 1);
+
+      const participantData: any = {
+        journal_id: journal.id,
+        phone_number: normalizedPhone,
+        display_name: dto.display_name || `Guest ${normalizedPhone.slice(-4)}`,
+        status: 'pending',
+        opted_in: false,
+        magic_token: magicToken,
+        magic_token_expires_at: tokenExpiry,
+      };
+
+      if (dto.relationship) {
+        participantData.relationship = dto.relationship;
+      }
+
+      const participant = this.participantRepository.create(participantData);
+
+      await this.participantRepository.save(participant);
+    }
+
+    this.logger.log(`Web join request for "${journal.title}" from ${normalizedPhone}`);
+
+    // Send confirmation SMS to the requester
+    await this.smsService.sendSms(
+      normalizedPhone,
+      `Keepswell: Your request to join "${journal.title}" has been sent to the owner for approval. You'll receive a confirmation once approved.`,
+    );
+
+    // Notify the journal owner
+    const ownerPhone = journal.owner?.phone_number;
+    if (ownerPhone) {
+      const displayName = dto.display_name || `Guest ${normalizedPhone.slice(-4)}`;
+      await this.smsService.sendSms(
+        ownerPhone,
+        `Keepswell: ${displayName} wants to join "${journal.title}". Log in to keepswell.com to approve or decline their request.`,
+      );
+    }
+
+    return {
+      success: true,
+      message: `Your request has been sent! You'll receive an SMS when ${journal.owner?.full_name || 'the owner'} approves your request.`,
+    };
+  }
+
+  /**
+   * Generate a join keyword for an existing journal that doesn't have one
+   */
+  async generateKeywordForJournal(
+    id: string,
+    clerkId: string,
+  ): Promise<{ keyword: string }> {
+    const journal = await this.findOne(id, clerkId);
+
+    // Generate a new keyword even if one exists (allows regeneration)
+    const keyword = await this.generateUniqueKeyword(journal.title);
+    journal.join_keyword = keyword;
+    await this.journalRepository.save(journal);
+
+    this.logger.log(`Generated keyword "${keyword}" for journal ${id}`);
+
+    return { keyword };
   }
 
   /**

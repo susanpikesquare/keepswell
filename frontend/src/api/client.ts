@@ -24,6 +24,14 @@ export const apiClient = axios.create({
   },
 });
 
+// Store reference to Clerk's getToken function
+let getTokenFn: (() => Promise<string | null>) | null = null;
+
+// Set the getToken function (called from useAuthSync)
+export function setGetTokenFn(fn: () => Promise<string | null>) {
+  getTokenFn = fn;
+}
+
 // Add auth token to requests
 export function setAuthToken(token: string | null) {
   if (token) {
@@ -32,6 +40,25 @@ export function setAuthToken(token: string | null) {
     delete apiClient.defaults.headers.common['Authorization'];
   }
 }
+
+// Request interceptor to ensure fresh token on each request
+apiClient.interceptors.request.use(
+  async (config) => {
+    // If we have a getToken function, get a fresh token for each request
+    if (getTokenFn) {
+      try {
+        const token = await getTokenFn();
+        if (token) {
+          config.headers.Authorization = `Bearer ${token}`;
+        }
+      } catch (error) {
+        console.error('Failed to get auth token:', error);
+      }
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Response interceptor for error handling
 apiClient.interceptors.response.use(

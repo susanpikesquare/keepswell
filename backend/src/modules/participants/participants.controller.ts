@@ -43,7 +43,7 @@ export class JournalParticipantsController {
   }
 }
 
-// Controller for participant-scoped routes (update, delete, resend)
+// Controller for participant-scoped routes (update, delete, resend, approve, decline)
 @Controller('participants')
 @UseGuards(ClerkAuthGuard)
 export class ParticipantsController {
@@ -66,6 +66,22 @@ export class ParticipantsController {
   @Post(':id/resend-invite')
   resendInvite(@Param('id') id: string, @CurrentUser() user: AuthUser) {
     return this.participantsService.resendInvite(id, user.clerkId);
+  }
+
+  /**
+   * Approve a pending participant who requested to join via keyword
+   */
+  @Post(':id/approve')
+  approve(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.participantsService.approve(id, user.clerkId);
+  }
+
+  /**
+   * Decline a pending participant who requested to join via keyword
+   */
+  @Post(':id/decline')
+  decline(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.participantsService.decline(id, user.clerkId);
   }
 }
 

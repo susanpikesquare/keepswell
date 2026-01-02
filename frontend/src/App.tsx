@@ -11,6 +11,7 @@ import { CreateJournalPage } from './pages/journal/CreateJournalPage';
 import { JournalDetailPage } from './pages/journal/JournalDetailPage';
 import { MemoryBookPage } from './pages/journal/MemoryBookPage';
 import { SharedBookPage } from './pages/shared/SharedBookPage';
+import { JoinPage } from './pages/join/JoinPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { ParticipantViewPage } from './pages/participant/ParticipantViewPage';
 import { PrivacyPage } from './pages/PrivacyPage';
@@ -81,6 +82,9 @@ function App() {
 
       {/* Participant magic link view */}
       <Route path="/p/:token" element={<ParticipantViewPage />} />
+
+      {/* Public QR code join page */}
+      <Route path="/join/:keyword" element={<JoinPage />} />
     </Routes>
   );
 }

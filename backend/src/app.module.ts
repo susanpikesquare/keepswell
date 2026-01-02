@@ -27,6 +27,7 @@ import {
   MediaAttachment,
   PromptUsageLog,
   AIContent,
+  PendingMemory,
 } from './database/entities';
 
 // Modules
@@ -70,6 +71,7 @@ import { AdminModule } from './modules/admin/admin.module';
           MediaAttachment,
           PromptUsageLog,
           AIContent,
+          PendingMemory,
         ],
         synchronize: true, // Enabled for early development - TODO: use migrations in production
         logging: configService.get<string>('NODE_ENV') !== 'production',

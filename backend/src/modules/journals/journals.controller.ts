@@ -12,6 +12,7 @@ import {
 import { JournalsService } from './journals.service';
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
+import { JoinRequestDto } from './dto/join-request.dto';
 import { CurrentUser, Public } from '../../common/decorators';
 import type { AuthUser } from '../../common/decorators';
 
@@ -115,5 +116,38 @@ export class JournalsController {
     @Body('code') code: string,
   ) {
     return this.journalsService.verifyAndGetSharedJournal(token, phoneNumber, code);
+  }
+
+  // ============ QR Code / Web Join Endpoints ============
+
+  /**
+   * Generate a join keyword for a journal that doesn't have one
+   */
+  @Post(':id/generate-keyword')
+  generateKeyword(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.journalsService.generateKeywordForJournal(id, user.clerkId);
+  }
+
+  /**
+   * Get journal info by keyword for the public join page (PUBLIC)
+   * Returns limited info for privacy - just enough to show the join page
+   */
+  @Public()
+  @Get('join/:keyword')
+  getJournalByKeyword(@Param('keyword') keyword: string) {
+    return this.journalsService.getJournalInfoByKeyword(keyword);
+  }
+
+  /**
+   * Submit a join request via the web form (PUBLIC)
+   * Creates a pending participant and notifies the owner
+   */
+  @Public()
+  @Post('join/:keyword')
+  submitJoinRequest(
+    @Param('keyword') keyword: string,
+    @Body() joinRequestDto: JoinRequestDto,
+  ) {
+    return this.journalsService.submitWebJoinRequest(keyword, joinRequestDto);
   }
 }

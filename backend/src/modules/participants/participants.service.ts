@@ -237,4 +237,86 @@ export class ParticipantsService {
 
     return participant;
   }
+
+  /**
+   * Approve a pending participant (from keyword join request)
+   * Sets them to active and sends welcome SMS
+   */
+  async approve(id: string, clerkId: string): Promise<Participant> {
+    const user = await this.getUserByClerkId(clerkId);
+
+    const participant = await this.participantRepo.findOne({
+      where: { id },
+      relations: ['journal'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    if (participant.journal.owner_id !== user.id) {
+      throw new ForbiddenException('Not authorized to approve this participant');
+    }
+
+    if (participant.status !== 'pending') {
+      throw new ForbiddenException('Participant is not pending approval');
+    }
+
+    // Update to active status
+    await this.participantRepo.update(id, {
+      status: 'active',
+      opted_in: true,
+      opted_in_at: new Date(),
+    });
+
+    this.logger.log(`Participant ${participant.display_name} approved for journal "${participant.journal.title}"`);
+
+    // Send welcome SMS to the approved participant
+    if (participant.phone_number) {
+      await this.smsService.sendSms(
+        participant.phone_number,
+        `Keepswell (PikeSquare, LLC): Great news! You've been approved to join "${participant.journal.title}". You'll now receive memory prompts. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help.`,
+      );
+    }
+
+    return this.participantRepo.findOneOrFail({ where: { id } });
+  }
+
+  /**
+   * Decline a pending participant (from keyword join request)
+   * Removes the pending participant and optionally notifies them
+   */
+  async decline(id: string, clerkId: string): Promise<void> {
+    const user = await this.getUserByClerkId(clerkId);
+
+    const participant = await this.participantRepo.findOne({
+      where: { id },
+      relations: ['journal'],
+    });
+
+    if (!participant) {
+      throw new NotFoundException('Participant not found');
+    }
+
+    if (participant.journal.owner_id !== user.id) {
+      throw new ForbiddenException('Not authorized to decline this participant');
+    }
+
+    if (participant.status !== 'pending') {
+      throw new ForbiddenException('Participant is not pending approval');
+    }
+
+    // Notify the declined participant
+    if (participant.phone_number) {
+      await this.smsService.sendSms(
+        participant.phone_number,
+        `Keepswell: Your request to join "${participant.journal.title}" was not approved. If you believe this is an error, please contact the journal owner.`,
+      );
+    }
+
+    // Remove the pending participant
+    await this.participantRepo.delete(id);
+
+    this.logger.log(`Participant request from ${participant.phone_number} declined for journal "${participant.journal.title}"`);
+  }
 }

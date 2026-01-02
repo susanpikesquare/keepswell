@@ -1,4 +1,4 @@
-export { apiClient, setAuthToken } from './client';
+export { apiClient, setAuthToken, setGetTokenFn } from './client';
 export { authApi } from './auth';
 export { journalsApi } from './journals';
 export { participantsApi } from './participants';
