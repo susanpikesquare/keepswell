@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Settings, Share2 } from 'lucide-react';
-import { useJournal, useEntries, useAuthSync } from '../../hooks';
+import { ArrowLeft, Settings, Share2, Download, Loader2 } from 'lucide-react';
+import { useJournal, useEntries, useAuthSync, useExportPdf, useIsPremium } from '../../hooks';
 import { Button, PageLoader } from '../../components/ui';
 import { MemoryTimeline, ShareModal } from '../../components/journal';
+import { UpgradeModal } from '../../components/subscription';
 import { getTheme } from '../../lib/themes';
 
 export function MemoryBookPage() {
@@ -11,7 +12,16 @@ export function MemoryBookPage() {
   const { isLoaded } = useAuthSync();
   const { data: journal, isLoading: journalLoading, error: journalError } = useJournal(id || '');
   const { data: entriesData, isLoading: entriesLoading } = useEntries(id || '');
+  const { mutate: exportPdf, isPending: isExporting } = useExportPdf();
+  const { isPremium } = useIsPremium();
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const handleExport = () => {
+    if (id) {
+      exportPdf({ journalId: id });
+    }
+  };
 
   if (!isLoaded || journalLoading) {
     return <PageLoader />;
@@ -48,8 +58,23 @@ export function MemoryBookPage() {
         <div className="flex items-center gap-2">
           <Button
             size="sm"
-            onClick={() => setShowShareModal(true)}
+            onClick={handleExport}
+            disabled={isExporting}
             className="bg-primary text-primary-foreground shadow-lg"
+          >
+            {isExporting ? (
+              <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4 mr-1" />
+            )}
+            {isExporting ? 'Exporting...' : 'Export PDF'}
+            {!isPremium && <span className="ml-1 text-xs opacity-75">(watermarked)</span>}
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => setShowShareModal(true)}
+            variant="outline"
+            className={`${theme.cardBg} ${theme.cardShadow} border ${theme.cardBorder}`}
           >
             <Share2 className="h-4 w-4 mr-1" />
             Share
@@ -67,12 +92,17 @@ export function MemoryBookPage() {
         </div>
       </div>
 
-      {/* Share Modal */}
+      {/* Modals */}
       <ShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
         journalId={id || ''}
         journalTitle={journal.title}
+      />
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="watermark-free PDF export"
       />
 
       {/* Memory Timeline */}

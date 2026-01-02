@@ -247,6 +247,10 @@ export function LandingPage() {
               Terms & Conditions
             </Link>
             <span className="text-muted-foreground/50">|</span>
+            <Link to="/sms-consent" className="hover:text-foreground transition-colors">
+              SMS Program
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
             <Link to="/support" className="hover:text-foreground transition-colors">
               Support
             </Link>

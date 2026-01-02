@@ -34,6 +34,7 @@ export function JoinPage() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [relationship, setRelationship] = useState('');
+  const [smsConsent, setSmsConsent] = useState(false);
 
   // Fetch journal info on mount
   useEffect(() => {
@@ -79,6 +80,11 @@ export function JoinPage() {
     const digits = phoneNumber.replace(/\D/g, '');
     if (digits.length !== 10) {
       setError('Please enter a valid 10-digit phone number');
+      return;
+    }
+
+    if (!smsConsent) {
+      setError('Please check the SMS consent box to continue');
       return;
     }
 
@@ -246,15 +252,24 @@ export function JoinPage() {
             </div>
           )}
 
-          {/* SMS Consent */}
-          <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-            <p>
-              <strong>SMS Consent:</strong> By requesting to join, you agree to receive text messages
-              from Keepswell (a service of PikeSquare, LLC) including journal prompts and notifications.
-            </p>
-            <p className="mt-1">
-              Message frequency varies. Message and data rates may apply.
-              Reply STOP to opt out, or HELP for assistance.
+          {/* SMS Consent Checkbox - Required by 10DLC compliance */}
+          <div className="bg-muted/50 rounded-lg p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={smsConsent}
+                onChange={(e) => setSmsConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-sm text-muted-foreground">
+                I agree to receive SMS messages from Keepswell including memory prompts and journal notifications.
+              </span>
+            </label>
+            <p className="text-xs text-muted-foreground mt-3 ml-7">
+              By providing your phone number, you agree to receive SMS notifications from Keepswell.
+              Message frequency may vary. Standard Message and Data Rates may apply.
+              Reply STOP to opt out. Reply HELP for help.
+              We will not share mobile information with third parties for promotional or marketing purposes.
             </p>
           </div>
 

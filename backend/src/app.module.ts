@@ -38,6 +38,8 @@ import { EntriesModule } from './modules/entries/entries.module';
 import { TemplatesModule } from './modules/templates/templates.module';
 import { SmsModule } from './modules/sms/sms.module';
 import { AdminModule } from './modules/admin/admin.module';
+import { PaymentsModule } from './modules/payments/payments.module';
+import { ExportModule } from './modules/export/export.module';
 
 @Module({
   imports: [
@@ -94,6 +96,8 @@ import { AdminModule } from './modules/admin/admin.module';
     TemplatesModule,
     SmsModule,
     AdminModule,
+    PaymentsModule,
+    ExportModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -271,11 +271,11 @@ export class ParticipantsService {
 
     this.logger.log(`Participant ${participant.display_name} approved for journal "${participant.journal.title}"`);
 
-    // Send welcome SMS to the approved participant
+    // Send opt-in confirmation SMS to the approved participant (10DLC compliant)
     if (participant.phone_number) {
       await this.smsService.sendSms(
         participant.phone_number,
-        `Keepswell (PikeSquare, LLC): Great news! You've been approved to join "${participant.journal.title}". You'll now receive memory prompts. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help.`,
+        `Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help. Message frequency may vary. Msg&data rates may apply. Consent is not a condition of purchase. Reply STOP to opt out.`,
       );
     }
 

@@ -33,9 +33,12 @@
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.3",
     "cloudinary": "^2.8.0",
+    "handlebars": "^4.7.8",
     "pg": "^8.16.3",
+    "puppeteer": "^24.34.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
+    "stripe": "^20.1.0",
     "twilio": "^5.11.1",
     "typeorm": "^0.3.28",
     "uuid": "^13.0.0"

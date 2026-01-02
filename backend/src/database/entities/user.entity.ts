@@ -43,6 +43,15 @@ export class User {
   @Column({ nullable: true })
   stripe_customer_id: string;
 
+  @Column({ nullable: true })
+  stripe_subscription_id: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  subscription_current_period_end: Date;
+
+  @Column({ default: false })
+  subscription_cancel_at_period_end: boolean;
+
   @Column({ default: false })
   is_admin: boolean;
 

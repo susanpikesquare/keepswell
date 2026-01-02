@@ -14,6 +14,7 @@ import { SharedBookPage } from './pages/shared/SharedBookPage';
 import { JoinPage } from './pages/join/JoinPage';
 import { AdminDashboardPage } from './pages/admin/AdminDashboardPage';
 import { ParticipantViewPage } from './pages/participant/ParticipantViewPage';
+import { PricingPage } from './pages/pricing/PricingPage';
 import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { SmsConsentPage } from './pages/SmsConsentPage';
@@ -31,6 +32,7 @@ function App() {
         <Route path="/terms" element={<TermsPage />} />
         <Route path="/sms-consent" element={<SmsConsentPage />} />
         <Route path="/support" element={<SupportPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
 
         {/* Protected routes */}
         <Route

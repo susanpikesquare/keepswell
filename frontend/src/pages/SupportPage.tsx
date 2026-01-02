@@ -76,7 +76,7 @@ export function SupportPage() {
         </div>
 
         {/* Quick Help */}
-        <div className="grid md:grid-cols-2 gap-4 mb-8">
+        <div className="grid md:grid-cols-3 gap-4 mb-8">
           <div className="bg-muted/50 rounded-lg p-4">
             <div className="flex items-center gap-2 mb-2">
               <MessageSquare className="h-5 w-5 text-primary" />
@@ -92,9 +92,20 @@ export function SupportPage() {
               <h3 className="font-semibold">Email Us</h3>
             </div>
             <p className="text-sm text-muted-foreground">
-              <a href="mailto:susan@pikesquare.co" className="text-primary hover:underline">
-                susan@pikesquare.co
+              <a href="mailto:support@keepswell.com" className="text-primary hover:underline">
+                support@keepswell.com
               </a>
+            </p>
+          </div>
+          <div className="bg-muted/50 rounded-lg p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <h3 className="font-semibold">SMS Program Info</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              <Link to="/sms-consent" className="text-primary hover:underline">
+                View our SMS program details
+              </Link>
             </p>
           </div>
         </div>

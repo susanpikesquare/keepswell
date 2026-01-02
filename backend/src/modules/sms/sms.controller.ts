@@ -179,7 +179,7 @@ export class SmsController {
         if (HELP_KEYWORDS.includes(messageText)) {
           await this.smsService.sendSms(
             fromNumber,
-            `Keepswell (PikeSquare, LLC): You're receiving memory journal prompts. Reply to share memories, photos & stories. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out. For support visit keepswell.com/support`,
+            `Keepswell: For help, please visit keepswell.com/support or email support@keepswell.com`,
           );
           return 'OK';
         }
@@ -484,10 +484,10 @@ export class SmsController {
         });
         this.logger.log(`Participant ${participant.display_name} opted in for journal ${participant.journal?.title}`);
 
-        // Send confirmation with all required elements
+        // Send confirmation with all required elements (10DLC compliant)
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell (PikeSquare, LLC): Welcome to "${participant.journal?.title}"! You've opted in to receive memory journal prompts. Msg freq varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help.`,
+          `Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help. Message frequency may vary. Msg&data rates may apply. Consent is not a condition of purchase. Reply STOP to opt out.`,
         );
       }
 
@@ -506,10 +506,10 @@ export class SmsController {
       }
 
       if (activeParticipants.length > 0) {
-        // Send confirmation
+        // Send confirmation (10DLC compliant)
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell (PikeSquare, LLC): You've been unsubscribed from all memory journal prompts. Reply YES anytime to rejoin.`,
+          `Keepswell: You are unsubscribed and will receive no further messages.`,
         );
       }
     }
