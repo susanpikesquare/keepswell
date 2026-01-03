@@ -1,8 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Entry, Journal, Participant, MediaAttachment, User } from '../../database/entities';
-import { SimulateEntryDto } from './dto/create-entry.dto';
+import { SimulateEntryDto, WebEntryDto } from './dto/create-entry.dto';
 
 @Injectable()
 export class EntriesService {
@@ -149,6 +149,117 @@ export class EntriesService {
 
     this.logger.log(
       `Simulated entry created for participant ${participant.display_name} in journal ${journal.title}`,
+    );
+
+    // Return with relations
+    return this.entryRepo.findOne({
+      where: { id: entry.id },
+      relations: ['participant', 'media_attachments'],
+    }) as Promise<Entry>;
+  }
+
+  /**
+   * Create an entry via web upload (FREE feature - no SMS limits)
+   * Allows journal owner to add memories directly without SMS
+   */
+  async createWebEntry(
+    journalId: string,
+    clerkId: string,
+    dto: WebEntryDto,
+  ): Promise<Entry> {
+    const user = await this.getUserByClerkId(clerkId);
+
+    // Verify user owns the journal
+    const journal = await this.journalRepo.findOne({
+      where: { id: journalId, owner_id: user.id },
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Journal not found');
+    }
+
+    // Validate that we have content or media
+    if (!dto.content && (!dto.media_urls || dto.media_urls.length === 0)) {
+      throw new BadRequestException('Entry must have content or media');
+    }
+
+    let participant: Participant;
+
+    if (dto.participant_id) {
+      // Use existing participant
+      const existingParticipant = await this.participantRepo.findOne({
+        where: { id: dto.participant_id, journal_id: journalId },
+      });
+
+      if (!existingParticipant) {
+        throw new NotFoundException('Participant not found');
+      }
+      participant = existingParticipant;
+    } else {
+      // Find or create an "owner" participant for this journal
+      let ownerParticipant = await this.participantRepo.findOne({
+        where: {
+          journal_id: journalId,
+          email: user.email,
+        },
+      });
+
+      if (!ownerParticipant) {
+        // Create owner as a participant
+        const newParticipant = this.participantRepo.create({
+          journal_id: journalId,
+          display_name: dto.contributor_name || user.full_name || 'Me',
+          email: user.email,
+          phone_number: user.phone_number || undefined,
+          status: 'active',
+          opted_in: true,
+          relationship: 'Owner',
+        });
+        ownerParticipant = await this.participantRepo.save(newParticipant);
+        this.logger.log(`Created owner participant for journal ${journalId}`);
+      }
+      participant = ownerParticipant;
+    }
+
+    // Determine entry type
+    const hasMedia = dto.media_urls && dto.media_urls.length > 0;
+    const hasText = dto.content && dto.content.trim().length > 0;
+    let entryType: 'text' | 'photo' | 'mixed' = 'text';
+    if (hasMedia && hasText) {
+      entryType = 'mixed';
+    } else if (hasMedia) {
+      entryType = 'photo';
+    }
+
+    // Create the entry
+    const entry = await this.entryRepo.save({
+      journal_id: journalId,
+      participant_id: participant.id,
+      content: dto.content || '',
+      entry_type: entryType,
+      is_hidden: false,
+      is_pinned: false,
+    });
+
+    // Create media attachments if provided
+    if (dto.media_urls && dto.media_urls.length > 0) {
+      for (const url of dto.media_urls) {
+        await this.mediaRepo.save({
+          entry_id: entry.id,
+          original_url: url,
+          stored_url: url,
+          media_type: this.detectMediaType(url),
+        });
+      }
+    }
+
+    // Update participant's last response time
+    await this.participantRepo.update(participant.id, {
+      last_response_at: new Date(),
+    });
+
+    this.logger.log(
+      `Web entry created by ${user.email} for journal ${journal.title}`,
     );
 
     // Return with relations

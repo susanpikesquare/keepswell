@@ -10,7 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { EntriesService } from './entries.service';
-import { SimulateEntryDto } from './dto/create-entry.dto';
+import { SimulateEntryDto, WebEntryDto } from './dto/create-entry.dto';
 import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -47,6 +47,20 @@ export class EntriesController {
     @Body() dto: SimulateEntryDto,
   ) {
     return this.entriesService.simulateEntry(journalId, user.clerkId, dto);
+  }
+
+  /**
+   * Create an entry via web upload (FREE - no SMS limits)
+   * POST /api/journals/:journalId/entries
+   * Allows journal owner to add memories directly without SMS
+   */
+  @Post('journals/:journalId/entries')
+  createWebEntry(
+    @Param('journalId') journalId: string,
+    @CurrentUser() user: AuthUser,
+    @Body() dto: WebEntryDto,
+  ) {
+    return this.entriesService.createWebEntry(journalId, user.clerkId, dto);
   }
 
   /**

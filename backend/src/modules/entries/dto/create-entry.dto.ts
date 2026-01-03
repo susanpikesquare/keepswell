@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsArray, IsEnum } from 'class-validator';
+import { IsString, IsOptional, IsArray, IsEnum, IsBoolean } from 'class-validator';
 
 export class CreateEntryDto {
   @IsString()
@@ -29,4 +29,27 @@ export class SimulateEntryDto {
   @IsArray()
   @IsString({ each: true })
   media_urls?: string[];
+}
+
+/**
+ * DTO for creating entries via web upload (free feature)
+ * Allows journal owner to add memories without SMS
+ */
+export class WebEntryDto {
+  @IsOptional()
+  @IsString()
+  participant_id?: string; // Optional - if not provided, entry is from the owner
+
+  @IsOptional()
+  @IsString()
+  content?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  media_urls?: string[]; // Cloudinary URLs after client-side upload
+
+  @IsOptional()
+  @IsString()
+  contributor_name?: string; // Display name for the contributor (if new)
 }

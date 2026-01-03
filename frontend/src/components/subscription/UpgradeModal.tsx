@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Crown, X, Check, Loader2 } from 'lucide-react';
 import { Button } from '../ui';
 import { useCreateCheckoutSession } from '../../hooks';
@@ -10,12 +11,17 @@ interface UpgradeModalProps {
 
 export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: UpgradeModalProps) {
   const { mutate: createCheckout, isPending } = useCreateCheckoutSession();
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
 
   if (!isOpen) return null;
 
   const handleUpgrade = () => {
-    createCheckout(window.location.href);
+    createCheckout({ returnUrl: window.location.href, billingPeriod });
   };
+
+  const yearlyPrice = 79;
+  const monthlyPrice = 9;
+  const yearlySavings = Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -35,18 +41,55 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
           <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <Crown className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Upgrade to Premium</h2>
+          <h2 className="text-2xl font-bold mb-2">Upgrade to Pro</h2>
           <p className="text-muted-foreground">
-            Unlock {feature} and more premium features.
+            Unlock {feature} and more Pro features.
           </p>
         </div>
 
+        {/* Billing Period Toggle */}
+        <div className="flex justify-center mb-4">
+          <div className="bg-muted p-1 rounded-lg inline-flex">
+            <button
+              onClick={() => setBillingPeriod('monthly')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                billingPeriod === 'monthly'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Monthly
+            </button>
+            <button
+              onClick={() => setBillingPeriod('yearly')}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
+                billingPeriod === 'yearly'
+                  ? 'bg-background shadow-sm text-foreground'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Yearly
+              <span className="bg-green-100 text-green-700 text-xs px-1.5 py-0.5 rounded-full">
+                -{yearlySavings}%
+              </span>
+            </button>
+          </div>
+        </div>
+
         <div className="bg-muted/50 rounded-lg p-4 mb-6">
-          <p className="font-semibold mb-3">Premium includes:</p>
+          <p className="font-semibold mb-3">Pro includes:</p>
           <ul className="space-y-2">
             <li className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-primary" />
-              Unlimited participants per journal
+              <strong>Unlimited memory journals</strong>
+            </li>
+            <li className="flex items-center gap-2 text-sm">
+              <Check className="h-4 w-4 text-primary" />
+              Up to 15 contributors per journal
+            </li>
+            <li className="flex items-center gap-2 text-sm">
+              <Check className="h-4 w-4 text-primary" />
+              <strong>SMS prompts enabled</strong>
             </li>
             <li className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-primary" />
@@ -56,16 +99,23 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
               <Check className="h-4 w-4 text-primary" />
               Watermark-free PDF exports
             </li>
-            <li className="flex items-center gap-2 text-sm">
-              <Check className="h-4 w-4 text-primary" />
-              Order physical printed books
-            </li>
           </ul>
         </div>
 
-        <div className="flex items-baseline justify-center gap-1 mb-6">
-          <span className="text-3xl font-bold">$9.99</span>
-          <span className="text-muted-foreground">/month</span>
+        <div className="text-center mb-6">
+          <div className="flex items-baseline justify-center gap-1">
+            <span className="text-3xl font-bold">
+              ${billingPeriod === 'yearly' ? yearlyPrice : monthlyPrice}
+            </span>
+            <span className="text-muted-foreground">
+              /{billingPeriod === 'yearly' ? 'year' : 'month'}
+            </span>
+          </div>
+          {billingPeriod === 'yearly' && (
+            <p className="text-sm text-green-600 mt-1">
+              Just ${(yearlyPrice / 12).toFixed(2)}/month
+            </p>
+          )}
         </div>
 
         <div className="space-y-3">
@@ -76,7 +126,7 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
                 Loading...
               </>
             ) : (
-              'Upgrade Now'
+              `Upgrade Now${billingPeriod === 'yearly' ? ' - Save ' + yearlySavings + '%' : ''}`
             )}
           </Button>
           <Button variant="ghost" className="w-full" onClick={onClose}>
@@ -85,7 +135,7 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Cancel anytime. You'll keep premium access until your billing period ends.
+          Cancel anytime. You'll keep Pro access until your billing period ends.
         </p>
       </div>
     </div>

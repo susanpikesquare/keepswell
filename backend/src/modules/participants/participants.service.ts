@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -6,6 +6,8 @@ import { randomBytes } from 'crypto';
 import { Participant, Journal, User } from '../../database/entities';
 import { CreateParticipantDto } from './dto/create-participant.dto';
 import { SmsService } from '../sms/sms.service';
+import { SmsLimitsService } from '../sms/sms-limits.service';
+import { SubscriptionService } from '../payments/subscription.service';
 
 @Injectable()
 export class ParticipantsService {
@@ -20,6 +22,8 @@ export class ParticipantsService {
     @InjectRepository(User)
     private userRepo: Repository<User>,
     private smsService: SmsService,
+    private smsLimitsService: SmsLimitsService,
+    private subscriptionService: SubscriptionService,
     private configService: ConfigService,
   ) {
     this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://keepswell.com';
@@ -53,6 +57,18 @@ export class ParticipantsService {
       throw new NotFoundException('Journal not found');
     }
 
+    // Check contributor limit (3 for free, 15 for pro)
+    const canAdd = await this.subscriptionService.canAddContributor(user, journalId);
+    if (!canAdd.allowed) {
+      throw new ForbiddenException(canAdd.reason);
+    }
+
+    // Get tier limits to determine if SMS is allowed
+    const tierLimits = this.subscriptionService.getTierLimits(user);
+
+    // Block phone number for free tier users (SMS is Pro only)
+    const effectivePhoneNumber = tierLimits.smsEnabled ? dto.phone_number : undefined;
+
     // Generate magic token for participant access
     const magicToken = this.generateMagicToken();
     const tokenExpiry = new Date();
@@ -60,6 +76,7 @@ export class ParticipantsService {
 
     const participant = this.participantRepo.create({
       ...dto,
+      phone_number: effectivePhoneNumber, // Use tier-gated phone
       journal_id: journalId,
       status: 'pending', // Start as pending until they confirm
       opted_in: false,
@@ -69,12 +86,19 @@ export class ParticipantsService {
 
     const savedParticipant = await this.participantRepo.save(participant);
 
-    // Send SMS invite if phone number is provided
-    if (dto.phone_number) {
+    // Send SMS invite only if phone number is allowed (Pro tier) and provided
+    if (effectivePhoneNumber) {
+      // Check SMS tier gating (will pass for Pro users)
+      const limitCheck = await this.smsLimitsService.canSendInvite(user.id);
+      if (!limitCheck.allowed) {
+        this.logger.warn(`SMS invite blocked for user ${user.id}: ${limitCheck.reason}`);
+        return savedParticipant;
+      }
+
       const ownerName = user.full_name || user.email || 'Someone';
       const viewUrl = `${this.frontendUrl}/p/${magicToken}`;
       const result = await this.smsService.sendInvite(
-        dto.phone_number,
+        effectivePhoneNumber,
         dto.display_name,
         journal.title,
         ownerName,
@@ -82,9 +106,10 @@ export class ParticipantsService {
       );
 
       if (result.success) {
-        this.logger.log(`Invite SMS sent to ${dto.display_name} at ${dto.phone_number}`);
+        await this.smsLimitsService.recordInviteSent(user.id);
+        this.logger.log(`Invite SMS sent to ${dto.display_name} at ${effectivePhoneNumber}`);
       } else {
-        this.logger.warn(`Failed to send invite SMS to ${dto.phone_number}: ${result.error}`);
+        this.logger.warn(`Failed to send invite SMS to ${effectivePhoneNumber}: ${result.error}`);
       }
     }
 
@@ -171,7 +196,7 @@ export class ParticipantsService {
     await this.participantRepo.delete(id);
   }
 
-  async resendInvite(id: string, clerkId: string): Promise<{ success: boolean; error?: string }> {
+  async resendInvite(id: string, clerkId: string): Promise<{ success: boolean; error?: string; limitReached?: boolean }> {
     const user = await this.getUserByClerkId(clerkId);
 
     const participant = await this.participantRepo.findOne({
@@ -189,6 +214,12 @@ export class ParticipantsService {
 
     if (!participant.phone_number) {
       return { success: false, error: 'Participant has no phone number' };
+    }
+
+    // Check SMS invite limits for free tier users
+    const limitCheck = await this.smsLimitsService.canSendInvite(user.id);
+    if (!limitCheck.allowed) {
+      return { success: false, error: limitCheck.reason, limitReached: true };
     }
 
     // Regenerate magic token if expired or missing
@@ -214,6 +245,8 @@ export class ParticipantsService {
     );
 
     if (result.success) {
+      // Record the invite was sent
+      await this.smsLimitsService.recordInviteSent(user.id);
       this.logger.log(`Invite re-sent to ${participant.display_name} at ${participant.phone_number}`);
     }
 

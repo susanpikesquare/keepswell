@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { entriesApi } from '../api';
-import type { SimulateEntryDto } from '../api';
+import type { SimulateEntryDto, CreateWebEntryDto } from '../api';
 
 export function useEntries(journalId: string, params?: { page?: number; limit?: number }) {
   return useQuery({
@@ -23,6 +23,20 @@ export function useSimulateEntry(journalId: string) {
 
   return useMutation({
     mutationFn: (data: SimulateEntryDto) => entriesApi.simulate(journalId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'entries'] });
+    },
+  });
+}
+
+/**
+ * Create an entry via web upload (FREE - no SMS limits)
+ */
+export function useCreateEntry(journalId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: CreateWebEntryDto) => entriesApi.create(journalId, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['journals', journalId, 'entries'] });
     },

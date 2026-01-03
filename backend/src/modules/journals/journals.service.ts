@@ -7,6 +7,7 @@ import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
 import { JoinRequestDto } from './dto/join-request.dto';
 import { SmsService } from '../sms/sms.service';
+import { SubscriptionService } from '../payments/subscription.service';
 
 @Injectable()
 export class JournalsService {
@@ -23,6 +24,7 @@ export class JournalsService {
     private participantRepository: Repository<Participant>,
     @Inject(forwardRef(() => SmsService))
     private smsService: SmsService,
+    private subscriptionService: SubscriptionService,
   ) {}
 
   async create(clerkId: string, createJournalDto: CreateJournalDto): Promise<Journal> {
@@ -32,11 +34,23 @@ export class JournalsService {
       throw new NotFoundException('User not found');
     }
 
+    // Check journal creation limit
+    const canCreate = await this.subscriptionService.canCreateJournal(user);
+    if (!canCreate.allowed) {
+      throw new ForbiddenException(canCreate.reason);
+    }
+
+    // Get tier limits to determine if SMS is allowed
+    const tierLimits = this.subscriptionService.getTierLimits(user);
+
     // Generate a unique join keyword
     const joinKeyword = await this.generateUniqueKeyword(createJournalDto.title);
 
     // Extract owner participation fields before creating journal
     const { owner_phone, owner_participate, ...journalData } = createJournalDto;
+
+    // Block owner_phone for free tier users (SMS is Pro only)
+    const effectiveOwnerPhone = tierLimits.smsEnabled ? owner_phone : undefined;
 
     const journal = this.journalRepository.create({
       ...journalData,
@@ -46,11 +60,11 @@ export class JournalsService {
 
     const savedJournal = await this.journalRepository.save(journal);
 
-    // If owner wants to participate, create a participant record for them
-    if (owner_participate && owner_phone) {
+    // If owner wants to participate and has phone (Pro only)
+    if (owner_participate && effectiveOwnerPhone) {
       // Update user's phone and SMS opt-in
       await this.userRepository.update(user.id, {
-        phone_number: owner_phone,
+        phone_number: effectiveOwnerPhone,
         sms_opted_in: true,
         sms_opted_in_at: new Date(),
       });
@@ -58,7 +72,7 @@ export class JournalsService {
       // Create participant record for owner
       const ownerParticipant = this.participantRepository.create({
         journal_id: savedJournal.id,
-        phone_number: owner_phone,
+        phone_number: effectiveOwnerPhone,
         display_name: user.full_name || 'Me',
         relationship: 'Owner',
         status: 'active',
@@ -68,6 +82,20 @@ export class JournalsService {
 
       await this.participantRepository.save(ownerParticipant);
       this.logger.log(`Owner added as participant to journal ${savedJournal.id}`);
+    } else if (owner_participate) {
+      // Free tier owner participation without phone - create participant but no SMS
+      const ownerParticipant = this.participantRepository.create({
+        journal_id: savedJournal.id,
+        phone_number: undefined,
+        display_name: user.full_name || 'Me',
+        relationship: 'Owner',
+        status: 'active',
+        opted_in: true,
+        opted_in_at: new Date(),
+      });
+
+      await this.participantRepository.save(ownerParticipant);
+      this.logger.log(`Owner added as participant (web only) to journal ${savedJournal.id}`);
     }
 
     return savedJournal;

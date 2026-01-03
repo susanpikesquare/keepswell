@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { Plus, BookHeart, Users } from 'lucide-react';
-import { useJournals, useAuthSync } from '../../hooks';
+import { Plus, BookHeart, Users, Crown, ArrowRight, Globe } from 'lucide-react';
+import { useJournals, useAuthSync, useUsageLimits, useIsPro } from '../../hooks';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader } from '../../components/ui';
 import { formatRelativeTime } from '../../lib/utils';
 import type { Journal } from '../../types';
@@ -8,6 +8,8 @@ import type { Journal } from '../../types';
 export function DashboardPage() {
   const { isLoaded, isSignedIn } = useAuthSync();
   const { data: journals, isLoading, error } = useJournals();
+  const { data: usageLimits } = useUsageLimits();
+  const { isPro } = useIsPro();
 
   // Wait for auth to be ready
   if (!isLoaded) {
@@ -34,6 +36,53 @@ export function DashboardPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      {/* Usage Stats / Upgrade Banner for Free Users */}
+      {usageLimits && !isPro && (
+        <div className="mb-6 bg-gradient-to-r from-primary/5 to-amber-50 rounded-xl p-4 border border-primary/10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="bg-primary/10 p-2 rounded-lg">
+                <Globe className="h-5 w-5 text-primary" />
+              </div>
+              <div>
+                <p className="font-medium">Free Plan</p>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground mt-1">
+                  <span>
+                    Journals: <strong className="text-foreground">{usageLimits.journalCount}</strong> / {usageLimits.maxJournals === -1 ? 'Unlimited' : usageLimits.maxJournals}
+                  </span>
+                  <span>
+                    SMS: <strong className="text-foreground">Web dashboard only</strong>
+                  </span>
+                </div>
+              </div>
+            </div>
+            <Link to="/pricing">
+              <Button variant="outline" size="sm" className="whitespace-nowrap">
+                <Crown className="h-4 w-4 mr-2 text-amber-500" />
+                Upgrade to Pro
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      {/* Pro Badge */}
+      {isPro && (
+        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
+          <div className="flex items-center gap-3">
+            <Crown className="h-5 w-5 text-amber-500" />
+            <div>
+              <span className="font-medium text-amber-800">Pro Member</span>
+              <span className="text-sm text-amber-600 ml-2">Unlimited journals & SMS enabled</span>
+            </div>
+            <Link to="/pricing" className="ml-auto text-sm text-amber-700 hover:underline">
+              Manage subscription
+            </Link>
+          </div>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold">My Journals</h1>

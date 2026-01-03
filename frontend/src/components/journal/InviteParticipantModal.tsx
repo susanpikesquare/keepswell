@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { UserPlus, Phone, User, Heart } from 'lucide-react';
+import { UserPlus, Phone, User, Heart, AlertCircle, Crown } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Modal, Button, Input } from '../ui';
-import { useInviteParticipant } from '../../hooks';
+import { useInviteParticipant, useParticipants, useUsageLimits } from '../../hooks';
 
 interface InviteParticipantModalProps {
   isOpen: boolean;
@@ -24,6 +25,8 @@ const RELATIONSHIP_OPTIONS = [
 
 export function InviteParticipantModal({ isOpen, onClose, journalId }: InviteParticipantModalProps) {
   const inviteParticipant = useInviteParticipant();
+  const { data: participants } = useParticipants(journalId);
+  const { data: usageLimits } = useUsageLimits();
 
   const [phoneNumber, setPhoneNumber] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -31,6 +34,13 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
   const [email, setEmail] = useState('');
   const [smsConsent, setSmsConsent] = useState(false);
   const [error, setError] = useState('');
+
+  // Tier-based limits
+  const isPro = usageLimits?.isPro ?? false;
+  const smsEnabled = usageLimits?.smsEnabled ?? false;
+  const maxContributors = isPro ? 15 : 3;
+  const currentContributorCount = participants?.length ?? 0;
+  const hasReachedContributorLimit = currentContributorCount >= maxContributors;
 
   const formatPhoneNumber = (value: string) => {
     // Remove all non-digits
@@ -120,22 +130,75 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
           </div>
         )}
 
-        {/* Phone Number - Optional */}
-        <div>
-          <label className="block text-sm font-medium mb-1.5">
-            <Phone className="h-4 w-4 inline mr-1" />
-            Phone Number
-          </label>
-          <Input
-            type="tel"
-            value={phoneNumber}
-            onChange={handlePhoneChange}
-            placeholder="(555) 123-4567"
-          />
-          <p className="text-xs text-muted-foreground mt-1">
-            Optional - provide to send SMS prompts
-          </p>
-        </div>
+        {/* Contributor Limit Warning */}
+        {hasReachedContributorLimit && (
+          <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+            <div className="flex items-start gap-2">
+              <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                  Contributor limit reached
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You've reached the maximum of {maxContributors} contributors{!isPro && ' on the free plan'}.{' '}
+                  {!isPro && (
+                    <>
+                      <Link to="/pricing" className="text-primary hover:underline font-medium">
+                        Upgrade to Pro
+                      </Link>{' '}
+                      for up to 15 contributors per journal.
+                    </>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Contributor Count */}
+        {!hasReachedContributorLimit && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground bg-muted/30 rounded-lg px-3 py-2">
+            <span>Contributors</span>
+            <span className="font-medium">{currentContributorCount} / {maxContributors}</span>
+          </div>
+        )}
+
+        {/* Phone Number - Pro only */}
+        {smsEnabled ? (
+          <div>
+            <label className="block text-sm font-medium mb-1.5">
+              <Phone className="h-4 w-4 inline mr-1" />
+              Phone Number
+            </label>
+            <Input
+              type="tel"
+              value={phoneNumber}
+              onChange={handlePhoneChange}
+              placeholder="(555) 123-4567"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              Optional - provide to send SMS prompts
+            </p>
+          </div>
+        ) : (
+          <div className="bg-muted/50 rounded-lg p-4 border">
+            <div className="flex items-start gap-3">
+              <Crown className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-medium text-foreground">
+                  SMS prompts require Pro
+                </p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  This contributor will access prompts through the web dashboard.{' '}
+                  <Link to="/pricing" className="text-primary hover:underline font-medium">
+                    Upgrade to Pro
+                  </Link>{' '}
+                  to enable SMS prompts.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Display Name */}
         <div>
@@ -188,8 +251,8 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
           </p>
         </div>
 
-        {/* SMS Consent Checkbox - Only show when phone number is entered */}
-        {phoneNumber.replace(/\D/g, '').length >= 10 && (
+        {/* SMS Consent Checkbox - Only show when phone number is entered and SMS is enabled */}
+        {smsEnabled && phoneNumber.replace(/\D/g, '').length >= 10 && (
           <div className="bg-muted/50 rounded-lg p-4 border">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
@@ -233,11 +296,11 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
           </Button>
           <Button
             type="submit"
-            disabled={inviteParticipant.isPending}
+            disabled={inviteParticipant.isPending || hasReachedContributorLimit}
             className="flex-1"
           >
             <UserPlus className="h-4 w-4 mr-2" />
-            {inviteParticipant.isPending ? 'Inviting...' : 'Send Invite'}
+            {inviteParticipant.isPending ? 'Inviting...' : 'Add Contributor'}
           </Button>
         </div>
       </form>

@@ -65,6 +65,7 @@ export class PaymentsService {
   async createCheckoutSession(
     clerkId: string,
     returnUrl: string,
+    billingPeriod: 'monthly' | 'yearly' = 'monthly',
   ): Promise<{ url: string }> {
     this.ensureConfigured();
 
@@ -74,10 +75,14 @@ export class PaymentsService {
     }
 
     const customerId = await this.getOrCreateCustomer(user);
-    const priceId = this.configService.get<string>('stripe.priceIdMonthly');
+
+    // Select price based on billing period
+    const priceId = billingPeriod === 'yearly'
+      ? this.configService.get<string>('stripe.priceIdYearly')
+      : this.configService.get<string>('stripe.priceIdMonthly');
 
     if (!priceId) {
-      throw new BadRequestException('Stripe price not configured');
+      throw new BadRequestException(`Stripe ${billingPeriod} price not configured`);
     }
 
     const session = await this.stripe!.checkout.sessions.create({
@@ -93,10 +98,11 @@ export class PaymentsService {
       cancel_url: `${returnUrl}?canceled=true`,
       metadata: {
         userId: user.id,
+        billingPeriod,
       },
     });
 
-    this.logger.log(`Created checkout session ${session.id} for user ${user.id}`);
+    this.logger.log(`Created checkout session ${session.id} for user ${user.id} (${billingPeriod})`);
     return { url: session.url! };
   }
 
@@ -198,14 +204,14 @@ export class PaymentsService {
     const subscription = await this.stripe!.subscriptions.retrieve(session.subscription as string);
 
     await this.userRepository.update(userId, {
-      subscription_tier: 'premium',
+      subscription_tier: 'pro',
       subscription_status: 'active',
       stripe_subscription_id: subscription.id,
       subscription_current_period_end: new Date((subscription as any).current_period_end * 1000),
       subscription_cancel_at_period_end: (subscription as any).cancel_at_period_end,
     });
 
-    this.logger.log(`User ${userId} upgraded to premium`);
+    this.logger.log(`User ${userId} upgraded to Pro`);
   }
 
   private async handleSubscriptionUpdated(subscription: Stripe.Subscription): Promise<void> {

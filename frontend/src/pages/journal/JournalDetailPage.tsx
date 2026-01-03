@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle, QrCode, Copy, Check, X } from 'lucide-react';
+import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle, QrCode, Copy, Check, X, PlusCircle } from 'lucide-react';
 import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite, useApproveParticipant, useDeclineParticipant } from '../../hooks';
 import { apiClient } from '../../api';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
-import { JournalSettingsModal, InviteParticipantModal } from '../../components/journal';
+import { JournalSettingsModal, InviteParticipantModal, AddMemoryModal } from '../../components/journal';
 import { formatRelativeTime } from '../../lib/utils';
 import type { Entry, Participant } from '../../types';
 
@@ -17,6 +17,7 @@ export function JournalDetailPage() {
   const { data: entriesData, isLoading: entriesLoading } = useEntries(id || '');
   const [showSettings, setShowSettings] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [showAddMemory, setShowAddMemory] = useState(false);
 
   if (!isLoaded || journalLoading || participantsLoading) {
     return <PageLoader />;
@@ -104,20 +105,33 @@ export function JournalDetailPage() {
         journalId={id || ''}
       />
 
+      {/* Add Memory Modal */}
+      <AddMemoryModal
+        isOpen={showAddMemory}
+        onClose={() => setShowAddMemory(false)}
+        journalId={id || ''}
+      />
+
       <div className="grid md:grid-cols-3 gap-6">
         {/* Main content area - Entry Timeline */}
         <div className="md:col-span-2">
           <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <MessageSquare className="h-5 w-5" />
-                Recent Entries
-              </CardTitle>
-              <CardDescription>
-                {entries.length > 0
-                  ? `${entriesData?.total || entries.length} memories collected`
-                  : 'Entries will appear here once participants start responding'}
-              </CardDescription>
+            <CardHeader className="flex-row items-start justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5" />
+                  Recent Entries
+                </CardTitle>
+                <CardDescription>
+                  {entries.length > 0
+                    ? `${entriesData?.total || entries.length} memories collected`
+                    : 'Entries will appear here once participants start responding'}
+                </CardDescription>
+              </div>
+              <Button size="sm" onClick={() => setShowAddMemory(true)}>
+                <PlusCircle className="h-4 w-4 mr-1" />
+                Add Memory
+              </Button>
             </CardHeader>
             <CardContent>
               {entriesLoading ? (

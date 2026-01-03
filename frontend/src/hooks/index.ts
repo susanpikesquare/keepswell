@@ -27,6 +27,7 @@ export {
   useEntries,
   useEntry,
   useSimulateEntry,
+  useCreateEntry,
   useUpdateEntry,
   useDeleteEntry,
 } from './useEntries';
@@ -48,8 +49,11 @@ export {
 } from './useAdmin';
 export {
   useSubscriptionStatus,
+  useUsageStats,
+  useUsageLimits,
   useCreateCheckoutSession,
   useCreatePortalSession,
   useIsPremium,
+  useIsPro,
   useExportPdf,
 } from './useSubscription';

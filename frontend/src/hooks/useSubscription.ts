@@ -1,7 +1,7 @@
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '@clerk/clerk-react';
 import { paymentsApi, exportApi, setAuthToken, setGetTokenFn } from '../api';
-import type { ExportOptions } from '../api';
+import type { ExportOptions, SmsUsageStats, UsageLimits } from '../api';
 
 export function useSubscriptionStatus() {
   const { isLoaded, isSignedIn, getToken } = useAuth();
@@ -17,14 +17,48 @@ export function useSubscriptionStatus() {
   });
 }
 
+export function useUsageStats() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+
+  if (getToken) {
+    setGetTokenFn(getToken);
+  }
+
+  return useQuery<SmsUsageStats>({
+    queryKey: ['usage-stats'],
+    queryFn: paymentsApi.getUsageStats,
+    enabled: isLoaded && isSignedIn,
+  });
+}
+
+export function useUsageLimits() {
+  const { isLoaded, isSignedIn, getToken } = useAuth();
+
+  if (getToken) {
+    setGetTokenFn(getToken);
+  }
+
+  return useQuery<UsageLimits>({
+    queryKey: ['usage-limits'],
+    queryFn: paymentsApi.getUsageLimits,
+    enabled: isLoaded && isSignedIn,
+  });
+}
+
 export function useCreateCheckoutSession() {
   const { getToken } = useAuth();
 
   return useMutation({
-    mutationFn: async (returnUrl: string) => {
+    mutationFn: async ({
+      returnUrl,
+      billingPeriod = 'monthly',
+    }: {
+      returnUrl: string;
+      billingPeriod?: 'monthly' | 'yearly';
+    }) => {
       const token = await getToken();
       setAuthToken(token);
-      return paymentsApi.createCheckoutSession(returnUrl);
+      return paymentsApi.createCheckoutSession(returnUrl, billingPeriod);
     },
     onSuccess: async (data) => {
       // Redirect to Stripe Checkout
@@ -56,8 +90,24 @@ export function useCreatePortalSession() {
 export function useIsPremium() {
   const { data: subscription, isLoading } = useSubscriptionStatus();
 
+  // Check for both 'premium' and 'pro' tiers for backwards compatibility
+  const isPaidTier = subscription?.tier === 'premium' || subscription?.tier === 'pro';
+
   return {
-    isPremium: subscription?.tier === 'premium' && subscription?.status === 'active',
+    isPremium: isPaidTier && subscription?.status === 'active',
+    isLoading,
+    subscription,
+  };
+}
+
+export function useIsPro() {
+  const { data: subscription, isLoading } = useSubscriptionStatus();
+
+  // Check for both 'premium' and 'pro' tiers for backwards compatibility
+  const isPaidTier = subscription?.tier === 'premium' || subscription?.tier === 'pro';
+
+  return {
+    isPro: isPaidTier && subscription?.status === 'active',
     isLoading,
     subscription,
   };

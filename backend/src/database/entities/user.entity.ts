@@ -52,6 +52,16 @@ export class User {
   @Column({ default: false })
   subscription_cancel_at_period_end: boolean;
 
+  // SMS Usage Tracking for Freemium
+  @Column({ default: 0 })
+  sms_sends_this_month: number;
+
+  @Column({ default: 0 })
+  sms_invites_total: number;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  sms_month_reset_date: Date;
+
   @Column({ default: false })
   is_admin: boolean;
 

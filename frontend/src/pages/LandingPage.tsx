@@ -239,6 +239,10 @@ export function LandingPage() {
       <footer className="py-8 px-4 border-t">
         <div className="container mx-auto text-center text-sm text-muted-foreground">
           <div className="flex flex-wrap justify-center gap-4 mb-4">
+            <Link to="/pricing" className="hover:text-foreground transition-colors">
+              Pricing
+            </Link>
+            <span className="text-muted-foreground/50">|</span>
             <Link to="/privacy" className="hover:text-foreground transition-colors">
               Privacy Policy
             </Link>

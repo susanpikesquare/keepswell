@@ -8,6 +8,13 @@ export interface SimulateEntryDto {
   media_urls?: string[];
 }
 
+export interface CreateWebEntryDto {
+  participant_id?: string;
+  content?: string;
+  media_urls?: string[];
+  contributor_name?: string;
+}
+
 export const entriesApi = {
   list: async (
     journalId: string,
@@ -31,6 +38,17 @@ export const entriesApi = {
   simulate: async (journalId: string, data: SimulateEntryDto): Promise<Entry> => {
     const response = await apiClient.post<Entry>(
       `/journals/${journalId}/entries/simulate`,
+      data
+    );
+    return response.data;
+  },
+
+  /**
+   * Create an entry via web upload (FREE - no SMS limits)
+   */
+  create: async (journalId: string, data: CreateWebEntryDto): Promise<Entry> => {
+    const response = await apiClient.post<Entry>(
+      `/journals/${journalId}/entries`,
       data
     );
     return response.data;

@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Heart, Sparkles, Plane, BookOpen, Crown, Users, ChevronDown, ChevronUp, MessageCircle, Camera, Lightbulb, Phone, AlertCircle } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { ArrowLeft, Heart, Sparkles, Plane, BookOpen, Crown, Users, ChevronDown, ChevronUp, MessageCircle, Camera, Lightbulb, Phone, AlertCircle, Lock } from 'lucide-react';
 import { Button, Input, Card, CardHeader, CardTitle, CardDescription } from '../../components/ui';
-import { useCreateJournal, useStarterPrompts } from '../../hooks';
+import { UpgradeModal } from '../../components/subscription';
+import { useCreateJournal, useStarterPrompts, useIsPremium, useUsageLimits } from '../../hooks';
 import { cn } from '../../lib/utils';
 import { templateInfo, getTemplateTypes } from '../../lib/themes';
 import type { TemplateType } from '../../types';
@@ -79,6 +80,14 @@ function PromptPreview({ templateType, isExpanded }: { templateType: TemplateTyp
 export function CreateJournalPage() {
   const navigate = useNavigate();
   const createJournal = useCreateJournal();
+  const isPremium = useIsPremium();
+  const { data: usageLimits, isLoading: limitsLoading } = useUsageLimits();
+
+  // Tier-based limits
+  const smsEnabled = usageLimits?.smsEnabled ?? false;
+  const canCreateJournal = usageLimits?.canCreateJournal ?? true;
+  const journalCount = usageLimits?.journalCount ?? 0;
+  const maxJournals = usageLimits?.maxJournals ?? 1;
 
   const [step, setStep] = useState(1);
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('family');
@@ -89,6 +98,7 @@ export function CreateJournalPage() {
   const [ownerPhone, setOwnerPhone] = useState('');
   const [smsConsent, setSmsConsent] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -104,6 +114,14 @@ export function CreateJournalPage() {
 
   // Get all template types from themes
   const templates = getTemplateTypes().map((type) => templateInfo[type]);
+
+  const handleTemplateSelect = (template: typeof templates[0]) => {
+    if (template.isPremium && !isPremium) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    setSelectedTemplate(template.type);
+  };
 
   const togglePromptPreview = (type: TemplateType, e: React.MouseEvent) => {
     e.stopPropagation(); // Don't select template when clicking preview
@@ -145,6 +163,43 @@ export function CreateJournalPage() {
     }
   };
 
+  // Show journal limit reached screen for free users
+  if (!limitsLoading && !canCreateJournal) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-lg">
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-6"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </button>
+
+        <div className="text-center py-12">
+          <div className="mx-auto w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mb-6">
+            <Lock className="h-8 w-8 text-amber-600" />
+          </div>
+          <h1 className="text-2xl font-bold mb-2">Journal Limit Reached</h1>
+          <p className="text-muted-foreground mb-6">
+            You've created {journalCount} of {maxJournals} journal{maxJournals !== 1 ? 's' : ''} on the free plan.
+            Upgrade to Pro for unlimited journals.
+          </p>
+          <div className="space-y-3">
+            <Link to="/pricing">
+              <Button size="lg" className="w-full">
+                <Crown className="h-4 w-4 mr-2" />
+                Upgrade to Pro
+              </Button>
+            </Link>
+            <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/dashboard')}>
+              View My Journals
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <button
@@ -171,9 +226,10 @@ export function CreateJournalPage() {
                   'cursor-pointer transition-all relative overflow-hidden',
                   selectedTemplate === template.type
                     ? 'border-primary ring-2 ring-primary ring-offset-2'
-                    : 'hover:border-primary/50'
+                    : 'hover:border-primary/50',
+                  template.isPremium && !isPremium && 'opacity-75'
                 )}
-                onClick={() => setSelectedTemplate(template.type)}
+                onClick={() => handleTemplateSelect(template)}
               >
                 {/* Premium badge */}
                 {template.isPremium && (
@@ -268,56 +324,80 @@ export function CreateJournalPage() {
               <div>
                 <span className="font-medium text-foreground">Include me as a contributor</span>
                 <p className="text-sm text-muted-foreground">
-                  Receive prompts via SMS and contribute my own memories to this journal
+                  {smsEnabled
+                    ? 'Receive prompts via SMS and contribute my own memories to this journal'
+                    : 'Access prompts through the web dashboard and contribute my own memories'}
                 </p>
               </div>
             </label>
 
             {includeOwner && (
               <div className="pl-7 space-y-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">
-                    <Phone className="h-4 w-4 inline mr-1" />
-                    Your Phone Number
-                  </label>
-                  <Input
-                    type="tel"
-                    value={ownerPhone}
-                    onChange={handleOwnerPhoneChange}
-                    placeholder="(555) 123-4567"
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Optional - provide to receive prompts via SMS
-                  </p>
-                </div>
-
-                {/* SMS Consent Checkbox - Required for SMS */}
-                {ownerPhone.replace(/\D/g, '').length >= 10 && (
-                  <div className="bg-muted/50 rounded-lg p-4 border">
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={smsConsent}
-                        onChange={(e) => setSmsConsent(e.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                {smsEnabled ? (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-1.5">
+                        <Phone className="h-4 w-4 inline mr-1" />
+                        Your Phone Number
+                      </label>
+                      <Input
+                        type="tel"
+                        value={ownerPhone}
+                        onChange={handleOwnerPhoneChange}
+                        placeholder="(555) 123-4567"
                       />
-                      <span className="text-sm font-medium text-foreground">
-                        I agree to receive SMS text messages from Keepswell at this number
-                      </span>
-                    </label>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Optional - provide to receive prompts via SMS
+                      </p>
+                    </div>
 
-                    {/* SMS Consent Text */}
-                    <div className="mt-3 ml-7 text-xs text-muted-foreground space-y-2">
-                      <p>
-                        <strong>SMS Consent:</strong> By providing your phone number, you agree to receive
-                        text messages from Keepswell (a service of PikeSquare, LLC) including journal prompts
-                        and notifications. Message frequency varies based on journal settings. Message and
-                        data rates may apply. Reply STOP at any time to opt out, or HELP for assistance.
-                      </p>
-                      <p>
-                        <strong>Your mobile information will not be sold or shared with third parties for
-                        promotional or marketing purposes.</strong>
-                      </p>
+                    {/* SMS Consent Checkbox - Required for SMS */}
+                    {ownerPhone.replace(/\D/g, '').length >= 10 && (
+                      <div className="bg-muted/50 rounded-lg p-4 border">
+                        <label className="flex items-start gap-3 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={smsConsent}
+                            onChange={(e) => setSmsConsent(e.target.checked)}
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                          />
+                          <span className="text-sm font-medium text-foreground">
+                            I agree to receive SMS text messages from Keepswell at this number
+                          </span>
+                        </label>
+
+                        {/* SMS Consent Text */}
+                        <div className="mt-3 ml-7 text-xs text-muted-foreground space-y-2">
+                          <p>
+                            <strong>SMS Consent:</strong> By providing your phone number, you agree to receive
+                            text messages from Keepswell (a service of PikeSquare, LLC) including journal prompts
+                            and notifications. Message frequency varies based on journal settings. Message and
+                            data rates may apply. Reply STOP at any time to opt out, or HELP for assistance.
+                          </p>
+                          <p>
+                            <strong>Your mobile information will not be sold or shared with third parties for
+                            promotional or marketing purposes.</strong>
+                          </p>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="bg-muted/50 rounded-lg p-4 border">
+                    <div className="flex items-start gap-3">
+                      <Crown className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-foreground">
+                          SMS prompts require Pro
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          As a free user, you'll receive prompts through the web dashboard.{' '}
+                          <Link to="/pricing" className="text-primary hover:underline font-medium">
+                            Upgrade to Pro
+                          </Link>{' '}
+                          to receive SMS prompts.
+                        </p>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -343,6 +423,13 @@ export function CreateJournalPage() {
           </Button>
         </form>
       )}
+
+      {/* Upgrade Modal for Premium Templates */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        feature="Premium journal templates with specialized prompts"
+      />
     </div>
   );
 }
