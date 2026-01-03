@@ -8,7 +8,8 @@ import { User } from '../../database/entities';
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
-  private stripe: Stripe;
+  private stripe: Stripe | null = null;
+  private isConfigured = false;
 
   constructor(
     private configService: ConfigService,
@@ -17,20 +18,31 @@ export class PaymentsService {
   ) {
     const secretKey = this.configService.get<string>('stripe.secretKey');
     if (!secretKey) {
-      this.logger.warn('Stripe secret key not configured');
+      this.logger.warn('Stripe secret key not configured - payment features disabled');
+    } else {
+      this.stripe = new Stripe(secretKey);
+      this.isConfigured = true;
+      this.logger.log('Stripe payment service initialized');
     }
-    this.stripe = new Stripe(secretKey || '');
+  }
+
+  private ensureConfigured(): void {
+    if (!this.isConfigured || !this.stripe) {
+      throw new BadRequestException('Payment service not configured');
+    }
   }
 
   /**
    * Get or create a Stripe customer for a user
    */
   async getOrCreateCustomer(user: User): Promise<string> {
+    this.ensureConfigured();
+
     if (user.stripe_customer_id) {
       return user.stripe_customer_id;
     }
 
-    const customer = await this.stripe.customers.create({
+    const customer = await this.stripe!.customers.create({
       email: user.email,
       name: user.full_name || undefined,
       metadata: {
@@ -54,6 +66,8 @@ export class PaymentsService {
     clerkId: string,
     returnUrl: string,
   ): Promise<{ url: string }> {
+    this.ensureConfigured();
+
     const user = await this.userRepository.findOne({ where: { clerk_id: clerkId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -66,7 +80,7 @@ export class PaymentsService {
       throw new BadRequestException('Stripe price not configured');
     }
 
-    const session = await this.stripe.checkout.sessions.create({
+    const session = await this.stripe!.checkout.sessions.create({
       customer: customerId,
       mode: 'subscription',
       line_items: [
@@ -93,6 +107,8 @@ export class PaymentsService {
     clerkId: string,
     returnUrl: string,
   ): Promise<{ url: string }> {
+    this.ensureConfigured();
+
     const user = await this.userRepository.findOne({ where: { clerk_id: clerkId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -102,7 +118,7 @@ export class PaymentsService {
       throw new BadRequestException('No subscription found');
     }
 
-    const session = await this.stripe.billingPortal.sessions.create({
+    const session = await this.stripe!.billingPortal.sessions.create({
       customer: user.stripe_customer_id,
       return_url: returnUrl,
     });
@@ -136,11 +152,13 @@ export class PaymentsService {
    * Handle Stripe webhook events
    */
   async handleWebhook(payload: Buffer, signature: string): Promise<void> {
+    this.ensureConfigured();
+
     const webhookSecret = this.configService.get<string>('stripe.webhookSecret');
 
     let event: Stripe.Event;
     try {
-      event = this.stripe.webhooks.constructEvent(payload, signature, webhookSecret || '');
+      event = this.stripe!.webhooks.constructEvent(payload, signature, webhookSecret || '');
     } catch (err) {
       this.logger.error(`Webhook signature verification failed: ${err}`);
       throw new BadRequestException('Invalid webhook signature');
@@ -177,7 +195,7 @@ export class PaymentsService {
       return;
     }
 
-    const subscription = await this.stripe.subscriptions.retrieve(session.subscription as string);
+    const subscription = await this.stripe!.subscriptions.retrieve(session.subscription as string);
 
     await this.userRepository.update(userId, {
       subscription_tier: 'premium',
