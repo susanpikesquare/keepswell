@@ -87,6 +87,7 @@ export function CreateJournalPage() {
   const [description, setDescription] = useState('');
   const [includeOwner, setIncludeOwner] = useState(false);
   const [ownerPhone, setOwnerPhone] = useState('');
+  const [smsConsent, setSmsConsent] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
 
   const formatPhoneNumber = (value: string) => {
@@ -113,11 +114,19 @@ export function CreateJournalPage() {
     e.preventDefault();
     setPhoneError(null);
 
-    // Validate owner phone if they want to participate
+    // Validate owner phone if they want to participate and have provided a phone
     const ownerPhoneDigits = ownerPhone.replace(/\D/g, '');
-    if (includeOwner && ownerPhoneDigits.length < 10) {
-      setPhoneError('Please enter a valid 10-digit phone number');
-      return;
+
+    // If including owner with a phone number, SMS consent is required
+    if (includeOwner && ownerPhoneDigits.length > 0) {
+      if (ownerPhoneDigits.length < 10) {
+        setPhoneError('Please enter a valid 10-digit phone number');
+        return;
+      }
+      if (!smsConsent) {
+        setPhoneError('Please check the SMS consent box to receive text messages');
+        return;
+      }
     }
 
     try {
@@ -125,7 +134,7 @@ export function CreateJournalPage() {
         title,
         description: description || undefined,
         template_type: selectedTemplate,
-        owner_phone: includeOwner ? `+1${ownerPhoneDigits}` : undefined,
+        owner_phone: (includeOwner && smsConsent && ownerPhoneDigits.length >= 10) ? `+1${ownerPhoneDigits}` : undefined,
         owner_participate: includeOwner,
       });
 
@@ -276,22 +285,42 @@ export function CreateJournalPage() {
                     value={ownerPhone}
                     onChange={handleOwnerPhoneChange}
                     placeholder="(555) 123-4567"
-                    required={includeOwner}
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Optional - provide to receive prompts via SMS
+                  </p>
                 </div>
 
-                {/* SMS Consent */}
-                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-2">
-                  <p>
-                    <strong>SMS Consent:</strong> By providing your phone number, you agree to receive
-                    text messages from Keepswell (a service of PikeSquare, LLC) including journal prompts
-                    and notifications.
-                  </p>
-                  <p>
-                    Message frequency varies based on journal settings. Message and data rates may apply.
-                    Reply STOP at any time to opt out, or HELP for assistance.
-                  </p>
-                </div>
+                {/* SMS Consent Checkbox - Required for SMS */}
+                {ownerPhone.replace(/\D/g, '').length >= 10 && (
+                  <div className="bg-muted/50 rounded-lg p-4 border">
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={smsConsent}
+                        onChange={(e) => setSmsConsent(e.target.checked)}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      />
+                      <span className="text-sm font-medium text-foreground">
+                        I agree to receive SMS text messages from Keepswell at this number
+                      </span>
+                    </label>
+
+                    {/* SMS Consent Text */}
+                    <div className="mt-3 ml-7 text-xs text-muted-foreground space-y-2">
+                      <p>
+                        <strong>SMS Consent:</strong> By providing your phone number, you agree to receive
+                        text messages from Keepswell (a service of PikeSquare, LLC) including journal prompts
+                        and notifications. Message frequency varies based on journal settings. Message and
+                        data rates may apply. Reply STOP at any time to opt out, or HELP for assistance.
+                      </p>
+                      <p>
+                        <strong>Your mobile information will not be sold or shared with third parties for
+                        promotional or marketing purposes.</strong>
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

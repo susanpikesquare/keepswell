@@ -1,19 +1,36 @@
-import { Phone, UserPlus, MessageSquare, CheckSquare } from 'lucide-react';
+import { Phone, UserPlus, MessageSquare, CheckSquare, Shield } from 'lucide-react';
 
 export function SmsConsentPage() {
   return (
     <div className="min-h-screen bg-white">
       <div className="container mx-auto px-4 py-12 max-w-4xl">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Keepswell SMS Program</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Keepswell SMS Consent & Opt-In Documentation</h1>
           <p className="text-gray-600">10DLC Compliant Opt-In Flow Documentation</p>
           <p className="text-sm text-gray-500 mt-2">PikeSquare, LLC | keepswell.com</p>
+        </div>
+
+        {/* Privacy Notice Banner */}
+        <div className="bg-green-50 border-2 border-green-300 rounded-xl p-6 mb-8">
+          <div className="flex items-start gap-3">
+            <Shield className="h-6 w-6 text-green-600 flex-shrink-0 mt-1" />
+            <div>
+              <h2 className="text-lg font-bold text-gray-900 mb-2">Privacy Notice</h2>
+              <p className="text-gray-700">
+                <strong>Your mobile information will not be sold or shared with third parties for promotional or marketing purposes.</strong>
+              </p>
+              <p className="text-sm text-gray-600 mt-2">
+                View our full <a href="/privacy" className="text-blue-600 hover:underline">Privacy Policy</a> for more details.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Overview */}
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 mb-8">
           <h2 className="text-lg font-bold text-gray-900 mb-3">Opt-In Methods Overview</h2>
           <p className="text-sm text-gray-700 mb-4">
+            This page documents how Keepswell (a service of PikeSquare, LLC) obtains consent for SMS messaging.
             We use three opt-in methods: Digital (primary), Digital with SMS confirmation, and Keyword.
           </p>
           <div className="grid md:grid-cols-3 gap-4 text-sm">
@@ -47,8 +64,8 @@ export function SmsConsentPage() {
           <div className="bg-white rounded-lg p-4 mb-4 border">
             <p className="text-sm text-gray-700 mb-4">
               The user navigates to PikeSquare, LLC's website at <strong>keepswell.com</strong> and creates an account.
-              During journal creation, they can opt-in to receive SMS prompts by checking "Include me as a contributor"
-              and entering their phone number.
+              During journal creation, they can opt-in to receive SMS prompts by checking "Include me as a contributor",
+              entering their phone number, and checking the SMS consent checkbox.
             </p>
           </div>
 
@@ -80,23 +97,37 @@ export function SmsConsentPage() {
                 </label>
               </div>
 
-              {/* Phone number field (shown when checkbox is checked) */}
+              {/* Phone number field - NO ASTERISK */}
               <div className="bg-gray-50 rounded-lg p-4 border">
                 <label className="block text-sm font-medium mb-1">
                   <Phone className="h-4 w-4 inline mr-1" />
-                  Your Phone Number *
+                  Your Phone Number
                 </label>
                 <div className="border rounded px-3 py-2 bg-white text-gray-400">(555) 123-4567</div>
+                <p className="text-xs text-gray-500 mt-1">Optional - provide to receive prompts via SMS</p>
               </div>
 
-              {/* SMS Consent Disclaimer */}
-              <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                <p className="text-xs text-gray-700">
-                  <strong>SMS Consent:</strong> By providing your phone number, you agree to receive text messages
-                  from Keepswell (a service of PikeSquare, LLC) including journal prompts and notifications.
-                  Message frequency varies based on journal settings. Message and data rates may apply.
-                  Reply STOP at any time to opt out, or HELP for assistance.
-                </p>
+              {/* SMS Consent Checkbox - UNCHECKED BY DEFAULT */}
+              <div className="bg-amber-50 rounded-lg p-4 border-2 border-amber-300">
+                <label className="flex items-start gap-3">
+                  <input type="checkbox" className="mt-1 h-4 w-4 border-2 border-gray-400" disabled />
+                  <span className="text-sm font-medium text-gray-900">
+                    I agree to receive SMS text messages from Keepswell at this number
+                  </span>
+                </label>
+
+                {/* SMS Consent Disclaimer with Privacy Verbiage */}
+                <div className="mt-3 ml-7 text-xs text-gray-700 space-y-2">
+                  <p>
+                    <strong>SMS Consent:</strong> By providing your phone number, you agree to receive text messages
+                    from Keepswell (a service of PikeSquare, LLC) including journal prompts and notifications.
+                    Message frequency varies based on journal settings. Message and data rates may apply.
+                    Reply STOP at any time to opt out, or HELP for assistance.
+                  </p>
+                  <p className="font-semibold">
+                    Your mobile information will not be sold or shared with third parties for promotional or marketing purposes.
+                  </p>
+                </div>
               </div>
 
               <button className="w-full bg-blue-500 text-white rounded py-2 font-medium" disabled>
@@ -107,8 +138,8 @@ export function SmsConsentPage() {
 
           <div className="mt-4 bg-green-50 border border-green-200 rounded p-3">
             <p className="text-sm text-green-800">
-              <strong>Compliance:</strong> Opt-in checkbox is explicit and separate. Full SMS disclosure is displayed
-              before submission including message frequency, data rates, and STOP/HELP keywords.
+              <strong>Compliance:</strong> Phone field is optional (no asterisk). SMS consent checkbox is separate and unchecked by default.
+              Full SMS disclosure includes privacy verbiage about not sharing mobile information.
             </p>
           </div>
         </div>
@@ -127,8 +158,8 @@ export function SmsConsentPage() {
 
           <div className="bg-white rounded-lg p-4 mb-4 border">
             <p className="text-sm text-gray-700">
-              The journal owner navigates to <strong>keepswell.com</strong>, logs in, and invites a participant by entering their phone number.
-              The participant must then reply YES via SMS to confirm their opt-in.
+              The journal owner navigates to <strong>keepswell.com</strong>, logs in, and invites a participant.
+              The owner must confirm SMS consent before inviting. The participant must then reply YES via SMS to confirm their opt-in.
             </p>
           </div>
 
@@ -150,12 +181,14 @@ export function SmsConsentPage() {
                   <div className="border rounded px-3 py-2 text-gray-400 bg-gray-50">Grandma Rose</div>
                 </div>
 
+                {/* Phone Number - NO ASTERISK */}
                 <div>
                   <label className="block text-sm font-medium mb-1">
                     <Phone className="h-4 w-4 inline mr-1" />
-                    Their Phone Number *
+                    Their Phone Number
                   </label>
                   <div className="border rounded px-3 py-2 text-gray-400 bg-gray-50">(555) 987-6543</div>
+                  <p className="text-xs text-gray-500 mt-1">Optional - provide to send SMS prompts</p>
                 </div>
 
                 <div>
@@ -163,15 +196,28 @@ export function SmsConsentPage() {
                   <div className="border rounded px-3 py-2 text-gray-400 bg-gray-50">Grandmother</div>
                 </div>
 
-                {/* SMS Consent Disclaimer for Inviter */}
-                <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-                  <p className="text-xs text-gray-700">
-                    <strong>SMS Consent:</strong> By inviting this person, you confirm they have agreed to receive
-                    text messages from Keepswell (a service of PikeSquare, LLC) at the phone number provided.
-                    They will receive an invitation SMS asking them to reply YES to confirm their participation.
-                    Message frequency varies based on journal settings. Message and data rates may apply.
-                    They can reply STOP at any time to opt out, or HELP for assistance.
-                  </p>
+                {/* SMS Consent Checkbox - UNCHECKED BY DEFAULT */}
+                <div className="bg-amber-50 rounded-lg p-4 border-2 border-amber-300">
+                  <label className="flex items-start gap-3">
+                    <input type="checkbox" className="mt-1 h-4 w-4 border-2 border-gray-400" disabled />
+                    <span className="text-sm font-medium text-gray-900">
+                      I confirm this person has agreed to receive SMS messages from Keepswell
+                    </span>
+                  </label>
+
+                  {/* SMS Consent Disclaimer with Privacy Verbiage */}
+                  <div className="mt-3 ml-7 text-xs text-gray-700 space-y-2">
+                    <p>
+                      <strong>SMS Consent:</strong> By inviting this person, you confirm they have agreed to receive
+                      text messages from Keepswell (a service of PikeSquare, LLC) at the phone number provided.
+                      They will receive an invitation SMS asking them to reply YES to confirm their participation.
+                      Message frequency varies based on journal settings. Message and data rates may apply.
+                      They can reply STOP at any time to opt out, or HELP for assistance.
+                    </p>
+                    <p className="font-semibold">
+                      Your mobile information will not be sold or shared with third parties for promotional or marketing purposes.
+                    </p>
+                  </div>
                 </div>
 
                 <button className="w-full bg-blue-500 text-white rounded py-2 font-medium" disabled>
@@ -211,12 +257,13 @@ export function SmsConsentPage() {
                   </div>
                 </div>
 
-                {/* Confirmation SMS */}
+                {/* Confirmation SMS with Privacy Language */}
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Opt-in confirmation message:</p>
                   <div className="bg-blue-500 text-white rounded-lg p-3 text-sm">
-                    Keepswell (PikeSquare, LLC): Welcome to "Family Memories 2024"! You've opted in to receive memory journal prompts.
-                    Msg freq varies. Msg & data rates may apply. Reply STOP to opt out, HELP for help.
+                    Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help.
+                    Msg freq varies. Msg&data rates may apply. Reply STOP to opt out.
+                    Your mobile info will not be shared with third parties for marketing.
                   </div>
                 </div>
               </div>
@@ -225,8 +272,8 @@ export function SmsConsentPage() {
 
           <div className="mt-4 bg-green-50 border border-green-200 rounded p-3">
             <p className="text-sm text-green-800">
-              <strong>Compliance:</strong> Double opt-in process. Owner confirms consent responsibility, then participant
-              must explicitly reply YES. Confirmation message includes all required disclosures.
+              <strong>Compliance:</strong> Phone field is optional. Consent checkbox is separate and unchecked by default.
+              Double opt-in process with SMS confirmation. All messages include privacy language.
             </p>
           </div>
         </div>
@@ -295,7 +342,7 @@ export function SmsConsentPage() {
                   </div>
                 </div>
 
-                {/* Confirmation SMS */}
+                {/* Confirmation SMS with Privacy Language */}
                 <div>
                   <p className="text-xs text-gray-500 mb-1">Opt-in confirmation message:</p>
                   <div className="bg-blue-500 text-white rounded-lg p-3 text-sm">
@@ -350,7 +397,8 @@ export function SmsConsentPage() {
               <p className="text-xs text-gray-500 mb-2">User texts: YES or START</p>
               <div className="bg-green-50 rounded p-2 text-xs">
                 Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help.
-                Message frequency may vary. Msg&data rates may apply. Consent is not a condition of purchase. Reply STOP to opt out.
+                Msg freq varies. Msg&data rates may apply. Reply STOP to opt out.
+                Your mobile info will not be shared with third parties for marketing.
               </div>
             </div>
           </div>
@@ -365,6 +413,18 @@ export function SmsConsentPage() {
             <li className="flex items-start gap-2">
               <span className="text-green-500 font-bold">✓</span>
               <span><strong>Three opt-in methods</strong> all with explicit consent mechanisms</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 font-bold">✓</span>
+              <span><strong>Phone fields are optional</strong> with no asterisks indicating required</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 font-bold">✓</span>
+              <span><strong>Separate SMS consent checkbox</strong> that is unchecked by default</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-green-500 font-bold">✓</span>
+              <span><strong>Privacy verbiage included</strong> stating mobile info will not be sold or shared for marketing</span>
             </li>
             <li className="flex items-start gap-2">
               <span className="text-green-500 font-bold">✓</span>
@@ -386,25 +446,17 @@ export function SmsConsentPage() {
               <span className="text-green-500 font-bold">✓</span>
               <span><strong>HELP keyword</strong> returns contact information for support</span>
             </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 font-bold">✓</span>
-              <span><strong>Third-party sharing policy</strong> disclosed (we do not share mobile info for marketing)</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="text-green-500 font-bold">✓</span>
-              <span><strong>Consent not required for purchase</strong> stated in opt-in confirmations</span>
-            </li>
           </ul>
         </div>
 
         <div className="mt-8 text-center text-sm text-gray-500">
           <p className="font-medium">Keepswell - A product of PikeSquare, LLC</p>
           <p className="mt-2">
-            <a href="https://keepswell.com/privacy" className="text-blue-500 hover:underline">Privacy Policy</a>
+            <a href="/privacy" className="text-blue-500 hover:underline">Privacy Policy</a>
             {' | '}
-            <a href="https://keepswell.com/terms" className="text-blue-500 hover:underline">Terms & Conditions</a>
+            <a href="/terms" className="text-blue-500 hover:underline">Terms & Conditions</a>
             {' | '}
-            <a href="https://keepswell.com/support" className="text-blue-500 hover:underline">Support</a>
+            <a href="/support" className="text-blue-500 hover:underline">Support</a>
           </p>
         </div>
       </div>

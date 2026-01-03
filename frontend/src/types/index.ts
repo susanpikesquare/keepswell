@@ -195,7 +195,7 @@ export interface CreateJournalDto {
 }
 
 export interface InviteParticipantDto {
-  phone_number: string;
+  phone_number?: string;
   display_name: string;
   email?: string;
   relationship?: string;

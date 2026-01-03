@@ -58,6 +58,17 @@ export function PrivacyPage() {
               <li>Participants can text STOP at any time to opt-out</li>
               <li>Participants can text HELP for assistance</li>
             </ul>
+            <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+              <p className="text-foreground font-medium">
+                SMS/Text Messaging Privacy
+              </p>
+              <p className="text-muted-foreground mt-2">
+                We will not sell or share your mobile phone number or any information collected through our SMS messaging program with third parties for promotional or marketing purposes.
+              </p>
+              <p className="text-muted-foreground mt-2">
+                All categories exclude text messaging originator opt-in data and consent; this information will not be shared with any third parties except those that help us provide our messaging services, including platform providers, phone companies, and vendors who assist in the delivery of text messages.
+              </p>
+            </div>
           </section>
 
           <section>

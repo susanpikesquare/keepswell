@@ -253,7 +253,7 @@ export function JoinPage() {
           )}
 
           {/* SMS Consent Checkbox - Required by 10DLC compliance */}
-          <div className="bg-muted/50 rounded-lg p-4">
+          <div className="bg-muted/50 rounded-lg p-4 border">
             <label className="flex items-start gap-3 cursor-pointer">
               <input
                 type="checkbox"
@@ -261,16 +261,22 @@ export function JoinPage() {
                 onChange={(e) => setSmsConsent(e.target.checked)}
                 className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
               />
-              <span className="text-sm text-muted-foreground">
-                I agree to receive SMS messages from Keepswell including memory prompts and journal notifications.
+              <span className="text-sm font-medium text-foreground">
+                I agree to receive SMS text messages from Keepswell at this number
               </span>
             </label>
-            <p className="text-xs text-muted-foreground mt-3 ml-7">
-              By providing your phone number, you agree to receive SMS notifications from Keepswell.
-              Message frequency may vary. Standard Message and Data Rates may apply.
-              Reply STOP to opt out. Reply HELP for help.
-              We will not share mobile information with third parties for promotional or marketing purposes.
-            </p>
+            <div className="mt-3 ml-7 text-xs text-muted-foreground space-y-2">
+              <p>
+                <strong>SMS Consent:</strong> By providing your phone number, you agree to receive
+                text messages from Keepswell (a service of PikeSquare, LLC) including journal prompts
+                and notifications. Message frequency varies based on journal settings. Message and
+                data rates may apply. Reply STOP at any time to opt out, or HELP for assistance.
+              </p>
+              <p>
+                <strong>Your mobile information will not be sold or shared with third parties for
+                promotional or marketing purposes.</strong>
+              </p>
+            </div>
           </div>
 
           {/* Submit Button */}

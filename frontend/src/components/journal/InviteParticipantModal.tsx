@@ -29,6 +29,7 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
   const [displayName, setDisplayName] = useState('');
   const [relationship, setRelationship] = useState('');
   const [email, setEmail] = useState('');
+  const [smsConsent, setSmsConsent] = useState(false);
   const [error, setError] = useState('');
 
   const formatPhoneNumber = (value: string) => {
@@ -54,15 +55,21 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
     e.preventDefault();
     setError('');
 
-    // Validate phone number
+    if (!displayName.trim()) {
+      setError('Please enter a name');
+      return;
+    }
+
+    // Validate phone number if provided
     const digits = phoneNumber.replace(/\D/g, '');
-    if (digits.length < 10) {
+    if (digits.length > 0 && digits.length < 10) {
       setError('Please enter a valid 10-digit phone number');
       return;
     }
 
-    if (!displayName.trim()) {
-      setError('Please enter a name');
+    // If phone number is provided, SMS consent is required
+    if (digits.length >= 10 && !smsConsent) {
+      setError('Please confirm SMS consent before inviting');
       return;
     }
 
@@ -70,7 +77,7 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
       await inviteParticipant.mutateAsync({
         journalId,
         data: {
-          phone_number: `+1${digits}`,
+          phone_number: digits.length >= 10 ? `+1${digits}` : undefined,
           display_name: displayName.trim(),
           relationship: relationship || undefined,
           email: email || undefined,
@@ -82,6 +89,7 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
       setDisplayName('');
       setRelationship('');
       setEmail('');
+      setSmsConsent(false);
       onClose();
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to invite participant');
@@ -93,6 +101,7 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
     setDisplayName('');
     setRelationship('');
     setEmail('');
+    setSmsConsent(false);
     setError('');
     onClose();
   };
@@ -111,19 +120,21 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
           </div>
         )}
 
-        {/* Phone Number */}
+        {/* Phone Number - Optional */}
         <div>
           <label className="block text-sm font-medium mb-1.5">
             <Phone className="h-4 w-4 inline mr-1" />
-            Phone Number *
+            Phone Number
           </label>
           <Input
             type="tel"
             value={phoneNumber}
             onChange={handlePhoneChange}
             placeholder="(555) 123-4567"
-            required
           />
+          <p className="text-xs text-muted-foreground mt-1">
+            Optional - provide to send SMS prompts
+          </p>
         </div>
 
         {/* Display Name */}
@@ -177,19 +188,38 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
           </p>
         </div>
 
-        {/* SMS Consent Disclosure */}
-        <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground space-y-2">
-          <p>
-            <strong>SMS Consent:</strong> By inviting this person, you confirm they have agreed
-            to receive text messages from Keepswell (a service of PikeSquare, LLC) at the phone
-            number provided. They will receive an invitation SMS asking them to reply YES to
-            confirm their participation.
-          </p>
-          <p>
-            Message frequency varies based on journal settings. Message and data rates may apply.
-            They can reply STOP at any time to opt out, or HELP for assistance.
-          </p>
-        </div>
+        {/* SMS Consent Checkbox - Only show when phone number is entered */}
+        {phoneNumber.replace(/\D/g, '').length >= 10 && (
+          <div className="bg-muted/50 rounded-lg p-4 border">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={smsConsent}
+                onChange={(e) => setSmsConsent(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <span className="text-sm font-medium text-foreground">
+                I confirm this person has agreed to receive SMS messages from Keepswell
+              </span>
+            </label>
+
+            {/* SMS Consent Text */}
+            <div className="mt-3 ml-7 text-xs text-muted-foreground space-y-2">
+              <p>
+                <strong>SMS Consent:</strong> By inviting this person, you confirm they have agreed
+                to receive text messages from Keepswell (a service of PikeSquare, LLC) at the phone
+                number provided. They will receive an invitation SMS asking them to reply YES to
+                confirm their participation. Message frequency varies based on journal settings.
+                Message and data rates may apply. They can reply STOP at any time to opt out, or
+                HELP for assistance.
+              </p>
+              <p>
+                <strong>Your mobile information will not be sold or shared with third parties for
+                promotional or marketing purposes.</strong>
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex gap-3 pt-2">

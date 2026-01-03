@@ -487,7 +487,7 @@ export class SmsController {
         // Send confirmation with all required elements (10DLC compliant)
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help. Message frequency may vary. Msg&data rates may apply. Consent is not a condition of purchase. Reply STOP to opt out.`,
+          `Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help. Msg freq varies. Msg&data rates may apply. Reply STOP to opt out. Your mobile info will not be shared with third parties for marketing.`,
         );
       }
 
