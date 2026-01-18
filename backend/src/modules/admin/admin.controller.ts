@@ -8,6 +8,8 @@ import {
   UseGuards,
   BadRequestException,
 } from '@nestjs/common';
+import { InjectDataSource } from '@nestjs/typeorm';
+import { DataSource } from 'typeorm';
 import { AdminService, PlatformStats, UserDetails } from './admin.service';
 import { AdminGuard } from '../../common/guards';
 import { CurrentUser } from '../../common/decorators';
@@ -15,7 +17,10 @@ import { Public } from '../../common/decorators';
 
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    @InjectDataSource() private dataSource: DataSource,
+  ) {}
 
   // One-time setup endpoint - no auth required, uses secret
   @Public()
@@ -46,6 +51,28 @@ export class AdminController {
       throw new BadRequestException('User not found. Make sure you have signed in first.');
     }
     return { success: true, message: `Tier set to ${body.tier} for ${body.email}` };
+  }
+
+  // Sync database schema - creates missing tables
+  @Public()
+  @Post('sync-database')
+  async syncDatabase(@Body() body: { secret: string }) {
+    if (body.secret !== 'keepswell-setup-2024') {
+      throw new BadRequestException('Invalid setup secret');
+    }
+    try {
+      await this.dataSource.synchronize();
+      return {
+        success: true,
+        message: 'Database synchronized successfully. Missing tables have been created.'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Database sync failed',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      };
+    }
   }
 
   // Debug endpoint to check user status - no admin required
