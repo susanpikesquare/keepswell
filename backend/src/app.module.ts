@@ -28,6 +28,8 @@ import {
   PromptUsageLog,
   AIContent,
   PendingMemory,
+  Reaction,
+  Comment,
 } from './database/entities';
 
 // Modules
@@ -40,6 +42,8 @@ import { SmsModule } from './modules/sms/sms.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ExportModule } from './modules/export/export.module';
+import { ReactionsModule } from './modules/reactions/reactions.module';
+import { CommentsModule } from './modules/comments/comments.module';
 
 @Module({
   imports: [
@@ -74,6 +78,8 @@ import { ExportModule } from './modules/export/export.module';
           PromptUsageLog,
           AIContent,
           PendingMemory,
+          Reaction,
+          Comment,
         ],
         synchronize: true, // Enabled for early development - TODO: use migrations in production
         logging: configService.get<string>('NODE_ENV') !== 'production',
@@ -98,6 +104,8 @@ import { ExportModule } from './modules/export/export.module';
     AdminModule,
     PaymentsModule,
     ExportModule,
+    ReactionsModule,
+    CommentsModule,
   ],
   controllers: [HealthController],
   providers: [

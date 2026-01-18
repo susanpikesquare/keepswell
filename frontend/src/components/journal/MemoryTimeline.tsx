@@ -3,6 +3,8 @@ import { Heart, Sparkles, BookHeart, Trash2, EyeOff, MoreVertical, Calendar, Quo
 import { Avatar, Button } from '../ui';
 import { getThemeFromConfig, type JournalTheme } from '../../lib/themes';
 import { useDeleteEntry, useUpdateEntry, useJournalConfig } from '../../hooks';
+import { ReactionBar } from './ReactionBar';
+import { CommentSection } from './CommentSection';
 import type { Entry, TemplateType, FramingRulesConfig } from '../../types';
 
 interface MemoryTimelineProps {
@@ -101,7 +103,7 @@ export function MemoryTimeline({ entries, templateType, journalTitle, journalId,
               {/* Entries for this date */}
               <div className="ml-8 pl-8 space-y-6">
                 {dateEntries.map((entry) => (
-                  <MemoryCard key={entry.id} entry={entry} theme={theme} framingRules={framingRules} />
+                  <MemoryCard key={entry.id} entry={entry} theme={theme} framingRules={framingRules} journalId={journalId} />
                 ))}
               </div>
             </div>
@@ -116,9 +118,10 @@ interface MemoryCardProps {
   entry: Entry;
   theme: JournalTheme;
   framingRules?: FramingRulesConfig;
+  journalId?: string;
 }
 
-function MemoryCard({ entry, theme, framingRules }: MemoryCardProps) {
+function MemoryCard({ entry, theme, framingRules, journalId }: MemoryCardProps) {
   const [showMenu, setShowMenu] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -242,6 +245,14 @@ function MemoryCard({ entry, theme, framingRules }: MemoryCardProps) {
             {formatTimestamp(entry.created_at, framingRules?.attribution?.timestampFormat)}
           </p>
         )}
+
+        {/* Reactions */}
+        <div className="mt-4 pt-3 border-t border-gray-100">
+          <ReactionBar entryId={entry.id} journalId={journalId} />
+        </div>
+
+        {/* Comments */}
+        <CommentSection entryId={entry.id} journalId={journalId} />
       </div>
 
       {/* Delete confirmation overlay */}

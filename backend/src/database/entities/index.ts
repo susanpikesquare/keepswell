@@ -10,6 +10,9 @@ export { MediaAttachment } from './media-attachment.entity';
 export { PromptUsageLog } from './prompt-usage-log.entity';
 export { AIContent } from './ai-content.entity';
 export { PendingMemory } from './pending-memory.entity';
+export { Reaction, ALLOWED_REACTIONS, REACTION_EMOJI_MAP } from './reaction.entity';
+export type { ReactionType } from './reaction.entity';
+export { Comment } from './comment.entity';
 
 // Re-export interfaces from entities
 export type {

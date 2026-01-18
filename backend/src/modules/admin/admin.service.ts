@@ -195,6 +195,18 @@ export class AdminService {
     return this.userRepo.findOneOrFail({ where: { id: userId } });
   }
 
+  async setSubscriptionTier(
+    userId: string,
+    tier: 'free' | 'premium' | 'pro',
+  ): Promise<User> {
+    this.logger.log(`Admin setting user ${userId} to tier: ${tier}`);
+    await this.userRepo.update(userId, {
+      subscription_tier: tier,
+      subscription_status: tier === 'free' ? 'active' : 'active',
+    });
+    return this.userRepo.findOneOrFail({ where: { id: userId } });
+  }
+
   async makeUserAdminByEmail(email: string): Promise<User | null> {
     const user = await this.userRepo.findOne({ where: { email } });
     if (!user) {
@@ -206,5 +218,21 @@ export class AdminService {
 
   async getUserByEmail(email: string): Promise<User | null> {
     return this.userRepo.findOne({ where: { email } });
+  }
+
+  async setTierByEmail(
+    email: string,
+    tier: 'free' | 'premium' | 'pro',
+  ): Promise<User | null> {
+    const user = await this.userRepo.findOne({ where: { email } });
+    if (!user) {
+      return null;
+    }
+    this.logger.log(`Setting user ${email} to tier: ${tier}`);
+    await this.userRepo.update(user.id, {
+      subscription_tier: tier,
+      subscription_status: 'active',
+    });
+    return this.userRepo.findOneOrFail({ where: { id: user.id } });
   }
 }

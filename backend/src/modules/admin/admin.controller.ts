@@ -31,6 +31,23 @@ export class AdminController {
     return { success: true, message: `Admin access granted to ${body.email}` };
   }
 
+  // One-time tier setup endpoint - no auth required, uses secret
+  @Public()
+  @Post('setup-tier')
+  async setupTier(@Body() body: { email: string; tier: 'free' | 'premium' | 'pro'; secret: string }) {
+    if (body.secret !== 'keepswell-setup-2024') {
+      throw new BadRequestException('Invalid setup secret');
+    }
+    if (!['free', 'premium', 'pro'].includes(body.tier)) {
+      throw new BadRequestException('Invalid tier. Must be: free, premium, or pro');
+    }
+    const user = await this.adminService.setTierByEmail(body.email, body.tier);
+    if (!user) {
+      throw new BadRequestException('User not found. Make sure you have signed in first.');
+    }
+    return { success: true, message: `Tier set to ${body.tier} for ${body.email}` };
+  }
+
   // Debug endpoint to check user status - no admin required
   @Get('debug/:email')
   @Public()
@@ -67,6 +84,18 @@ export class AdminController {
     @Body() body: { is_admin: boolean },
   ) {
     return this.adminService.setAdminStatus(userId, body.is_admin);
+  }
+
+  @UseGuards(AdminGuard)
+  @Patch('users/:id/tier')
+  async setSubscriptionTier(
+    @Param('id') userId: string,
+    @Body() body: { tier: 'free' | 'premium' | 'pro' },
+  ) {
+    if (!['free', 'premium', 'pro'].includes(body.tier)) {
+      throw new BadRequestException('Invalid tier. Must be: free, premium, or pro');
+    }
+    return this.adminService.setSubscriptionTier(userId, body.tier);
   }
 
   @UseGuards(AdminGuard)

@@ -32,12 +32,14 @@ services:
         sync: false # Set manually in Render dashboard
       - key: CLERK_PUBLISHABLE_KEY
         sync: false
-      - key: VONAGE_API_KEY
-        sync: false
-      - key: VONAGE_API_SECRET
-        sync: false
-      - key: VONAGE_PHONE_NUMBER
-        sync: false
+      - key: TELNYX_API_KEY
+        sync: false # Set in Render dashboard
+      - key: TELNYX_PHONE_NUMBER
+        sync: false # Set in Render dashboard
+      - key: STRIPE_SECRET_KEY
+        sync: false # Set in Render dashboard
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false # Set in Render dashboard
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY

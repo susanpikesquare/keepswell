@@ -12,6 +12,8 @@ import { Journal } from './journal.entity';
 import { Participant } from './participant.entity';
 import { PromptSend } from './prompt-send.entity';
 import { MediaAttachment } from './media-attachment.entity';
+import { Reaction } from './reaction.entity';
+import { Comment } from './comment.entity';
 
 @Entity('entries')
 export class Entry {
@@ -69,4 +71,10 @@ export class Entry {
 
   @OneToMany(() => MediaAttachment, (media) => media.entry)
   media_attachments: MediaAttachment[];
+
+  @OneToMany(() => Reaction, (reaction) => reaction.entry)
+  reactions: Reaction[];
+
+  @OneToMany(() => Comment, (comment) => comment.entry)
+  comments: Comment[];
 }

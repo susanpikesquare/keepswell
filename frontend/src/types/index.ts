@@ -72,6 +72,40 @@ export interface MediaAttachment {
   created_at: string;
 }
 
+// Reaction types
+export type ReactionType = 'heart' | 'fire' | 'laugh' | 'sad' | 'wow' | 'clap';
+
+export const REACTION_EMOJI_MAP: Record<ReactionType, string> = {
+  heart: '❤️',
+  fire: '🔥',
+  laugh: '😂',
+  sad: '😢',
+  wow: '😮',
+  clap: '👏',
+};
+
+export const ALLOWED_REACTIONS: ReactionType[] = ['heart', 'fire', 'laugh', 'sad', 'wow', 'clap'];
+
+export interface Reaction {
+  id: string;
+  entry_id: string;
+  participant_id: string;
+  emoji: ReactionType;
+  created_at: string;
+  participant?: Participant;
+}
+
+export interface ReactionGroup {
+  count: number;
+  participants: Array<{ id: string; display_name: string }>;
+}
+
+export interface EntryReactions {
+  entry_id: string;
+  reactions: Record<string, ReactionGroup>;
+  total: number;
+}
+
 export interface Prompt {
   id: string;
   template_id: string | null;
