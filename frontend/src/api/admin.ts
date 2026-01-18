@@ -60,4 +60,8 @@ export const adminApi = {
   setAdminStatus: async (userId: string, isAdmin: boolean): Promise<void> => {
     await apiClient.patch(`/admin/users/${userId}/admin`, { is_admin: isAdmin });
   },
+
+  setSubscriptionTier: async (userId: string, tier: 'free' | 'premium' | 'pro'): Promise<void> => {
+    await apiClient.patch(`/admin/users/${userId}/tier`, { tier });
+  },
 };

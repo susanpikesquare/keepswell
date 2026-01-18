@@ -12,7 +12,7 @@ import {
   Database,
   Server,
 } from 'lucide-react';
-import { useAdminAccess, useAdminStats, useAdminUsers, useSetAdminStatus } from '../../hooks/useAdmin';
+import { useAdminAccess, useAdminStats, useAdminUsers, useSetAdminStatus, useSetSubscriptionTier } from '../../hooks/useAdmin';
 import { useAuthSync } from '../../hooks';
 import { Button, Card, CardHeader, CardTitle, CardContent, PageLoader } from '../../components/ui';
 import { formatRelativeTime } from '../../lib/utils';
@@ -24,6 +24,7 @@ export function AdminDashboardPage() {
   const { data: stats, isLoading: statsLoading } = useAdminStats();
   const { data: users, isLoading: usersLoading } = useAdminUsers();
   const setAdminStatus = useSetAdminStatus();
+  const setSubscriptionTier = useSetSubscriptionTier();
   const [activeTab, setActiveTab] = useState<'overview' | 'users'>('overview');
 
   if (!isLoaded || accessLoading) {
@@ -256,9 +257,29 @@ export function AdminDashboardPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <span className="capitalize text-sm px-2 py-1 rounded-full bg-muted">
-                          {user.subscription_tier || 'free'}
-                        </span>
+                        <select
+                          value={user.subscription_tier || 'free'}
+                          onChange={(e) => {
+                            const newTier = e.target.value as 'free' | 'premium' | 'pro';
+                            if (window.confirm(`Change ${user.email} to ${newTier} tier?`)) {
+                              setSubscriptionTier.mutate({ userId: user.id, tier: newTier });
+                            } else {
+                              e.target.value = user.subscription_tier || 'free';
+                            }
+                          }}
+                          disabled={setSubscriptionTier.isPending}
+                          className={`
+                            text-sm px-2 py-1 rounded-md border cursor-pointer
+                            ${user.subscription_tier === 'pro' ? 'bg-purple-100 border-purple-300 text-purple-800' : ''}
+                            ${user.subscription_tier === 'premium' ? 'bg-blue-100 border-blue-300 text-blue-800' : ''}
+                            ${(!user.subscription_tier || user.subscription_tier === 'free') ? 'bg-gray-100 border-gray-300 text-gray-700' : ''}
+                            ${setSubscriptionTier.isPending ? 'opacity-50 cursor-not-allowed' : ''}
+                          `}
+                        >
+                          <option value="free">Free</option>
+                          <option value="premium">Premium</option>
+                          <option value="pro">Pro</option>
+                        </select>
                       </td>
                       <td className="px-4 py-3">{user.journalCount}</td>
                       <td className="px-4 py-3">{user.entryCount}</td>

@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { commentsApi, CreateCommentDto, UpdateCommentDto } from '../api/comments';
+import { commentsApi } from '../api/comments';
+import type { CreateCommentDto, UpdateCommentDto } from '../api/comments';
 
 /**
  * Get comments for an entry (threaded)

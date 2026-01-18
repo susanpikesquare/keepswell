@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Smile } from 'lucide-react';
+import { Smile } from 'lucide-react';
 import { useEntryReactions, useToggleReaction } from '../../hooks/useReactions';
 import { REACTION_EMOJI_MAP, ALLOWED_REACTIONS } from '../../types';
 import type { ReactionType } from '../../types';
@@ -107,11 +107,11 @@ export function ReactionBar({ entryId, journalId, compact = false }: ReactionBar
 
 interface ReactionPickerProps {
   onSelect: (emoji: ReactionType) => void;
-  onClose: () => void;
+  onClose?: () => void;
   isPending?: boolean;
 }
 
-function ReactionPicker({ onSelect, onClose, isPending }: ReactionPickerProps) {
+function ReactionPicker({ onSelect, isPending }: ReactionPickerProps) {
   return (
     <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden">
       {/* Header */}

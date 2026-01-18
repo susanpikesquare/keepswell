@@ -45,3 +45,16 @@ export function useSetAdminStatus() {
     },
   });
 }
+
+export function useSetSubscriptionTier() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ userId, tier }: { userId: string; tier: 'free' | 'premium' | 'pro' }) =>
+      adminApi.setSubscriptionTier(userId, tier),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}
