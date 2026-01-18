@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle, QrCode, Copy, Check, X, PlusCircle } from 'lucide-react';
-import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite, useApproveParticipant, useDeclineParticipant } from '../../hooks';
+import { ArrowLeft, Users, Settings, UserPlus, MessageSquare, Calendar, Trash2, EyeOff, MoreVertical, BookOpen, RefreshCw, CheckCircle, QrCode, Copy, Check, X, PlusCircle, Pencil } from 'lucide-react';
+import { useJournal, useParticipants, useEntries, useAuthSync, useDeleteEntry, useUpdateEntry, useRemoveParticipant, useResendInvite, useApproveParticipant, useDeclineParticipant, useUpdateParticipant } from '../../hooks';
 import { apiClient } from '../../api';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader, Avatar } from '../../components/ui';
 import { JournalSettingsModal, InviteParticipantModal, AddMemoryModal } from '../../components/journal';
@@ -482,10 +482,31 @@ function QRCodeCard({ keyword, journalTitle, journalId }: { keyword: string | nu
 function ParticipantItem({ participant, journalId }: { participant: Participant; journalId: string }) {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [inviteSent, setInviteSent] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editName, setEditName] = useState(participant.display_name);
   const removeParticipant = useRemoveParticipant();
   const resendInvite = useResendInvite();
   const approveParticipant = useApproveParticipant();
   const declineParticipant = useDeclineParticipant();
+  const updateParticipant = useUpdateParticipant();
+
+  const handleSaveName = async () => {
+    if (editName.trim() && editName !== participant.display_name) {
+      try {
+        await updateParticipant.mutateAsync({
+          id: participant.id,
+          journalId,
+          data: { display_name: editName.trim() },
+        });
+        setIsEditing(false);
+      } catch (error) {
+        console.error('Failed to update name:', error);
+      }
+    } else {
+      setIsEditing(false);
+      setEditName(participant.display_name);
+    }
+  };
 
   const handleRemove = async () => {
     try {
@@ -523,7 +544,7 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
   };
 
   return (
-    <li className="border rounded-lg p-3 space-y-2">
+    <li className="border rounded-lg p-3 space-y-2 group">
       <div className="flex items-center gap-3">
         <Avatar
           src={participant.avatar_url}
@@ -531,7 +552,51 @@ function ParticipantItem({ participant, journalId }: { participant: Participant;
           size="sm"
         />
         <div className="flex-1 min-w-0">
-          <p className="font-medium truncate">{participant.display_name}</p>
+          {isEditing ? (
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="flex-1 px-2 py-1 text-sm border rounded focus:outline-none focus:ring-2 focus:ring-primary"
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') handleSaveName();
+                  if (e.key === 'Escape') {
+                    setIsEditing(false);
+                    setEditName(participant.display_name);
+                  }
+                }}
+              />
+              <button
+                onClick={handleSaveName}
+                disabled={updateParticipant.isPending}
+                className="p-1 text-green-600 hover:bg-green-50 rounded"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditName(participant.display_name);
+                }}
+                className="p-1 text-muted-foreground hover:bg-muted rounded"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1">
+              <p className="font-medium truncate">{participant.display_name}</p>
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1 text-muted-foreground hover:text-foreground hover:bg-muted rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Edit name"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            </div>
+          )}
           {participant.relationship && (
             <p className="text-xs text-muted-foreground">{participant.relationship}</p>
           )}
