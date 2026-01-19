@@ -159,17 +159,36 @@ export class CommentsService {
       where: { journal_id: entry.journal_id, email: user.email },
     });
 
+    // If not found by email, try placeholder phone number
     if (!participant) {
-      // Use a placeholder phone number if user doesn't have one (phone is required in participants table)
-      participant = await this.participantRepo.save({
-        journal_id: entry.journal_id,
-        display_name: user.full_name || 'Me',
-        email: user.email,
-        phone_number: user.phone_number || `owner-${user.id}`,
-        status: 'active',
-        opted_in: true,
-        relationship: 'Owner',
+      const placeholderPhone = `owner-${user.id}`;
+      participant = await this.participantRepo.findOne({
+        where: { journal_id: entry.journal_id, phone_number: placeholderPhone },
       });
+    }
+
+    // If still not found, create a new owner participant
+    if (!participant) {
+      try {
+        // Use a placeholder phone number if user doesn't have one (phone is required in participants table)
+        participant = await this.participantRepo.save({
+          journal_id: entry.journal_id,
+          display_name: user.full_name || 'Me',
+          email: user.email,
+          phone_number: user.phone_number || `owner-${user.id}`,
+          status: 'active',
+          opted_in: true,
+          relationship: 'Owner',
+        });
+      } catch (error) {
+        // If unique constraint violation, try to find existing owner
+        participant = await this.participantRepo.findOne({
+          where: { journal_id: entry.journal_id, relationship: 'Owner' },
+        });
+        if (!participant) {
+          throw error;
+        }
+      }
     }
 
     // Create the comment
