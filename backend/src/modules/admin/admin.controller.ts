@@ -15,6 +15,7 @@ import { AdminGuard } from '../../common/guards';
 import { CurrentUser } from '../../common/decorators';
 import { Public } from '../../common/decorators';
 import { SchedulerService } from '../scheduler/scheduler.service';
+import { seedAllTemplates } from '../../database/seeds/all-templates.seed';
 
 @Controller('admin')
 export class AdminController {
@@ -155,5 +156,24 @@ export class AdminController {
     }
     await this.schedulerService.handlePromptScheduling();
     return { success: true, message: 'Scheduler check completed' };
+  }
+
+  // Seed templates and prompts
+  @Public()
+  @Post('seed-templates')
+  async seedTemplates(@Body() body: { secret: string }) {
+    if (body.secret !== 'keepswell-setup-2024') {
+      throw new BadRequestException('Invalid secret');
+    }
+    try {
+      await seedAllTemplates(this.dataSource);
+      return { success: true, message: 'Templates and prompts seeded successfully' };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to seed templates',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   }
 }
