@@ -160,11 +160,12 @@ export class CommentsService {
     });
 
     if (!participant) {
+      // Use a placeholder phone number if user doesn't have one (phone is required in participants table)
       participant = await this.participantRepo.save({
         journal_id: entry.journal_id,
         display_name: user.full_name || 'Me',
         email: user.email,
-        phone_number: user.phone_number || undefined,
+        phone_number: user.phone_number || `owner-${user.id}`,
         status: 'active',
         opted_in: true,
         relationship: 'Owner',
