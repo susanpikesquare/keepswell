@@ -2,6 +2,14 @@ import { Link } from 'react-router-dom';
 import { BookHeart, MessageSquare, Users, Camera, Heart, Gift, Clock, Sparkles, Check, ArrowRight } from 'lucide-react';
 import { Button } from '../components/ui';
 
+// Landing page images - using Unsplash for high-quality stock photos
+const LANDING_IMAGES = {
+  usecaseWedding: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=250&fit=crop&q=80',
+  usecaseBirthday: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=250&fit=crop&q=80',
+  usecaseFamily: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=250&fit=crop&q=80',
+  usecaseYearReview: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=250&fit=crop&q=80',
+};
+
 export function LandingPage() {
   return (
     <div className="min-h-screen">
@@ -145,24 +153,28 @@ export function LandingPage() {
               title="Wedding Guest Book"
               description="Collect well-wishes and stories from guests before, during, or after the big day."
               gradient="from-pink-500 to-rose-500"
+              imageUrl={LANDING_IMAGES.usecaseWedding}
             />
             <UseCaseCard
               icon={<Gift className="h-8 w-8" />}
               title="Birthday Memories"
               description="Create a surprise book of memories from friends and family for a milestone birthday."
               gradient="from-purple-500 to-indigo-500"
+              imageUrl={LANDING_IMAGES.usecaseBirthday}
             />
             <UseCaseCard
               icon={<Users className="h-8 w-8" />}
               title="Family History"
               description="Preserve stories from grandparents and older relatives before they're lost to time."
               gradient="from-amber-500 to-orange-500"
+              imageUrl={LANDING_IMAGES.usecaseFamily}
             />
             <UseCaseCard
               icon={<Clock className="h-8 w-8" />}
               title="Year in Review"
               description="Gather highlights and favorite moments from family members throughout the year."
               gradient="from-emerald-500 to-teal-500"
+              imageUrl={LANDING_IMAGES.usecaseYearReview}
             />
           </div>
         </div>
@@ -271,19 +283,31 @@ function UseCaseCard({
   title,
   description,
   gradient,
+  imageUrl,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
   gradient: string;
+  imageUrl?: string;
 }) {
   return (
-    <div className="bg-background rounded-xl p-6 shadow-sm border hover:shadow-md transition-shadow">
-      <div className={`bg-gradient-to-br ${gradient} text-white p-3 rounded-lg inline-block mb-4`}>
-        {icon}
+    <div className="bg-background rounded-xl overflow-hidden shadow-sm border hover:shadow-md transition-shadow">
+      {imageUrl && (
+        <img
+          src={imageUrl}
+          alt={title}
+          className="w-full h-40 object-cover"
+          loading="lazy"
+        />
+      )}
+      <div className="p-6">
+        <div className={`bg-gradient-to-br ${gradient} text-white p-3 rounded-lg inline-block mb-4`}>
+          {icon}
+        </div>
+        <h3 className="text-lg font-semibold mb-2">{title}</h3>
+        <p className="text-sm text-muted-foreground">{description}</p>
       </div>
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   );
 }
