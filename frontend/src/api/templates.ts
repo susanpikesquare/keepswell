@@ -105,3 +105,45 @@ export async function updatePromptOrder(journalId: string, promptIds: string[]):
 export async function resetPromptOrder(journalId: string): Promise<void> {
   await apiClient.patch(`/templates/journal/${journalId}/prompt-order/reset`);
 }
+
+/**
+ * Create a custom prompt for a journal
+ */
+export async function createJournalPrompt(
+  journalId: string,
+  data: {
+    text: string;
+    category?: string;
+    is_starter?: boolean;
+    is_deep?: boolean;
+    requires_photo?: boolean;
+  }
+): Promise<Prompt> {
+  const response = await apiClient.post<Prompt>(`/templates/journal/${journalId}/prompts`, data);
+  return response.data;
+}
+
+/**
+ * Update a custom prompt
+ */
+export async function updateJournalPrompt(
+  journalId: string,
+  promptId: string,
+  data: {
+    text?: string;
+    category?: string;
+    is_starter?: boolean;
+    is_deep?: boolean;
+    requires_photo?: boolean;
+  }
+): Promise<Prompt> {
+  const response = await apiClient.patch<Prompt>(`/templates/journal/${journalId}/prompts/${promptId}`, data);
+  return response.data;
+}
+
+/**
+ * Delete a custom prompt
+ */
+export async function deleteJournalPrompt(journalId: string, promptId: string): Promise<void> {
+  await apiClient.delete(`/templates/journal/${journalId}/prompts/${promptId}`);
+}

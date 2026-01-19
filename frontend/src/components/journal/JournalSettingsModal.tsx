@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Clock, AlertTriangle, Sparkles, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered } from 'lucide-react';
+import { Trash2, Clock, AlertTriangle, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
-import { useUpdateJournal, useDeleteJournal, useGenerateDemoData } from '../../hooks';
+import { useUpdateJournal, useDeleteJournal } from '../../hooks';
 import { PromptOrderSection } from './PromptOrderSection';
 import type { Journal } from '../../types';
 
@@ -103,13 +103,9 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
   const navigate = useNavigate();
   const updateJournal = useUpdateJournal();
   const deleteJournal = useDeleteJournal();
-  const generateDemoData = useGenerateDemoData();
 
   // Schedule settings
   const [frequency, setFrequency] = useState<PromptFrequency>(journal.prompt_frequency as PromptFrequency);
-
-  // Demo data state
-  const [demoResult, setDemoResult] = useState<{ entriesCreated: number; participantsCreated: number } | null>(null);
   const [dayOfWeek, setDayOfWeek] = useState(journal.prompt_day_of_week ?? 1);
   const [promptTime, setPromptTime] = useState(journal.prompt_time?.slice(0, 5) || '09:00');
   const [timezone, setTimezone] = useState(journal.timezone);
@@ -167,15 +163,6 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
       navigate('/dashboard');
     } catch (error) {
       console.error('Failed to delete journal:', error);
-    }
-  };
-
-  const handleGenerateDemoData = async () => {
-    try {
-      const result = await generateDemoData.mutateAsync(journal.id);
-      setDemoResult(result);
-    } catch (error) {
-      console.error('Failed to generate demo data:', error);
     }
   };
 
@@ -476,52 +463,6 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
               </Button>
             )}
           </div>
-        </section>
-
-        {/* Demo Data Section */}
-        <section className="border-t pt-6">
-          <h3 className="font-medium flex items-center gap-2 mb-4">
-            <Sparkles className="h-4 w-4" />
-            Demo Mode
-          </h3>
-          <p className="text-sm text-muted-foreground mb-4">
-            Generate sample entries and participants to see how your journal will look with real content.
-            Perfect for demos and testing.
-          </p>
-
-          {demoResult ? (
-            <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
-                <Check className="h-4 w-4" />
-                Demo data generated!
-              </div>
-              <p className="text-sm text-green-700">
-                Created {demoResult.entriesCreated} entries
-                {demoResult.participantsCreated > 0 && ` and ${demoResult.participantsCreated} participants`}
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-3"
-                onClick={() => {
-                  setDemoResult(null);
-                  onClose();
-                }}
-              >
-                View Journal
-              </Button>
-            </div>
-          ) : (
-            <Button
-              variant="outline"
-              onClick={handleGenerateDemoData}
-              disabled={generateDemoData.isPending}
-              className="w-full"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              {generateDemoData.isPending ? 'Generating...' : 'Generate Demo Data'}
-            </Button>
-          )}
         </section>
 
         {/* Danger Zone */}

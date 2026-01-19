@@ -241,6 +241,7 @@ export class TemplatesService {
 
   /**
    * Get prompts for a specific journal with custom ordering applied
+   * Includes both template prompts and journal-specific custom prompts
    */
   async getPromptsForJournal(journalId: string): Promise<Prompt[]> {
     const journal = await this.journalRepository.findOne({
@@ -258,15 +259,24 @@ export class TemplatesService {
     }
 
     // Get all prompts for the template
-    const prompts = await this.getPromptsForTemplate(template.id);
+    const templatePrompts = await this.getPromptsForTemplate(template.id);
+
+    // Get journal-specific custom prompts
+    const customPrompts = await this.promptRepository.find({
+      where: { journal_id: journalId },
+      order: { sequence_order: 'ASC' },
+    });
+
+    // Combine them
+    const allPrompts = [...templatePrompts, ...customPrompts];
 
     // Apply custom ordering if exists
     const customOrder = journal.custom_cadence_config?.customPromptOrder;
     if (customOrder && customOrder.length > 0) {
-      return this.applyCustomOrder(prompts, customOrder);
+      return this.applyCustomOrder(allPrompts, customOrder);
     }
 
-    return prompts;
+    return allPrompts;
   }
 
   /**
@@ -333,5 +343,105 @@ export class TemplatesService {
     }
 
     return ordered;
+  }
+
+  /**
+   * Create a custom prompt for a specific journal
+   */
+  async createJournalPrompt(
+    journalId: string,
+    data: {
+      text: string;
+      category?: string;
+      is_starter?: boolean;
+      is_deep?: boolean;
+      requires_photo?: boolean;
+    },
+  ): Promise<Prompt> {
+    const journal = await this.journalRepository.findOne({
+      where: { id: journalId },
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Journal not found');
+    }
+
+    // Get the template to get the max sequence order
+    const template = await this.getTemplateByType(journal.template_type);
+    const existingPrompts = await this.getPromptsForJournal(journalId);
+    const maxSequenceOrder = existingPrompts.length > 0
+      ? Math.max(...existingPrompts.map(p => p.sequence_order || 0))
+      : 0;
+
+    const prompt = this.promptRepository.create({
+      journal_id: journalId,
+      text: data.text,
+      category: data.category || 'custom',
+      is_starter: data.is_starter || false,
+      is_deep: data.is_deep || false,
+      requires_photo: data.requires_photo || false,
+      is_custom: true,
+      weight: 5,
+      sequence_order: maxSequenceOrder + 1,
+    });
+
+    return this.promptRepository.save(prompt);
+  }
+
+  /**
+   * Update a prompt (only custom prompts can be fully edited)
+   */
+  async updatePrompt(
+    promptId: string,
+    journalId: string,
+    data: {
+      text?: string;
+      category?: string;
+      is_starter?: boolean;
+      is_deep?: boolean;
+      requires_photo?: boolean;
+    },
+  ): Promise<Prompt> {
+    const prompt = await this.promptRepository.findOne({
+      where: { id: promptId },
+    });
+
+    if (!prompt) {
+      throw new NotFoundException('Prompt not found');
+    }
+
+    // Only allow editing custom prompts that belong to this journal
+    if (prompt.journal_id !== journalId) {
+      throw new NotFoundException('Prompt not found for this journal');
+    }
+
+    // Update fields
+    if (data.text !== undefined) prompt.text = data.text;
+    if (data.category !== undefined) prompt.category = data.category;
+    if (data.is_starter !== undefined) prompt.is_starter = data.is_starter;
+    if (data.is_deep !== undefined) prompt.is_deep = data.is_deep;
+    if (data.requires_photo !== undefined) prompt.requires_photo = data.requires_photo;
+
+    return this.promptRepository.save(prompt);
+  }
+
+  /**
+   * Delete a custom prompt
+   */
+  async deletePrompt(promptId: string, journalId: string): Promise<void> {
+    const prompt = await this.promptRepository.findOne({
+      where: { id: promptId },
+    });
+
+    if (!prompt) {
+      throw new NotFoundException('Prompt not found');
+    }
+
+    // Only allow deleting custom prompts that belong to this journal
+    if (prompt.journal_id !== journalId) {
+      throw new NotFoundException('Prompt not found for this journal');
+    }
+
+    await this.promptRepository.remove(prompt);
   }
 }

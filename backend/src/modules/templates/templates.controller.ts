@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   Query,
@@ -189,5 +190,54 @@ export class TemplatesController {
     },
   ) {
     return this.templatesService.updateJournalCustomizations(journalId, body);
+  }
+
+  /**
+   * Create a custom prompt for a journal
+   */
+  @Post('journal/:journalId/prompts')
+  async createJournalPrompt(
+    @Param('journalId') journalId: string,
+    @Body()
+    body: {
+      text: string;
+      category?: string;
+      is_starter?: boolean;
+      is_deep?: boolean;
+      requires_photo?: boolean;
+    },
+  ) {
+    return this.templatesService.createJournalPrompt(journalId, body);
+  }
+
+  /**
+   * Update a custom prompt
+   */
+  @Patch('journal/:journalId/prompts/:promptId')
+  async updatePrompt(
+    @Param('journalId') journalId: string,
+    @Param('promptId') promptId: string,
+    @Body()
+    body: {
+      text?: string;
+      category?: string;
+      is_starter?: boolean;
+      is_deep?: boolean;
+      requires_photo?: boolean;
+    },
+  ) {
+    return this.templatesService.updatePrompt(promptId, journalId, body);
+  }
+
+  /**
+   * Delete a custom prompt
+   */
+  @Delete('journal/:journalId/prompts/:promptId')
+  async deletePrompt(
+    @Param('journalId') journalId: string,
+    @Param('promptId') promptId: string,
+  ) {
+    await this.templatesService.deletePrompt(promptId, journalId);
+    return { success: true };
   }
 }

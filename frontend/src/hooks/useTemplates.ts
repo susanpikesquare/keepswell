@@ -11,6 +11,9 @@ import {
   getJournalPrompts,
   updatePromptOrder,
   resetPromptOrder,
+  createJournalPrompt,
+  updateJournalPrompt,
+  deleteJournalPrompt,
 } from '../api/templates';
 
 /**
@@ -167,6 +170,75 @@ export function useResetPromptOrder() {
     onSuccess: (_, journalId) => {
       queryClient.invalidateQueries({ queryKey: ['journal-prompts', journalId] });
       queryClient.invalidateQueries({ queryKey: ['journal-config', journalId] });
+    },
+  });
+}
+
+/**
+ * Hook to create a custom prompt for a journal
+ */
+export function useCreateJournalPrompt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      journalId,
+      data,
+    }: {
+      journalId: string;
+      data: {
+        text: string;
+        category?: string;
+        is_starter?: boolean;
+        is_deep?: boolean;
+        requires_photo?: boolean;
+      };
+    }) => createJournalPrompt(journalId, data),
+    onSuccess: (_, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['journal-prompts', journalId] });
+    },
+  });
+}
+
+/**
+ * Hook to update a custom prompt
+ */
+export function useUpdateJournalPrompt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({
+      journalId,
+      promptId,
+      data,
+    }: {
+      journalId: string;
+      promptId: string;
+      data: {
+        text?: string;
+        category?: string;
+        is_starter?: boolean;
+        is_deep?: boolean;
+        requires_photo?: boolean;
+      };
+    }) => updateJournalPrompt(journalId, promptId, data),
+    onSuccess: (_, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['journal-prompts', journalId] });
+    },
+  });
+}
+
+/**
+ * Hook to delete a custom prompt
+ */
+export function useDeleteJournalPrompt() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ journalId, promptId }: { journalId: string; promptId: string }) =>
+      deleteJournalPrompt(journalId, promptId),
+    onSuccess: (_, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['journal-prompts', journalId] });
     },
   });
 }

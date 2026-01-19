@@ -109,12 +109,14 @@ export interface EntryReactions {
 export interface Prompt {
   id: string;
   template_id: string | null;
+  journal_id?: string | null;
   text: string;
   category: string | null;
   sequence_order: number | null;
   is_starter?: boolean;
   requires_photo?: boolean;
   is_deep?: boolean;
+  is_custom?: boolean;
   created_at: string;
 }
 

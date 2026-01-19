@@ -9,6 +9,7 @@ import {
 } from 'typeorm';
 import { JournalTemplate } from './journal-template.entity';
 import { ScheduledPrompt } from './scheduled-prompt.entity';
+import { Journal } from './journal.entity';
 
 /**
  * Seasonality constraints for prompts
@@ -42,6 +43,17 @@ export class Prompt {
   })
   @JoinColumn({ name: 'template_id' })
   template: JournalTemplate;
+
+  // For journal-specific custom prompts
+  @Column({ nullable: true })
+  journal_id: string;
+
+  @ManyToOne(() => Journal, {
+    onDelete: 'CASCADE',
+    nullable: true,
+  })
+  @JoinColumn({ name: 'journal_id' })
+  journal: Journal;
 
   @Column({ type: 'text' })
   text: string;
