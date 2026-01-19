@@ -8,6 +8,9 @@ import {
   selectNextPrompt,
   getPromptUsageStats,
   updateJournalCustomizations,
+  getJournalPrompts,
+  updatePromptOrder,
+  resetPromptOrder,
 } from '../api/templates';
 
 /**
@@ -121,6 +124,49 @@ export function useUpdateJournalCustomizations() {
     onSuccess: (_, { journalId }) => {
       queryClient.invalidateQueries({ queryKey: ['journal-config', journalId] });
       queryClient.invalidateQueries({ queryKey: ['journals', journalId] });
+    },
+  });
+}
+
+/**
+ * Hook to get prompts for a specific journal with custom ordering
+ */
+export function useJournalPrompts(journalId: string) {
+  return useQuery({
+    queryKey: ['journal-prompts', journalId],
+    queryFn: () => getJournalPrompts(journalId),
+    enabled: !!journalId,
+    staleTime: 1000 * 60 * 5,
+  });
+}
+
+/**
+ * Hook to update custom prompt order for a journal
+ */
+export function useUpdatePromptOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ journalId, promptIds }: { journalId: string; promptIds: string[] }) =>
+      updatePromptOrder(journalId, promptIds),
+    onSuccess: (_, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['journal-prompts', journalId] });
+      queryClient.invalidateQueries({ queryKey: ['journal-config', journalId] });
+    },
+  });
+}
+
+/**
+ * Hook to reset prompt order to default
+ */
+export function useResetPromptOrder() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (journalId: string) => resetPromptOrder(journalId),
+    onSuccess: (_, journalId) => {
+      queryClient.invalidateQueries({ queryKey: ['journal-prompts', journalId] });
+      queryClient.invalidateQueries({ queryKey: ['journal-config', journalId] });
     },
   });
 }

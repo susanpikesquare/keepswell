@@ -238,4 +238,100 @@ export class TemplatesService {
 
     return this.templateRepository.save(template);
   }
+
+  /**
+   * Get prompts for a specific journal with custom ordering applied
+   */
+  async getPromptsForJournal(journalId: string): Promise<Prompt[]> {
+    const journal = await this.journalRepository.findOne({
+      where: { id: journalId },
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Journal not found');
+    }
+
+    // Get the template for this journal
+    const template = await this.getTemplateByType(journal.template_type);
+    if (!template) {
+      throw new NotFoundException(`Template not found for type: ${journal.template_type}`);
+    }
+
+    // Get all prompts for the template
+    const prompts = await this.getPromptsForTemplate(template.id);
+
+    // Apply custom ordering if exists
+    const customOrder = journal.custom_cadence_config?.customPromptOrder;
+    if (customOrder && customOrder.length > 0) {
+      return this.applyCustomOrder(prompts, customOrder);
+    }
+
+    return prompts;
+  }
+
+  /**
+   * Update custom prompt order for a journal
+   */
+  async updatePromptOrder(journalId: string, promptIds: string[]): Promise<Journal> {
+    const journal = await this.journalRepository.findOne({
+      where: { id: journalId },
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Journal not found');
+    }
+
+    // Store the custom prompt order in cadence config
+    const currentConfig = journal.custom_cadence_config || {};
+    journal.custom_cadence_config = {
+      ...currentConfig,
+      customPromptOrder: promptIds,
+    } as Partial<CadenceConfigData>;
+
+    return this.journalRepository.save(journal);
+  }
+
+  /**
+   * Reset prompt order to default for a journal
+   */
+  async resetPromptOrder(journalId: string): Promise<Journal> {
+    const journal = await this.journalRepository.findOne({
+      where: { id: journalId },
+    });
+
+    if (!journal) {
+      throw new NotFoundException('Journal not found');
+    }
+
+    // Remove custom prompt order from cadence config
+    const currentConfig = journal.custom_cadence_config || {};
+    const { customPromptOrder, ...restConfig } = currentConfig as CadenceConfigData & { customPromptOrder?: string[] };
+    journal.custom_cadence_config = restConfig as Partial<CadenceConfigData>;
+
+    return this.journalRepository.save(journal);
+  }
+
+  /**
+   * Apply custom order to prompts array
+   */
+  private applyCustomOrder(prompts: Prompt[], customOrder: string[]): Prompt[] {
+    const promptMap = new Map(prompts.map(p => [p.id, p]));
+    const ordered: Prompt[] = [];
+
+    // Add prompts in custom order
+    for (const id of customOrder) {
+      const prompt = promptMap.get(id);
+      if (prompt) {
+        ordered.push(prompt);
+        promptMap.delete(id);
+      }
+    }
+
+    // Add any remaining prompts not in custom order (new prompts)
+    for (const prompt of promptMap.values()) {
+      ordered.push(prompt);
+    }
+
+    return ordered;
+  }
 }

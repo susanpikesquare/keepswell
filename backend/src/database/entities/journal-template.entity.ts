@@ -176,6 +176,8 @@ export interface CadenceConfigData {
     inactiveReminder: boolean;
     inactiveThresholdDays: number;
   };
+  // Custom prompt order for this journal (array of prompt IDs)
+  customPromptOrder?: string[];
 }
 
 /**

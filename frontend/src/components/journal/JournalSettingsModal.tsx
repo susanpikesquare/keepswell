@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Clock, AlertTriangle, Sparkles, Check, Image, X, MessageSquare, Copy, CheckCircle } from 'lucide-react';
+import { Trash2, Clock, AlertTriangle, Sparkles, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { useUpdateJournal, useDeleteJournal, useGenerateDemoData } from '../../hooks';
+import { PromptOrderSection } from './PromptOrderSection';
 import type { Journal } from '../../types';
 
 // SMS phone number (Telnyx number)
@@ -382,6 +383,18 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
               {updateJournal.isPending ? 'Saving...' : 'Save Cover Image'}
             </Button>
           )}
+        </section>
+
+        {/* Prompt Order Section */}
+        <section className="border-t pt-6">
+          <h3 className="font-medium flex items-center gap-2 mb-4">
+            <ListOrdered className="h-4 w-4" />
+            Prompt Order
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Drag prompts to change the order they'll be sent to participants.
+          </p>
+          <PromptOrderSection journalId={journal.id} />
         </section>
 
         {/* Prompt Schedule Section */}

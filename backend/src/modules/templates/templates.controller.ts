@@ -149,6 +149,33 @@ export class TemplatesController {
   }
 
   /**
+   * Get prompts for a journal with custom ordering applied
+   */
+  @Get('journal/:journalId/prompts')
+  async getJournalPrompts(@Param('journalId') journalId: string) {
+    return this.templatesService.getPromptsForJournal(journalId);
+  }
+
+  /**
+   * Update custom prompt order for a journal
+   */
+  @Patch('journal/:journalId/prompt-order')
+  async updatePromptOrder(
+    @Param('journalId') journalId: string,
+    @Body() body: { promptIds: string[] },
+  ) {
+    return this.templatesService.updatePromptOrder(journalId, body.promptIds);
+  }
+
+  /**
+   * Reset prompt order to default for a journal
+   */
+  @Patch('journal/:journalId/prompt-order/reset')
+  async resetPromptOrder(@Param('journalId') journalId: string) {
+    return this.templatesService.resetPromptOrder(journalId);
+  }
+
+  /**
    * Update journal customizations
    */
   @Patch('journal/:journalId/customize')

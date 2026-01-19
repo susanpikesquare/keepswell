@@ -83,3 +83,25 @@ export async function updateJournalCustomizations(
 ): Promise<void> {
   await apiClient.patch(`/templates/journal/${journalId}/customize`, customizations);
 }
+
+/**
+ * Get prompts for a journal with custom ordering applied
+ */
+export async function getJournalPrompts(journalId: string): Promise<Prompt[]> {
+  const response = await apiClient.get<Prompt[]>(`/templates/journal/${journalId}/prompts`);
+  return response.data;
+}
+
+/**
+ * Update custom prompt order for a journal
+ */
+export async function updatePromptOrder(journalId: string, promptIds: string[]): Promise<void> {
+  await apiClient.patch(`/templates/journal/${journalId}/prompt-order`, { promptIds });
+}
+
+/**
+ * Reset prompt order to default for a journal
+ */
+export async function resetPromptOrder(journalId: string): Promise<void> {
+  await apiClient.patch(`/templates/journal/${journalId}/prompt-order/reset`);
+}
