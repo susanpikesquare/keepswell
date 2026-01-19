@@ -14,12 +14,14 @@ import { AdminService, PlatformStats, UserDetails } from './admin.service';
 import { AdminGuard } from '../../common/guards';
 import { CurrentUser } from '../../common/decorators';
 import { Public } from '../../common/decorators';
+import { SchedulerService } from '../scheduler/scheduler.service';
 
 @Controller('admin')
 export class AdminController {
   constructor(
     private readonly adminService: AdminService,
     @InjectDataSource() private dataSource: DataSource,
+    private readonly schedulerService: SchedulerService,
   ) {}
 
   // One-time setup endpoint - no auth required, uses secret
@@ -129,5 +131,29 @@ export class AdminController {
   @Get('me')
   async checkAdminAccess(@CurrentUser() user: any) {
     return { isAdmin: true, clerkId: user.id };
+  }
+
+  // Manually trigger prompts for a journal (for testing)
+  @Public()
+  @Post('trigger-prompts/:journalId')
+  async triggerPrompts(
+    @Param('journalId') journalId: string,
+    @Body() body: { secret: string },
+  ) {
+    if (body.secret !== 'keepswell-setup-2024') {
+      throw new BadRequestException('Invalid secret');
+    }
+    return this.schedulerService.triggerPromptForJournal(journalId);
+  }
+
+  // Run the full scheduler check manually (for testing)
+  @Public()
+  @Post('run-scheduler')
+  async runScheduler(@Body() body: { secret: string }) {
+    if (body.secret !== 'keepswell-setup-2024') {
+      throw new BadRequestException('Invalid secret');
+    }
+    await this.schedulerService.handlePromptScheduling();
+    return { success: true, message: 'Scheduler check completed' };
   }
 }

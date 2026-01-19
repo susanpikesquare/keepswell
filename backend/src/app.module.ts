@@ -44,6 +44,7 @@ import { PaymentsModule } from './modules/payments/payments.module';
 import { ExportModule } from './modules/export/export.module';
 import { ReactionsModule } from './modules/reactions/reactions.module';
 import { CommentsModule } from './modules/comments/comments.module';
+import { SchedulerModule } from './modules/scheduler/scheduler.module';
 
 @Module({
   imports: [
@@ -106,6 +107,7 @@ import { CommentsModule } from './modules/comments/comments.module';
     ExportModule,
     ReactionsModule,
     CommentsModule,
+    SchedulerModule,
   ],
   controllers: [HealthController],
   providers: [
