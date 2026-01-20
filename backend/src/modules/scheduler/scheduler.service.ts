@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
@@ -15,6 +16,7 @@ import { PromptSelectionService } from '../templates/prompt-selection.service';
 @Injectable()
 export class SchedulerService {
   private readonly logger = new Logger(SchedulerService.name);
+  private readonly frontendUrl: string;
 
   constructor(
     @InjectRepository(Journal)
@@ -29,7 +31,10 @@ export class SchedulerService {
     private promptRepository: Repository<Prompt>,
     private smsService: SmsService,
     private promptSelectionService: PromptSelectionService,
-  ) {}
+    private configService: ConfigService,
+  ) {
+    this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://keepswell.com';
+  }
 
   /**
    * Check for due prompts every 5 minutes
@@ -250,6 +255,11 @@ export class SchedulerService {
         status: 'pending',
       });
 
+      // Construct memory book URL if journal has share_token
+      const viewUrl = journal.share_token
+        ? `${this.frontendUrl}/shared/${journal.share_token}`
+        : undefined;
+
       // Send to each participant
       let successCount = 0;
       let failCount = 0;
@@ -260,6 +270,7 @@ export class SchedulerService {
           participant,
           prompt,
           journal.title,
+          viewUrl,
         );
 
         if (result.success) {
@@ -300,6 +311,7 @@ export class SchedulerService {
     participant: Participant,
     prompt: Prompt,
     journalTitle: string,
+    viewUrl?: string,
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
     // Create prompt send record
     const promptSend = await this.promptSendRepository.save({
@@ -309,11 +321,12 @@ export class SchedulerService {
     });
 
     try {
-      // Send SMS
+      // Send SMS with memory book URL
       const result = await this.smsService.sendPrompt(
         participant.phone_number,
         prompt.text,
         journalTitle,
+        viewUrl,
       );
 
       // Update prompt send record
