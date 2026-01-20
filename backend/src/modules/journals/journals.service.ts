@@ -56,6 +56,10 @@ export class JournalsService {
       ...journalData,
       owner_id: user.id,
       join_keyword: joinKeyword,
+      // Enable sharing by default so all participants can view the memory book
+      share_token: randomBytes(16).toString('hex'),
+      is_shared: true,
+      shared_at: new Date(),
     });
 
     const savedJournal = await this.journalRepository.save(journal);

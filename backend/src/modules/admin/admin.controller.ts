@@ -176,4 +176,38 @@ export class AdminController {
       };
     }
   }
+
+  // Backfill share_tokens for existing journals that don't have them
+  @Public()
+  @Post('backfill-share-tokens')
+  async backfillShareTokens(@Body() body: { secret: string }) {
+    if (body.secret !== 'keepswell-setup-2024') {
+      throw new BadRequestException('Invalid secret');
+    }
+    try {
+      const { randomBytes } = await import('crypto');
+
+      // Find all journals without share_token
+      const result = await this.dataSource.query(`
+        UPDATE journals
+        SET share_token = encode(gen_random_bytes(16), 'hex'),
+            is_shared = true,
+            shared_at = NOW()
+        WHERE share_token IS NULL
+        RETURNING id
+      `);
+
+      return {
+        success: true,
+        message: `Backfilled ${result.length} journals with share_tokens`,
+        journalsUpdated: result.length,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: 'Failed to backfill share_tokens',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  }
 }
