@@ -90,13 +90,14 @@ export class SchedulerService {
     // Parse scheduled time (format: "09:00:00")
     const [scheduledHour, scheduledMinute] = journal.prompt_time.split(':').map(Number);
 
-    // Check if we're within 10 minutes after the scheduled time
+    // Check if we're within 4 minutes after the scheduled time
+    // (cron runs every 5 min, so 4 min window ensures only one trigger)
     const scheduledMinuteOfDay = scheduledHour * 60 + scheduledMinute;
     const currentMinuteOfDay = currentHour * 60 + currentMinute;
     const minutesSinceScheduled = currentMinuteOfDay - scheduledMinuteOfDay;
 
-    // Only trigger within 10 minutes after scheduled time (to account for cron interval)
-    if (minutesSinceScheduled < 0 || minutesSinceScheduled > 10) {
+    // Only trigger within 4 minutes after scheduled time
+    if (minutesSinceScheduled < 0 || minutesSinceScheduled > 4) {
       return false;
     }
 
@@ -193,19 +194,18 @@ export class SchedulerService {
 
   /**
    * Check if a prompt has already been sent today for a journal
+   * Uses created_at (UTC) to avoid timezone issues
    */
   private async hasPromptBeenSentToday(journalId: string, journalTime: Date): Promise<boolean> {
-    const startOfDay = new Date(journalTime);
-    startOfDay.setHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(journalTime);
-    endOfDay.setHours(23, 59, 59, 999);
+    // Check for any prompt sent in the last 20 hours to be safe
+    // This prevents duplicates regardless of timezone issues
+    const twentyHoursAgo = new Date();
+    twentyHoursAgo.setHours(twentyHoursAgo.getHours() - 20);
 
     const existingPrompt = await this.scheduledPromptRepository
       .createQueryBuilder('sp')
       .where('sp.journal_id = :journalId', { journalId })
-      .andWhere('sp.scheduled_for >= :startOfDay', { startOfDay })
-      .andWhere('sp.scheduled_for <= :endOfDay', { endOfDay })
+      .andWhere('sp.created_at >= :twentyHoursAgo', { twentyHoursAgo })
       .getOne();
 
     return !!existingPrompt;
