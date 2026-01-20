@@ -109,7 +109,7 @@ export class SmsService {
     ownerName: string,
     viewUrl?: string,
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const message = `Hi ${participantName}! ${ownerName} has invited you to contribute to "${journalTitle}" - a Keepswell memory journal by PikeSquare, LLC. You'll receive prompts via text. Reply with your thoughts, stories, or photos. Reply YES to join or STOP to opt out.${viewUrl ? `\n\nView the memory book: ${viewUrl}` : ''}`;
+    const message = `Hi ${participantName}! ${ownerName} has invited you to contribute to "${journalTitle}" - a Keepswell memory journal by PikeSquare, LLC. You'll receive prompts via text. Reply with your thoughts, stories, or photos. Reply YES to join or STOP to opt out.\n\nTip: Save this number in your contacts as "${journalTitle}" so you'll know when prompts arrive!${viewUrl ? `\n\nView the memory book: ${viewUrl}` : ''}`;
 
     return this.sendSms(to, message);
   }
