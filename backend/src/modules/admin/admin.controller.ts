@@ -187,20 +187,31 @@ export class AdminController {
     try {
       const { randomBytes } = await import('crypto');
 
-      // Find all journals without share_token
-      const result = await this.dataSource.query(`
-        UPDATE journals
-        SET share_token = encode(gen_random_bytes(16), 'hex'),
-            is_shared = true,
-            shared_at = NOW()
-        WHERE share_token IS NULL
-        RETURNING id
-      `);
+      // Find all journals without share_token using TypeORM
+      const journalsWithoutToken = await this.dataSource
+        .getRepository('journals')
+        .createQueryBuilder('journal')
+        .where('journal.share_token IS NULL')
+        .getMany();
+
+      // Update each journal with a generated token
+      let updatedCount = 0;
+      for (const journal of journalsWithoutToken) {
+        const token = randomBytes(16).toString('hex');
+        await this.dataSource
+          .getRepository('journals')
+          .update(journal.id, {
+            share_token: token,
+            is_shared: true,
+            shared_at: new Date(),
+          });
+        updatedCount++;
+      }
 
       return {
         success: true,
-        message: `Backfilled ${result.length} journals with share_tokens`,
-        journalsUpdated: result.length,
+        message: `Backfilled ${updatedCount} journals with share_tokens`,
+        journalsUpdated: updatedCount,
       };
     } catch (error) {
       return {
