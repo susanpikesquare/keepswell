@@ -1,12 +1,7 @@
 import { apiClient } from './client';
-import type { UsageLimits } from './types';
+import type { UsageLimits, SubscriptionStatus, Pricing } from './types';
 
-export interface SubscriptionStatus {
-  tier: 'free' | 'premium' | 'pro';
-  status: 'active' | 'canceled' | 'past_due' | 'none';
-  currentPeriodEnd: string | null;
-  cancelAtPeriodEnd: boolean;
-}
+export type { SubscriptionStatus };
 
 export const paymentsApi = {
   getSubscriptionStatus: async (): Promise<SubscriptionStatus> => {
@@ -17,5 +12,14 @@ export const paymentsApi = {
   getUsageLimits: async (): Promise<UsageLimits> => {
     const response = await apiClient.get<UsageLimits>('/payments/usage-limits');
     return response.data;
+  },
+
+  getPricing: async (): Promise<Pricing> => {
+    const response = await apiClient.get<Pricing>('/payments/pricing');
+    return response.data;
+  },
+
+  syncRevenueCat: async (): Promise<void> => {
+    await apiClient.post('/payments/sync-revenuecat');
   },
 };

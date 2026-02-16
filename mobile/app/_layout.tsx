@@ -10,6 +10,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { tokenCache } from '@/lib/tokenCache';
+import { RevenueCatProvider } from '@/providers/RevenueCatProvider';
 
 export {
   ErrorBoundary,
@@ -60,9 +61,11 @@ export default function RootLayout() {
   return (
     <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
       <ClerkLoaded>
-        <QueryClientProvider client={queryClient}>
-          <RootLayoutNav />
-        </QueryClientProvider>
+        <RevenueCatProvider>
+          <QueryClientProvider client={queryClient}>
+            <RootLayoutNav />
+          </QueryClientProvider>
+        </RevenueCatProvider>
       </ClerkLoaded>
     </ClerkProvider>
   );

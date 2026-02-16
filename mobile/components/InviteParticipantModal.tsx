@@ -121,7 +121,7 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
     <Modal
       visible={visible}
       animationType="slide"
-      presentationStyle="pageSheet"
+      presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
       <SafeAreaView style={styles.container}>

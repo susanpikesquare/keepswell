@@ -103,6 +103,20 @@ export interface ToggleReactionResponse {
   reaction?: Reaction;
 }
 
+export interface Prompt {
+  id: string;
+  template_id: string | null;
+  journal_id?: string | null;
+  text: string;
+  category: string | null;
+  sequence_order: number | null;
+  is_starter?: boolean;
+  requires_photo?: boolean;
+  is_deep?: boolean;
+  is_custom?: boolean;
+  created_at: string;
+}
+
 export interface Entry {
   id: string;
   journal_id: string;
@@ -160,4 +174,36 @@ export interface UsageLimits {
   tier: string;
   isPro: boolean;
   smsEnabled: boolean;
+  customPrompts: boolean;
+  maxContributorsPerJournal: number;
+  extraParticipantSlots: number;
+  eventPassExpiresAt: string | null;
+  trialEndsAt: string | null;
+}
+
+export interface SubscriptionStatus {
+  tier: string;
+  status: string;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  eventPassExpiresAt: string | null;
+  extraParticipantSlots: number;
+}
+
+export interface Pricing {
+  pro: {
+    monthly: number;
+    yearly: number;
+    trialDays: number;
+  };
+  event: {
+    oneTime: number;
+    durationDays: number;
+  };
+  addOns: {
+    participantBundle: {
+      price: number;
+      slots: number;
+    };
+  };
 }

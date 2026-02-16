@@ -6,6 +6,7 @@ export { reactionsApi } from './reactions';
 export { commentsApi } from './comments';
 export { participantsApi } from './participants';
 export { authApi } from './auth';
+export { promptsApi } from './prompts';
 export type {
   Journal,
   Entry,
@@ -26,5 +27,7 @@ export type {
   ToggleReactionResponse,
   REACTION_EMOJI_MAP,
   ALLOWED_REACTIONS,
+  Prompt,
+  SubscriptionStatus,
+  Pricing,
 } from './types';
-export type { SubscriptionStatus } from './payments';

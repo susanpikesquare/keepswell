@@ -1,10 +1,12 @@
 import { apiClient } from './client';
 
 export interface SubscriptionStatus {
-  tier: 'free' | 'premium' | 'pro';
-  status: 'active' | 'canceled' | 'past_due' | 'none';
+  tier: 'free' | 'premium' | 'pro' | 'event';
+  status: 'active' | 'canceled' | 'past_due' | 'none' | 'trialing';
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  eventPassExpiresAt?: string | null;
+  extraParticipantSlots?: number;
 }
 
 export interface SmsUsageStats {
@@ -59,6 +61,24 @@ export const paymentsApi = {
 
   getUsageLimits: async (): Promise<UsageLimits> => {
     const response = await apiClient.get<UsageLimits>('/payments/usage-limits');
+    return response.data;
+  },
+
+  createEventPassCheckout: async (returnUrl: string): Promise<{ url: string }> => {
+    const response = await apiClient.post<{ url: string }>('/payments/create-event-pass-checkout', {
+      returnUrl,
+    });
+    return response.data;
+  },
+
+  createParticipantBundleCheckout: async (
+    returnUrl: string,
+    quantity: number = 1,
+  ): Promise<{ url: string }> => {
+    const response = await apiClient.post<{ url: string }>('/payments/create-participant-bundle-checkout', {
+      returnUrl,
+      quantity,
+    });
     return response.data;
   },
 };

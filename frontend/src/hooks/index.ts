@@ -53,6 +53,8 @@ export {
   useUsageLimits,
   useCreateCheckoutSession,
   useCreatePortalSession,
+  useCreateEventPassCheckout,
+  useCreateParticipantBundleCheckout,
   useIsPremium,
   useIsPro,
   useExportPdf,

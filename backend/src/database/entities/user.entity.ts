@@ -35,7 +35,7 @@ export class User {
   avatar_url: string;
 
   @Column({ default: 'free' })
-  subscription_tier: string; // 'free', 'premium', 'pro'
+  subscription_tier: string; // 'free', 'premium', 'pro', 'event'
 
   @Column({ default: 'active' })
   subscription_status: string;
@@ -51,6 +51,17 @@ export class User {
 
   @Column({ default: false })
   subscription_cancel_at_period_end: boolean;
+
+  // Event pass tracking
+  @Column({ nullable: true })
+  event_pass_journal_id: string;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  event_pass_expires_at: Date;
+
+  // Participant add-on slots (purchased in bundles of 5)
+  @Column({ default: 0 })
+  extra_participant_slots: number;
 
   // SMS Usage Tracking for Freemium
   @Column({ default: 0 })

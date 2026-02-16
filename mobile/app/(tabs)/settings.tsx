@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
+import { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, Modal, TextInput, ActivityIndicator, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useUser, useClerk, useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 
-import { authApi, setGetTokenFn } from '../../api';
+import { authApi, paymentsApi, setGetTokenFn } from '../../api';
+import type { UsageLimits } from '../../api';
+import { useRevenueCat, usePurchase } from '../../hooks';
 
 export default function SettingsScreen() {
   const { user } = useUser();
@@ -20,25 +22,32 @@ export default function SettingsScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
   const [backendPhone, setBackendPhone] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [usageLimits, setUsageLimits] = useState<UsageLimits | null>(null);
+  const { isPro: isProRevenueCat } = useRevenueCat();
+  const { presentPaywall, restorePurchases } = usePurchase();
 
   if (getToken) {
     setGetTokenFn(getToken);
   }
 
-  // Fetch phone number from backend user
-  useEffect(() => {
-    async function fetchUser() {
-      try {
-        const backendUser = await authApi.getCurrentUser();
-        if (backendUser?.phone_number) {
-          setBackendPhone(backendUser.phone_number);
-        }
-      } catch {
-        // Ignore - phone just won't be pre-populated
+  const fetchData = useCallback(async () => {
+    try {
+      const [backendUser, limits] = await Promise.all([
+        authApi.getCurrentUser(),
+        paymentsApi.getUsageLimits(),
+      ]);
+      if (backendUser?.phone_number) {
+        setBackendPhone(backendUser.phone_number);
       }
+      setUsageLimits(limits);
+    } catch {
+      // Ignore - will show defaults
     }
-    fetchUser();
   }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -149,18 +158,100 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Subscription</Text>
           <View style={styles.card}>
-            <View style={styles.subscriptionRow}>
-              <View>
-                <Text style={styles.subscriptionTier}>Free Plan</Text>
-                <Text style={styles.subscriptionDescription}>
-                  Basic features with photo uploads
-                </Text>
+            {usageLimits?.tier === 'pro' || usageLimits?.tier === 'premium' ? (
+              <>
+                <View style={styles.subscriptionRow}>
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.tierBadgeRow}>
+                      <Text style={styles.subscriptionTier}>Pro Plan</Text>
+                      <View style={styles.proBadge}>
+                        <Text style={styles.proBadgeText}>PRO</Text>
+                      </View>
+                    </View>
+                    {usageLimits.trialEndsAt && (
+                      <Text style={styles.trialText}>
+                        Trial ends {new Date(usageLimits.trialEndsAt).toLocaleDateString()}
+                      </Text>
+                    )}
+                    <Text style={styles.subscriptionDescription}>
+                      Unlimited journals, SMS prompts, custom prompts
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.manageButton}
+                    onPress={() => {
+                      if (isProRevenueCat) {
+                        // Subscription is through App Store — open Apple subscription management
+                        Linking.openURL('https://apps.apple.com/account/subscriptions').catch(() => {
+                          Alert.alert('Manage Subscription', 'Go to Settings > Apple ID > Subscriptions to manage your subscription.');
+                        });
+                      } else {
+                        // Subscription is through web/Stripe
+                        Alert.alert('Manage Subscription', 'Your subscription is managed through the web. Visit keepswell.com/settings to make changes.');
+                      }
+                    }}
+                  >
+                    <Text style={styles.manageButtonText}>Manage</Text>
+                  </TouchableOpacity>
+                </View>
+                {usageLimits.extraParticipantSlots > 0 && (
+                  <View style={styles.addOnRow}>
+                    <FontAwesome name="users" size={14} color="#6366f1" />
+                    <Text style={styles.addOnText}>
+                      +{usageLimits.extraParticipantSlots} extra participant slots
+                    </Text>
+                  </View>
+                )}
+              </>
+            ) : usageLimits?.tier === 'event' ? (
+              <View style={styles.subscriptionRow}>
+                <View style={{ flex: 1 }}>
+                  <View style={styles.tierBadgeRow}>
+                    <Text style={styles.subscriptionTier}>Event Pass</Text>
+                    <View style={[styles.proBadge, { backgroundColor: '#f59e0b' }]}>
+                      <Text style={styles.proBadgeText}>EVENT</Text>
+                    </View>
+                  </View>
+                  {usageLimits.eventPassExpiresAt && (
+                    <Text style={styles.subscriptionDescription}>
+                      Expires {new Date(usageLimits.eventPassExpiresAt).toLocaleDateString()}
+                    </Text>
+                  )}
+                  <Text style={styles.subscriptionDescription}>
+                    SMS prompts, up to {usageLimits.maxContributorsPerJournal} participants
+                  </Text>
+                </View>
               </View>
-              <TouchableOpacity style={styles.upgradeButton}>
-                <Text style={styles.upgradeButtonText}>Upgrade</Text>
-              </TouchableOpacity>
-            </View>
+            ) : (
+              <View style={styles.subscriptionRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subscriptionTier}>Free Plan</Text>
+                  <Text style={styles.subscriptionDescription}>
+                    1 journal, 3 participants, no SMS
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.upgradeButton}
+                  onPress={async () => {
+                    const purchased = await presentPaywall();
+                    if (purchased) fetchData();
+                  }}
+                >
+                  <Text style={styles.upgradeButtonText}>Upgrade</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
+          {/* Restore Purchases — required by Apple */}
+          <TouchableOpacity
+            style={styles.restoreButton}
+            onPress={async () => {
+              const restored = await restorePurchases();
+              if (restored) fetchData();
+            }}
+          >
+            <Text style={styles.restoreButtonText}>Restore Purchases</Text>
+          </TouchableOpacity>
         </View>
 
         {/* About Section */}
@@ -206,7 +297,7 @@ export default function SettingsScreen() {
       <Modal
         visible={editModalVisible}
         animationType="slide"
-        presentationStyle="pageSheet"
+        presentationStyle="fullScreen"
         onRequestClose={() => setEditModalVisible(false)}
       >
         <SafeAreaView style={styles.modalContainer}>
@@ -385,6 +476,61 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#666',
     marginTop: 2,
+  },
+  tierBadgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  proBadge: {
+    backgroundColor: '#6366f1',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  proBadgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
+  trialText: {
+    fontSize: 13,
+    color: '#f59e0b',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  manageButton: {
+    borderWidth: 1,
+    borderColor: '#6366f1',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+  },
+  manageButtonText: {
+    color: '#6366f1',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  addOnRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  addOnText: {
+    fontSize: 13,
+    color: '#666',
+  },
+  restoreButton: {
+    alignItems: 'center',
+    paddingVertical: 10,
+    marginTop: 8,
+  },
+  restoreButtonText: {
+    fontSize: 14,
+    color: '#6366f1',
   },
   upgradeButton: {
     backgroundColor: '#6366f1',

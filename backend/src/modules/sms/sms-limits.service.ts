@@ -24,13 +24,25 @@ export class SmsLimitsService {
   ) {}
 
   /**
-   * Check if a user has a Pro subscription (enables SMS)
+   * Check if a user has SMS access (Pro, active event pass, or trial)
    */
-  private isPro(user: User): boolean {
-    return (
+  private hasSmsAccess(user: User): boolean {
+    // Pro or legacy premium with active status
+    if (
       ['premium', 'pro'].includes(user.subscription_tier) &&
-      user.subscription_status === 'active'
-    );
+      ['active', 'trialing'].includes(user.subscription_status)
+    ) {
+      return true;
+    }
+    // Active event pass
+    if (
+      user.subscription_tier === 'event' &&
+      user.event_pass_expires_at != null &&
+      new Date(user.event_pass_expires_at) > new Date()
+    ) {
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -44,7 +56,7 @@ export class SmsLimitsService {
       return { allowed: false, reason: 'User not found' };
     }
 
-    if (!this.isPro(user)) {
+    if (!this.hasSmsAccess(user)) {
       return {
         allowed: false,
         reason: 'SMS messaging is a Pro feature. Upgrade to Pro to send SMS prompts to contributors.',
@@ -97,7 +109,7 @@ export class SmsLimitsService {
       throw new ForbiddenException('User not found');
     }
 
-    const isPro = this.isPro(user);
+    const isPro = this.hasSmsAccess(user);
 
     return {
       tier: user.subscription_tier,

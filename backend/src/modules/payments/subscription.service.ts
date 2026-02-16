@@ -9,11 +9,38 @@ export const TIER_LIMITS = {
     maxJournals: 1,
     maxContributorsPerJournal: 3,
     smsEnabled: false,
+    customPrompts: false,
   },
   pro: {
     maxJournals: Infinity,
     maxContributorsPerJournal: 15,
     smsEnabled: true,
+    customPrompts: true,
+  },
+  event: {
+    maxJournals: 1, // The event journal only
+    maxContributorsPerJournal: 15,
+    smsEnabled: true,
+    customPrompts: true,
+  },
+};
+
+// Pricing constants (in USD)
+export const PRICING = {
+  pro: {
+    monthly: 4.99,
+    yearly: 44.99,
+    trialDays: 7,
+  },
+  event: {
+    oneTime: 24.99,
+    durationDays: 90,
+  },
+  addOns: {
+    participantBundle: {
+      price: 4.99,
+      slots: 5,
+    },
   },
 };
 
@@ -21,6 +48,7 @@ export interface TierLimits {
   maxJournals: number;
   maxContributorsPerJournal: number;
   smsEnabled: boolean;
+  customPrompts: boolean;
 }
 
 export interface LimitCheckResult {
@@ -37,6 +65,11 @@ export interface UsageLimits {
   tier: string;
   isPro: boolean;
   smsEnabled: boolean;
+  customPrompts: boolean;
+  maxContributorsPerJournal: number;
+  extraParticipantSlots: number;
+  eventPassExpiresAt: string | null;
+  trialEndsAt: string | null;
 }
 
 @Injectable()
@@ -73,10 +106,45 @@ export class SubscriptionService {
   }
 
   /**
+   * Check if user has an active event pass
+   */
+  hasActiveEventPass(user: User): boolean {
+    return (
+      user.subscription_tier === 'event' &&
+      user.event_pass_expires_at != null &&
+      new Date(user.event_pass_expires_at) > new Date()
+    );
+  }
+
+  /**
+   * Check if user is in a free trial period
+   */
+  isInTrial(user: User): boolean {
+    return (
+      user.subscription_status === 'trialing' &&
+      user.subscription_current_period_end != null &&
+      new Date(user.subscription_current_period_end) > new Date()
+    );
+  }
+
+  /**
+   * Check if user has SMS access (pro, active event pass, or trial)
+   */
+  hasSmsAccess(user: User): boolean {
+    return this.isPaid(user) || this.hasActiveEventPass(user) || this.isInTrial(user);
+  }
+
+  /**
    * Get tier limits for a user
    */
   getTierLimits(user: User): TierLimits {
-    return this.isPaid(user) ? TIER_LIMITS.pro : TIER_LIMITS.free;
+    if (this.isPaid(user) || this.isInTrial(user)) {
+      return TIER_LIMITS.pro;
+    }
+    if (this.hasActiveEventPass(user)) {
+      return TIER_LIMITS.event;
+    }
+    return TIER_LIMITS.free;
   }
 
   /**
@@ -91,6 +159,14 @@ export class SubscriptionService {
    */
   async getJournalContributorCount(journalId: string): Promise<number> {
     return this.participantRepository.count({ where: { journal_id: journalId } });
+  }
+
+  /**
+   * Get the effective max contributors for a journal, including add-on slots
+   */
+  getEffectiveMaxContributors(user: User): number {
+    const limits = this.getTierLimits(user);
+    return limits.maxContributorsPerJournal + (user.extra_participant_slots || 0);
   }
 
   /**
@@ -126,25 +202,26 @@ export class SubscriptionService {
    * Check if a user can add another contributor to a journal
    */
   async canAddContributor(user: User, journalId: string): Promise<LimitCheckResult> {
-    const limits = this.getTierLimits(user);
+    const effectiveMax = this.getEffectiveMaxContributors(user);
     const contributorCount = await this.getJournalContributorCount(journalId);
 
-    if (contributorCount >= limits.maxContributorsPerJournal) {
-      const tierName = this.isPaid(user) ? 'Pro' : 'Free';
+    if (contributorCount >= effectiveMax) {
+      const isPaid = this.isPaid(user) || this.hasActiveEventPass(user) || this.isInTrial(user);
+      const tierName = isPaid ? 'your current plan' : 'Free accounts';
       return {
         allowed: false,
-        reason: `${tierName} accounts are limited to ${limits.maxContributorsPerJournal} contributors per journal.${
-          !this.isPaid(user) ? ' Upgrade to Pro for up to 15 contributors.' : ''
+        reason: `${tierName} ${isPaid ? 'is' : 'are'} limited to ${effectiveMax} contributors per journal.${
+          !isPaid ? ' Upgrade to Pro for up to 15 contributors.' : ' Purchase additional participant slots for more.'
         }`,
         current: contributorCount,
-        limit: limits.maxContributorsPerJournal,
+        limit: effectiveMax,
       };
     }
 
     return {
       allowed: true,
       current: contributorCount,
-      limit: limits.maxContributorsPerJournal,
+      limit: effectiveMax,
     };
   }
 
@@ -152,12 +229,26 @@ export class SubscriptionService {
    * Check if user's tier allows SMS messaging
    */
   canUseSms(user: User): LimitCheckResult {
-    const limits = this.getTierLimits(user);
-
-    if (!limits.smsEnabled) {
+    if (!this.hasSmsAccess(user)) {
       return {
         allowed: false,
-        reason: 'SMS messaging is a Pro feature. Upgrade to Pro to send SMS prompts to contributors.',
+        reason: 'SMS messaging is a Pro feature. Upgrade to Pro or start a free trial to send SMS prompts.',
+      };
+    }
+
+    return { allowed: true };
+  }
+
+  /**
+   * Check if user can use custom prompts
+   */
+  canUseCustomPrompts(user: User): LimitCheckResult {
+    const limits = this.getTierLimits(user);
+
+    if (!limits.customPrompts) {
+      return {
+        allowed: false,
+        reason: 'Custom prompts are a Pro feature. Upgrade to Pro to create your own prompts.',
       };
     }
 
@@ -183,7 +274,16 @@ export class SubscriptionService {
       canCreateJournal: journalCount < limits.maxJournals,
       tier: user.subscription_tier,
       isPro,
-      smsEnabled: limits.smsEnabled,
+      smsEnabled: this.hasSmsAccess(user),
+      customPrompts: limits.customPrompts,
+      maxContributorsPerJournal: this.getEffectiveMaxContributors(user),
+      extraParticipantSlots: user.extra_participant_slots || 0,
+      eventPassExpiresAt: user.event_pass_expires_at
+        ? new Date(user.event_pass_expires_at).toISOString()
+        : null,
+      trialEndsAt: (this.isInTrial(user) && user.subscription_current_period_end)
+        ? new Date(user.subscription_current_period_end).toISOString()
+        : null,
     };
   }
 

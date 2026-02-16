@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PaymentsService } from './payments.service';
-import { SubscriptionService } from './subscription.service';
+import { SubscriptionService, PRICING } from './subscription.service';
 import { SmsLimitsService } from '../sms/sms-limits.service';
 import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { CurrentUser, Public } from '../../common/decorators';
@@ -34,7 +34,16 @@ export class PaymentsController {
   ) {}
 
   /**
-   * Create a Stripe checkout session for subscription
+   * Get pricing information
+   */
+  @Public()
+  @Get('pricing')
+  getPricing() {
+    return PRICING;
+  }
+
+  /**
+   * Create a Stripe checkout session for Pro subscription
    */
   @Post('create-checkout-session')
   @UseGuards(ClerkAuthGuard)
@@ -47,6 +56,35 @@ export class PaymentsController {
       user.clerkId,
       returnUrl,
       billingPeriod || 'monthly',
+    );
+  }
+
+  /**
+   * Create a checkout session for an Event Pass
+   */
+  @Post('create-event-pass-checkout')
+  @UseGuards(ClerkAuthGuard)
+  async createEventPassCheckout(
+    @CurrentUser() user: AuthUser,
+    @Body('returnUrl') returnUrl: string,
+  ) {
+    return this.paymentsService.createEventPassCheckout(user.clerkId, returnUrl);
+  }
+
+  /**
+   * Create a checkout session for participant bundle add-on
+   */
+  @Post('create-participant-bundle-checkout')
+  @UseGuards(ClerkAuthGuard)
+  async createParticipantBundleCheckout(
+    @CurrentUser() user: AuthUser,
+    @Body('returnUrl') returnUrl: string,
+    @Body('quantity') quantity?: number,
+  ) {
+    return this.paymentsService.createParticipantBundleCheckout(
+      user.clerkId,
+      returnUrl,
+      quantity || 1,
     );
   }
 
@@ -108,5 +146,27 @@ export class PaymentsController {
     }
     await this.paymentsService.handleWebhook(payload, signature);
     return { received: true };
+  }
+
+  /**
+   * RevenueCat webhook endpoint
+   */
+  @Public()
+  @Post('revenuecat-webhook')
+  async handleRevenueCatWebhook(
+    @Headers('authorization') authorization: string,
+    @Body() body: Record<string, any>,
+  ) {
+    await this.paymentsService.handleRevenueCatWebhook(body, authorization || '');
+    return { received: true };
+  }
+
+  /**
+   * Sync subscription status from RevenueCat after a client-side purchase
+   */
+  @Post('sync-revenuecat')
+  @UseGuards(ClerkAuthGuard)
+  async syncRevenueCat(@CurrentUser() user: AuthUser) {
+    return this.paymentsService.syncRevenueCatStatus(user.clerkId);
   }
 }

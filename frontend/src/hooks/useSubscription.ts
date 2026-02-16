@@ -113,6 +113,40 @@ export function useIsPro() {
   };
 }
 
+export function useCreateEventPassCheckout() {
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationFn: async (returnUrl: string) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return paymentsApi.createEventPassCheckout(returnUrl);
+    },
+    onSuccess: async (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+  });
+}
+
+export function useCreateParticipantBundleCheckout() {
+  const { getToken } = useAuth();
+
+  return useMutation({
+    mutationFn: async ({ returnUrl, quantity = 1 }: { returnUrl: string; quantity?: number }) => {
+      const token = await getToken();
+      setAuthToken(token);
+      return paymentsApi.createParticipantBundleCheckout(returnUrl, quantity);
+    },
+    onSuccess: async (data) => {
+      if (data.url) {
+        window.location.href = data.url;
+      }
+    },
+  });
+}
+
 export function useExportPdf() {
   const { getToken } = useAuth();
 

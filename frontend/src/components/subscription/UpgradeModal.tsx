@@ -19,8 +19,8 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
     createCheckout({ returnUrl: window.location.href, billingPeriod });
   };
 
-  const yearlyPrice = 79;
-  const monthlyPrice = 9;
+  const yearlyPrice = 44.99;
+  const monthlyPrice = 4.99;
   const yearlySavings = Math.round((1 - yearlyPrice / (monthlyPrice * 12)) * 100);
 
   return (
