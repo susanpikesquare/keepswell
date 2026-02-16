@@ -157,21 +157,24 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
       presentationStyle="pageSheet"
       onRequestClose={onClose}
     >
-      <SafeAreaView style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={onClose}>
-            <Text style={styles.cancelText}>Done</Text>
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Journal Settings</Text>
-          <View style={{ width: 50 }} />
-        </View>
+      <View style={styles.container}>
+        <SafeAreaView style={styles.safeHeader}>
+          {/* Header */}
+          <View style={styles.header}>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={styles.cancelText}>Done</Text>
+            </TouchableOpacity>
+            <Text style={styles.headerTitle}>Journal Settings</Text>
+            <View style={{ width: 50 }} />
+          </View>
+        </SafeAreaView>
 
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
           bounces={true}
+          nestedScrollEnabled={true}
         >
           {/* Prompt Schedule Section */}
           <View style={styles.section}>
@@ -338,7 +341,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
           </View>
 
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </Modal>
   );
 }
@@ -347,6 +350,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  safeHeader: {
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
