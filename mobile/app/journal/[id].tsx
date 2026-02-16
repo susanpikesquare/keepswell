@@ -19,6 +19,7 @@ import { useJournal, useJournalEntries, useParticipants, useRemoveParticipant, u
 import { ReactionBar } from '../../components/ReactionBar';
 import { CommentSection } from '../../components/CommentSection';
 import { InviteParticipantModal } from '../../components/InviteParticipantModal';
+import { JournalSettingsModal } from '../../components/JournalSettingsModal';
 import type { Entry, Participant } from '../../api';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -202,6 +203,7 @@ export default function JournalDetailScreen() {
   const { data: participants, refetch: refetchParticipants } = useParticipants(id || '');
   const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -308,12 +310,20 @@ export default function JournalDetailScreen() {
           <Text style={styles.headerEmoji}>{getTemplateEmoji(journal?.template_type || 'custom')}</Text>
           <Text style={styles.headerTitle} numberOfLines={1}>{journal?.title || 'Journal'}</Text>
         </View>
-        <TouchableOpacity
-          style={styles.headerInviteButton}
-          onPress={() => setInviteModalVisible(true)}
-        >
-          <FontAwesome name="user-plus" size={16} color="#6366f1" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => setInviteModalVisible(true)}
+          >
+            <FontAwesome name="user-plus" size={16} color="#6366f1" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => setSettingsModalVisible(true)}
+          >
+            <FontAwesome name="cog" size={18} color="#6366f1" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Entries List */}
@@ -353,6 +363,15 @@ export default function JournalDetailScreen() {
         onClose={() => setInviteModalVisible(false)}
         journalId={id || ''}
       />
+
+      {/* Settings Modal */}
+      {journal && (
+        <JournalSettingsModal
+          visible={settingsModalVisible}
+          onClose={() => setSettingsModalVisible(false)}
+          journal={journal}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -394,9 +413,14 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
     maxWidth: 200,
   },
-  headerInviteButton: {
-    width: 40,
-    height: 40,
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerActionButton: {
+    width: 36,
+    height: 36,
     justifyContent: 'center',
     alignItems: 'center',
   },

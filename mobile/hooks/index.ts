@@ -1,4 +1,4 @@
-export { useJournals, useJournal, useJournalEntries, useCreateJournal } from './useJournals';
+export { useJournals, useJournal, useJournalEntries, useCreateJournal, useUpdateJournal, useDeleteJournal } from './useJournals';
 export { useCreateEntry, useDeleteEntry } from './useEntries';
 export { useImagePicker } from './useImagePicker';
 export type { SelectedImage } from './useImagePicker';

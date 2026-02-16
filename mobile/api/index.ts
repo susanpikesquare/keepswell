@@ -5,6 +5,7 @@ export { paymentsApi } from './payments';
 export { reactionsApi } from './reactions';
 export { commentsApi } from './comments';
 export { participantsApi } from './participants';
+export { authApi } from './auth';
 export type {
   Journal,
   Entry,

@@ -60,3 +60,37 @@ export function useCreateJournal() {
     },
   });
 }
+
+export function useUpdateJournal() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  if (getToken) {
+    setGetTokenFn(getToken);
+  }
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<CreateJournalDto> }) =>
+      journalsApi.update(id, data),
+    onSuccess: (_, { id }) => {
+      queryClient.invalidateQueries({ queryKey: ['journal', id] });
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    },
+  });
+}
+
+export function useDeleteJournal() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  if (getToken) {
+    setGetTokenFn(getToken);
+  }
+
+  return useMutation({
+    mutationFn: (id: string) => journalsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['journals'] });
+    },
+  });
+}

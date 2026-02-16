@@ -1,20 +1,60 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { StyleSheet, View, Text, TouchableOpacity, ScrollView, Alert, Modal, TextInput, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useUser, useClerk } from '@clerk/clerk-expo';
+import { useUser, useClerk, useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
 
+import { authApi, setGetTokenFn } from '../../api';
+
 export default function SettingsScreen() {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const { getToken } = useAuth();
   const router = useRouter();
 
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [firstName, setFirstName] = useState(user?.firstName || '');
   const [lastName, setLastName] = useState(user?.lastName || '');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [backendPhone, setBackendPhone] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+
+  if (getToken) {
+    setGetTokenFn(getToken);
+  }
+
+  // Fetch phone number from backend user
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const backendUser = await authApi.getCurrentUser();
+        if (backendUser?.phone_number) {
+          setBackendPhone(backendUser.phone_number);
+        }
+      } catch {
+        // Ignore - phone just won't be pre-populated
+      }
+    }
+    fetchUser();
+  }, []);
+
+  const formatPhoneNumber = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+    return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6, 10)}`;
+  };
+
+  const formatPhoneForDisplay = (e164: string) => {
+    const digits = e164.replace(/\D/g, '');
+    const local = digits.startsWith('1') ? digits.slice(1) : digits;
+    if (local.length === 10) {
+      return `(${local.slice(0, 3)}) ${local.slice(3, 6)}-${local.slice(6)}`;
+    }
+    return e164;
+  };
 
   const handleSignOut = () => {
     Alert.alert(
@@ -37,6 +77,12 @@ export default function SettingsScreen() {
   const handleOpenEditProfile = () => {
     setFirstName(user?.firstName || '');
     setLastName(user?.lastName || '');
+    // Pre-populate phone from backend
+    if (backendPhone) {
+      setPhoneNumber(formatPhoneForDisplay(backendPhone));
+    } else {
+      setPhoneNumber('');
+    }
     setEditModalVisible(true);
   };
 
@@ -44,10 +90,24 @@ export default function SettingsScreen() {
     if (!user) return;
     setSaving(true);
     try {
+      // Update name via Clerk
       await user.update({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
       });
+
+      // Sync phone number to backend
+      const digits = phoneNumber.replace(/\D/g, '');
+      const formattedPhone = digits.length >= 10 ? `+1${digits.slice(0, 10)}` : undefined;
+
+      await authApi.syncUser({
+        clerk_id: user.id,
+        email: user.primaryEmailAddress?.emailAddress || '',
+        full_name: `${firstName.trim()} ${lastName.trim()}`.trim() || undefined,
+        phone_number: formattedPhone,
+      });
+
+      setBackendPhone(formattedPhone || null);
       setEditModalVisible(false);
     } catch (err: any) {
       Alert.alert('Error', err.message || 'Failed to update profile');
@@ -57,6 +117,7 @@ export default function SettingsScreen() {
   };
 
   const userInitial = user?.firstName?.[0] || user?.emailAddresses[0]?.emailAddress[0] || '?';
+  const displayPhone = backendPhone ? formatPhoneForDisplay(backendPhone) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -77,6 +138,9 @@ export default function SettingsScreen() {
             <Text style={styles.profileEmail}>
               {user?.emailAddresses[0]?.emailAddress}
             </Text>
+            {displayPhone && (
+              <Text style={styles.profilePhone}>{displayPhone}</Text>
+            )}
           </View>
           <FontAwesome name="chevron-right" size={14} color="#ccc" />
         </TouchableOpacity>
@@ -160,42 +224,58 @@ export default function SettingsScreen() {
             </TouchableOpacity>
           </View>
 
-          <View style={styles.modalContent}>
-            <View style={styles.modalAvatar}>
-              <Text style={styles.modalAvatarText}>{userInitial.toUpperCase()}</Text>
-            </View>
+          <ScrollView style={styles.modalScroll} keyboardShouldPersistTaps="handled">
+            <View style={styles.modalContent}>
+              <View style={styles.modalAvatar}>
+                <Text style={styles.modalAvatarText}>{userInitial.toUpperCase()}</Text>
+              </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>First Name</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="First name"
-                autoCapitalize="words"
-              />
-            </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>First Name</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={firstName}
+                  onChangeText={setFirstName}
+                  placeholder="First name"
+                  autoCapitalize="words"
+                />
+              </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Last Name</Text>
-              <TextInput
-                style={styles.fieldInput}
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Last name"
-                autoCapitalize="words"
-              />
-            </View>
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Last Name</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={lastName}
+                  onChangeText={setLastName}
+                  placeholder="Last name"
+                  autoCapitalize="words"
+                />
+              </View>
 
-            <View style={styles.fieldGroup}>
-              <Text style={styles.fieldLabel}>Email</Text>
-              <View style={styles.fieldReadonly}>
-                <Text style={styles.fieldReadonlyText}>
-                  {user?.emailAddresses[0]?.emailAddress}
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Email</Text>
+                <View style={styles.fieldReadonly}>
+                  <Text style={styles.fieldReadonlyText}>
+                    {user?.emailAddresses[0]?.emailAddress}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.fieldGroup}>
+                <Text style={styles.fieldLabel}>Phone Number</Text>
+                <TextInput
+                  style={styles.fieldInput}
+                  value={phoneNumber}
+                  onChangeText={(v) => setPhoneNumber(formatPhoneNumber(v))}
+                  placeholder="(555) 123-4567"
+                  keyboardType="phone-pad"
+                />
+                <Text style={styles.fieldHint}>
+                  Used for receiving SMS prompts when you're a journal contributor
                 </Text>
               </View>
             </View>
-          </View>
+          </ScrollView>
         </SafeAreaView>
       </Modal>
     </SafeAreaView>
@@ -261,6 +341,11 @@ const styles = StyleSheet.create({
   profileEmail: {
     fontSize: 14,
     color: '#666',
+    marginTop: 2,
+  },
+  profilePhone: {
+    fontSize: 13,
+    color: '#999',
     marginTop: 2,
   },
   section: {
@@ -380,6 +465,9 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#6366f1',
   },
+  modalScroll: {
+    flex: 1,
+  },
   modalContent: {
     padding: 24,
     alignItems: 'center',
@@ -431,5 +519,11 @@ const styles = StyleSheet.create({
   fieldReadonlyText: {
     fontSize: 16,
     color: '#999',
+  },
+  fieldHint: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 4,
+    marginLeft: 2,
   },
 });
