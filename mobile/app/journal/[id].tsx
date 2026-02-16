@@ -335,6 +335,7 @@ export default function JournalDetailScreen() {
       ) : (
         <>
           <FlatList
+            style={{ flex: 1 }}
             data={entries}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => <EntryCard entry={item} journalId={id || ''} />}
@@ -533,6 +534,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   listContainer: {
+    paddingTop: 16,
     paddingBottom: 100,
   },
   entryCard: {
