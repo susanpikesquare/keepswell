@@ -61,7 +61,7 @@ export function useImagePicker() {
       width: asset.width,
       height: asset.height,
       type: asset.mimeType || 'image/jpeg',
-      fileName: asset.fileName,
+      fileName: asset.fileName ?? undefined,
     }));
 
     setImages((prev) => [...prev, ...selectedImages]);
@@ -85,7 +85,7 @@ export function useImagePicker() {
       width: asset.width,
       height: asset.height,
       type: asset.mimeType || 'image/jpeg',
-      fileName: asset.fileName,
+      fileName: asset.fileName ?? undefined,
     };
 
     setImages((prev) => [...prev, photo]);
