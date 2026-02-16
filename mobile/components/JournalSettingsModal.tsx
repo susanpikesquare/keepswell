@@ -167,7 +167,12 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
           <View style={{ width: 50 }} />
         </View>
 
-        <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView
+          style={styles.content}
+          contentContainerStyle={styles.contentContainer}
+          keyboardShouldPersistTaps="handled"
+          bounces={true}
+        >
           {/* Prompt Schedule Section */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Prompt Schedule</Text>
@@ -332,7 +337,6 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
             </TouchableOpacity>
           </View>
 
-          <View style={{ height: 40 }} />
         </ScrollView>
       </SafeAreaView>
     </Modal>
@@ -366,6 +370,9 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  contentContainer: {
+    paddingBottom: 60,
   },
   section: {
     backgroundColor: '#fff',
