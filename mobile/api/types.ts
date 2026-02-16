@@ -146,6 +146,13 @@ export interface CreateEntryDto {
   contributor_name?: string;
 }
 
+export interface InviteParticipantDto {
+  phone_number?: string;
+  display_name: string;
+  email?: string;
+  relationship?: string;
+}
+
 export interface UsageLimits {
   journalCount: number;
   maxJournals: number;

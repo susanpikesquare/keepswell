@@ -4,6 +4,7 @@ export { entriesApi } from './entries';
 export { paymentsApi } from './payments';
 export { reactionsApi } from './reactions';
 export { commentsApi } from './comments';
+export { participantsApi } from './participants';
 export type {
   Journal,
   Entry,
@@ -12,6 +13,7 @@ export type {
   PaginatedResponse,
   CreateJournalDto,
   CreateEntryDto,
+  InviteParticipantDto,
   UsageLimits,
   TemplateType,
   User,
