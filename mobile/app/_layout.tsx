@@ -1,11 +1,12 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { ClerkProvider, ClerkLoaded, useAuth } from '@clerk/clerk-expo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -76,20 +77,32 @@ function RootLayoutNav() {
   const { isLoaded, isSignedIn } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [hasOnboarded, setHasOnboarded] = useState(false);
 
   useEffect(() => {
-    if (!isLoaded) return;
+    AsyncStorage.getItem('onboarding_complete').then((value) => {
+      setHasOnboarded(value === 'true');
+      setOnboardingChecked(true);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || !onboardingChecked) return;
 
     const inAuthGroup = segments[0] === '(auth)';
 
     if (!isSignedIn && !inAuthGroup) {
-      // Redirect to sign-in if not signed in
-      router.replace('/(auth)/sign-in');
+      if (hasOnboarded) {
+        router.replace('/(auth)/sign-in');
+      } else {
+        router.replace('/(auth)/onboarding');
+      }
     } else if (isSignedIn && inAuthGroup) {
       // Redirect to home if signed in and in auth group
       router.replace('/(tabs)');
     }
-  }, [isLoaded, isSignedIn, segments]);
+  }, [isLoaded, isSignedIn, segments, onboardingChecked, hasOnboarded]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
