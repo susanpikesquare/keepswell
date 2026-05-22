@@ -55,7 +55,7 @@ export class SmsController {
   @Public()
   @Post('test-send')
   async testSendSms(@Body() body: { to: string; message?: string }): Promise<any> {
-    const testMessage = body.message || 'Keepswell test message. Reply STOP to opt out.';
+    const testMessage = body.message || 'Keepswell (PikeSquare, LLC): Test message. Reply STOP to opt out.';
     this.logger.log(`Test SMS requested to: ${body.to}`);
 
     const result = await this.smsService.sendSms(body.to, testMessage);
@@ -179,7 +179,7 @@ export class SmsController {
         if (HELP_KEYWORDS.includes(messageText)) {
           await this.smsService.sendSms(
             fromNumber,
-            `Keepswell: For help, please visit keepswell.com/support or email support@keepswell.com`,
+            `Keepswell (PikeSquare, LLC): For help, please visit keepswell.com/support or email support@keepswell.com`,
           );
           return 'OK';
         }
@@ -357,7 +357,7 @@ export class SmsController {
       this.logger.log(`No journal found for keyword: ${keyword}`);
       await this.smsService.sendSms(
         phoneNumber,
-        `Keepswell: We couldn't find a journal with that keyword. Please check and try again.`,
+        `Keepswell (PikeSquare, LLC): We couldn't find a journal with that keyword. Please check and try again.`,
       );
       return true;
     }
@@ -371,13 +371,13 @@ export class SmsController {
       if (existingParticipant.status === 'active') {
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell: You're already a member of "${journal.title}". Reply with your memories anytime!`,
+          `Keepswell (PikeSquare, LLC): You're already a member of "${journal.title}". Reply with your memories anytime!`,
         );
       } else if (existingParticipant.status === 'pending') {
         // Still waiting for approval
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell: Your request to join "${journal.title}" is still pending approval from the journal owner.`,
+          `Keepswell (PikeSquare, LLC): Your request to join "${journal.title}" is still pending approval from the journal owner.`,
         );
       } else {
         // Was removed or paused - create new pending request
@@ -387,7 +387,7 @@ export class SmsController {
         });
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell: Your request to join "${journal.title}" has been sent to the owner for approval. You'll receive a confirmation once approved.`,
+          `Keepswell (PikeSquare, LLC): Your request to join "${journal.title}" has been sent to the owner for approval. You'll receive a confirmation once approved.`,
         );
 
         // Notify owner
@@ -418,7 +418,7 @@ export class SmsController {
     // Notify the person who requested to join
     await this.smsService.sendSms(
       phoneNumber,
-      `Keepswell: Your request to join "${journal.title}" has been sent to the owner for approval. You'll receive a confirmation once approved.`,
+      `Keepswell (PikeSquare, LLC): Your request to join "${journal.title}" has been sent to the owner for approval. You'll receive a confirmation once approved.`,
     );
 
     // Notify the journal owner
@@ -447,7 +447,7 @@ export class SmsController {
     const lastFour = requesterPhone.slice(-4);
     await this.smsService.sendSms(
       ownerPhone,
-      `Keepswell: Someone (***-***-${lastFour}) wants to join "${journal.title}". Log in to keepswell.com to approve or decline their request.`,
+      `Keepswell (PikeSquare, LLC): Someone (***-***-${lastFour}) wants to join "${journal.title}". Log in to keepswell.com to approve or decline their request.`,
     );
 
     this.logger.log(`Notified owner of "${journal.title}" about join request from ${requesterPhone}`);
@@ -487,7 +487,7 @@ export class SmsController {
         // Send confirmation with all required elements (10DLC compliant)
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell: Thanks for subscribing to memory journal prompts! Reply HELP for help. Msg freq varies. Msg&data rates may apply. Reply STOP to opt out. Your mobile info will not be shared with third parties for marketing.`,
+          `Keepswell (PikeSquare, LLC): Thanks for subscribing to memory journal prompts! Reply HELP for help. Msg freq varies. Msg&data rates may apply. Reply STOP to opt out. Your mobile info will not be shared with third parties for marketing.`,
         );
       }
 
@@ -509,7 +509,7 @@ export class SmsController {
         // Send confirmation (10DLC compliant)
         await this.smsService.sendSms(
           phoneNumber,
-          `Keepswell: You are unsubscribed and will receive no further messages.`,
+          `Keepswell (PikeSquare, LLC): You are unsubscribed and will receive no further messages.`,
         );
       }
     }
@@ -655,7 +655,7 @@ export class SmsController {
       await this.pendingMemoryRepo.remove(pendingMemory);
       await this.smsService.sendSms(
         phoneNumber,
-        `Keepswell: Your previous message expired. Please send it again.`,
+        `Keepswell (PikeSquare, LLC): Your previous message expired. Please send it again.`,
       );
       return true;
     }
@@ -664,7 +664,7 @@ export class SmsController {
     if (selection < 1 || selection > pendingMemory.journal_ids.length) {
       await this.smsService.sendSms(
         phoneNumber,
-        `Keepswell: Please reply with a number 1-${pendingMemory.journal_ids.length} to select a journal.`,
+        `Keepswell (PikeSquare, LLC): Please reply with a number 1-${pendingMemory.journal_ids.length} to select a journal.`,
       );
       return true;
     }
@@ -696,7 +696,7 @@ export class SmsController {
     // Send confirmation
     await this.smsService.sendSms(
       phoneNumber,
-      `Keepswell: Got it! Your memory has been added to "${participant.journal?.title}"`,
+      `Keepswell (PikeSquare, LLC): Got it! Your memory has been added to "${participant.journal?.title}"`,
     );
 
     // Clean up pending memory
@@ -743,7 +743,7 @@ export class SmsController {
 
     await this.smsService.sendSms(
       phoneNumber,
-      `Keepswell: You're in multiple memory books. Reply with a number to save your message:\n\n${journalList}`,
+      `Keepswell (PikeSquare, LLC): You're in multiple memory books. Reply with a number to save your message:\n\n${journalList}`,
     );
 
     this.logger.log(`Created pending memory for ${phoneNumber} with ${participants.length} journal options`);
