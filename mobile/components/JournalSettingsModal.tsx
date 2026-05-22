@@ -3,13 +3,11 @@ import {
   StyleSheet,
   View,
   Text,
-  Modal,
   TouchableOpacity,
   ScrollView,
   TextInput,
   Alert,
   ActivityIndicator,
-  Switch,
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -70,7 +68,6 @@ const COVER_TEMPLATES = [
 ];
 
 interface JournalSettingsModalProps {
-  visible: boolean;
   onClose: () => void;
   journal: Journal;
 }
@@ -105,7 +102,7 @@ const TIMEZONE_OPTIONS = [
   { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
 ];
 
-export function JournalSettingsModal({ visible, onClose, journal }: JournalSettingsModalProps) {
+export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalProps) {
   const router = useRouter();
   const updateJournal = useUpdateJournal();
   const deleteJournal = useDeleteJournal();
@@ -148,7 +145,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
     setCoverImage(journal.cover_image_url || '');
     setCustomUrl('');
     setCoverChanged(false);
-  }, [journal.id, visible]);
+  }, [journal.id]);
 
   // Track changes
   useEffect(() => {
@@ -241,30 +238,20 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safeHeader}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.cancelText}>Done</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Journal Settings</Text>
-            <View style={{ width: 50 }} />
-          </View>
-        </SafeAreaView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={styles.cancelText}>Done</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Journal Settings</Text>
+          <View style={{ width: 50 }} />
+        </View>
 
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
-          bounces={true}
-          nestedScrollEnabled={true}
         >
           {/* SMS Join Info Section */}
           <View style={styles.section}>
@@ -602,9 +589,8 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
             </TouchableOpacity>
           </View>
 
-        </ScrollView>
-      </View>
-    </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 

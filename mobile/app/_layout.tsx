@@ -9,6 +9,8 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
 import 'react-native-reanimated';
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import { tokenCache } from '@/lib/tokenCache';
 import { RevenueCatProvider } from '@/providers/RevenueCatProvider';
@@ -60,15 +62,17 @@ export default function RootLayout() {
   }
 
   return (
-    <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
-      <ClerkLoaded>
-        <RevenueCatProvider>
-          <QueryClientProvider client={queryClient}>
-            <RootLayoutNav />
-          </QueryClientProvider>
-        </RevenueCatProvider>
-      </ClerkLoaded>
-    </ClerkProvider>
+    <SafeAreaProvider>
+      <ClerkProvider publishableKey={publishableKey} tokenCache={tokenCache}>
+        <ClerkLoaded>
+          <RevenueCatProvider>
+            <QueryClientProvider client={queryClient}>
+              <RootLayoutNav />
+            </QueryClientProvider>
+          </RevenueCatProvider>
+        </ClerkLoaded>
+      </ClerkProvider>
+    </SafeAreaProvider>
   );
 }
 
@@ -119,6 +123,13 @@ function RootLayoutNav() {
         />
         <Stack.Screen
           name="add-entry"
+          options={{
+            presentation: 'modal',
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="journal-settings/[id]"
           options={{
             presentation: 'modal',
             headerShown: false,

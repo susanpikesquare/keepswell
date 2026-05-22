@@ -19,7 +19,6 @@ import { useJournal, useJournalEntries, useParticipants, useRemoveParticipant, u
 import { ReactionBar } from '../../components/ReactionBar';
 import { CommentSection } from '../../components/CommentSection';
 import { InviteParticipantModal } from '../../components/InviteParticipantModal';
-import { JournalSettingsModal } from '../../components/JournalSettingsModal';
 import type { Entry, Participant } from '../../api';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -203,7 +202,6 @@ export default function JournalDetailScreen() {
   const { data: participants, refetch: refetchParticipants } = useParticipants(id || '');
   const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -319,7 +317,7 @@ export default function JournalDetailScreen() {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerActionButton}
-            onPress={() => setSettingsModalVisible(true)}
+            onPress={() => router.push(`/journal-settings/${id}`)}
           >
             <FontAwesome name="cog" size={18} color="#6366f1" />
           </TouchableOpacity>
@@ -365,14 +363,6 @@ export default function JournalDetailScreen() {
         journalId={id || ''}
       />
 
-      {/* Settings Modal */}
-      {journal && (
-        <JournalSettingsModal
-          visible={settingsModalVisible}
-          onClose={() => setSettingsModalVisible(false)}
-          journal={journal}
-        />
-      )}
     </SafeAreaView>
   );
 }
