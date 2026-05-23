@@ -158,8 +158,16 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
   }, [journal.id]);
 
   // Load notification preferences for this journal whenever the journal changes.
+  // Reset to defaults synchronously first so we never display the previous
+  // journal's prefs while fetching, or stale prefs if the fetch fails.
   useEffect(() => {
     let cancelled = false;
+    setPrefs({
+      notify_entries: true,
+      notify_comments: true,
+      notify_reactions: true,
+      notify_joins: true,
+    });
     setPrefsLoading(true);
     notificationsApi
       .getPreferences(journal.id)
@@ -167,6 +175,9 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
         if (!cancelled) setPrefs(p);
       })
       .catch((err) => {
+        // On failure we deliberately keep the defaults set above rather than
+        // whatever the previous journal had; better to show opt-in defaults
+        // than to imply opt-out is still active for a different journal.
         console.warn('[prefs] load failed:', err?.message ?? err);
       })
       .finally(() => {
