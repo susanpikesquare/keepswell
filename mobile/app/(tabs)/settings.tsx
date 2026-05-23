@@ -5,6 +5,7 @@ import { useUser, useClerk, useAuth } from '@clerk/clerk-expo';
 import { useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import * as WebBrowser from 'expo-web-browser';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { authApi, paymentsApi, setGetTokenFn } from '../../api';
 import type { UsageLimits } from '../../api';
@@ -13,6 +14,7 @@ import { useRevenueCat, usePurchase } from '../../hooks';
 export default function SettingsScreen() {
   const { user } = useUser();
   const { signOut } = useClerk();
+  const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const router = useRouter();
 
@@ -75,6 +77,12 @@ export default function SettingsScreen() {
           text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
+            // Clear all React Query cache BEFORE signing out, so the next
+            // user who signs in on this device doesn't see this user's
+            // cached journals/entries/participants. (We had a real bug
+            // where a test account saw the previous account's 3 journals
+            // because staleTime=5min was serving stale cached data.)
+            queryClient.clear();
             await signOut();
             router.replace('/(auth)/sign-in');
           },
