@@ -19,7 +19,6 @@ import { useJournal, useJournalEntries, useParticipants, useRemoveParticipant, u
 import { ReactionBar } from '../../components/ReactionBar';
 import { CommentSection } from '../../components/CommentSection';
 import { InviteParticipantModal } from '../../components/InviteParticipantModal';
-import { JournalSettingsModal } from '../../components/JournalSettingsModal';
 import type { Entry, Participant } from '../../api';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -203,7 +202,6 @@ export default function JournalDetailScreen() {
   const { data: participants, refetch: refetchParticipants } = useParticipants(id || '');
   const [refreshing, setRefreshing] = useState(false);
   const [inviteModalVisible, setInviteModalVisible] = useState(false);
-  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [showParticipants, setShowParticipants] = useState(false);
 
   const onRefresh = useCallback(async () => {
@@ -236,7 +234,7 @@ export default function JournalDetailScreen() {
       <SafeAreaView style={styles.container}>
         <Stack.Screen options={{ headerShown: false }} />
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#D86F5C" />
           <Text style={styles.loadingText}>Loading journal...</Text>
         </View>
       </SafeAreaView>
@@ -276,7 +274,7 @@ export default function JournalDetailScreen() {
           style={styles.inviteButton}
           onPress={() => setInviteModalVisible(true)}
         >
-          <FontAwesome name="user-plus" size={12} color="#6366f1" />
+          <FontAwesome name="user-plus" size={12} color="#D86F5C" />
           <Text style={styles.inviteButtonText}>Invite</Text>
         </TouchableOpacity>
       </View>
@@ -313,15 +311,21 @@ export default function JournalDetailScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerActionButton}
-            onPress={() => setInviteModalVisible(true)}
+            onPress={() => router.push(`/journal-book/${id}`)}
           >
-            <FontAwesome name="user-plus" size={16} color="#6366f1" />
+            <FontAwesome name="book" size={16} color="#D86F5C" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerActionButton}
-            onPress={() => setSettingsModalVisible(true)}
+            onPress={() => setInviteModalVisible(true)}
           >
-            <FontAwesome name="cog" size={18} color="#6366f1" />
+            <FontAwesome name="user-plus" size={16} color="#D86F5C" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionButton}
+            onPress={() => router.push(`/journal-settings/${id}`)}
+          >
+            <FontAwesome name="cog" size={18} color="#D86F5C" />
           </TouchableOpacity>
         </View>
       </View>
@@ -345,7 +349,7 @@ export default function JournalDetailScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#6366f1"
+                tintColor="#D86F5C"
               />
             }
             ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -365,14 +369,6 @@ export default function JournalDetailScreen() {
         journalId={id || ''}
       />
 
-      {/* Settings Modal */}
-      {journal && (
-        <JournalSettingsModal
-          visible={settingsModalVisible}
-          onClose={() => setSettingsModalVisible(false)}
-          journal={journal}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -464,7 +460,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginLeft: 'auto',
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 6,
@@ -472,7 +468,7 @@ const styles = StyleSheet.create({
   inviteButtonText: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   participantSection: {
     backgroundColor: '#fff',
@@ -490,14 +486,14 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#DCCCB7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   participantInitial: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   participantInfo: {
     flex: 1,
@@ -557,14 +553,14 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#DCCCB7',
     justifyContent: 'center',
     alignItems: 'center',
   },
   contributorInitial: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   contributorInfo: {
     marginLeft: 12,
@@ -644,7 +640,7 @@ const styles = StyleSheet.create({
   addFirstButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 10,
@@ -662,10 +658,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366f1',
+    shadowColor: '#D86F5C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,

@@ -1,277 +1,282 @@
 import { Link } from 'react-router-dom';
-import { BookHeart, MessageSquare, Users, Camera, Heart, Gift, Clock, Sparkles, Check, ArrowRight } from 'lucide-react';
+import {
+  Heart,
+  Sparkles,
+  Sun,
+  Plane,
+  Baby,
+  Music,
+  ArrowRight,
+  Check,
+} from 'lucide-react';
 import { Button } from '../components/ui';
 
-// Landing page images - using Unsplash for high-quality stock photos
+// Editorial lifestyle photography for the landing page.
 const LANDING_IMAGES = {
-  usecaseWedding: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=400&h=250&fit=crop&q=80',
-  usecaseBirthday: 'https://images.unsplash.com/photo-1530103862676-de8c9debad1d?w=400&h=250&fit=crop&q=80',
-  usecaseFamily: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=400&h=250&fit=crop&q=80',
-  usecaseYearReview: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=250&fit=crop&q=80',
+  heroHands: 'https://images.unsplash.com/photo-1511895426328-dc8714191300?w=1400&h=900&fit=crop&q=80',
+  useWedding: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=600&h=400&fit=crop&q=80',
+  useFamily: 'https://images.unsplash.com/photo-1609220136736-443140cffec6?w=600&h=400&fit=crop&q=80',
+  useBaby: 'https://images.unsplash.com/photo-1519689680058-324335c77eba?w=600&h=400&fit=crop&q=80',
+  useTravel: 'https://images.unsplash.com/photo-1488646953014-85cb44e25828?w=600&h=400&fit=crop&q=80',
+  useEvents: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=600&h=400&fit=crop&q=80',
+  useYear: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&q=80',
 };
 
 export function LandingPage() {
   return (
-    <div className="min-h-screen">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-[#F6F1EA] text-[#1F2328]">
+      {/* ============================== HERO ============================== */}
       <section className="relative overflow-hidden">
-        {/* Background gradient */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-pink-100/30 -z-10" />
-        <div className="absolute top-20 left-10 w-72 h-72 bg-primary/20 rounded-full blur-3xl -z-10" />
-        <div className="absolute bottom-10 right-10 w-96 h-96 bg-pink-200/30 rounded-full blur-3xl -z-10" />
+        {/* Warm wash background */}
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#F6F1EA] via-[#F6F1EA] to-[#DCCCB7]/40" />
+        <div className="absolute -top-32 -right-24 w-[36rem] h-[36rem] rounded-full bg-[#D86F5C]/10 blur-3xl -z-10" />
+        <div className="absolute -bottom-40 -left-20 w-[28rem] h-[28rem] rounded-full bg-[#7A8A74]/15 blur-3xl -z-10" />
 
-        <div className="container mx-auto px-4 py-24 lg:py-32">
-          <div className="max-w-4xl mx-auto text-center">
-            <div className="inline-flex items-center gap-2 bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium mb-6">
-              <Sparkles className="h-4 w-4" />
-              The easiest way to collect family memories
+        <div className="container mx-auto px-6 py-28 lg:py-36">
+          <div className="grid lg:grid-cols-2 gap-16 items-center max-w-6xl mx-auto">
+            {/* Copy side */}
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm border border-[#DCCCB7] text-[#3C4858] px-4 py-2 rounded-full text-sm font-medium mb-8">
+                <img src="/logo-mark.png" alt="" className="h-5 w-auto" />
+                <span>Capture moments. Cherish life.</span>
+              </div>
+
+              <h1 className="font-serif text-5xl md:text-6xl lg:text-7xl leading-[1.05] text-[#1F2328] mb-6 tracking-tight">
+                A beautiful way to <em className="text-[#D86F5C] not-italic font-medium">remember</em> life.
+              </h1>
+
+              <p className="text-lg md:text-xl text-[#3C4858] leading-relaxed mb-10 max-w-xl">
+                Keepswell helps you collect the stories, photos, and small moments
+                that make up a life — from milestones to mornings — and keep them
+                in one place you'll always come back to.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-4 mb-10">
+                <Link to="/sign-up">
+                  <Button
+                    size="lg"
+                    className="text-base px-8 py-6 rounded-full bg-[#D86F5C] text-[#F6F1EA] hover:bg-[#c2604f] shadow-md hover:shadow-lg transition-all w-full sm:w-auto"
+                  >
+                    Start your journal
+                    <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link to="/sign-in">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="text-base px-8 py-6 rounded-full border-[#DCCCB7] bg-transparent text-[#3C4858] hover:bg-white/60 w-full sm:w-auto"
+                  >
+                    Sign in
+                  </Button>
+                </Link>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-6 text-sm text-[#3C4858]/80">
+                <span className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#7A8A74]" />
+                  Free to start
+                </span>
+                <span className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#7A8A74]" />
+                  Works on any phone
+                </span>
+                <span className="flex items-center gap-2">
+                  <Check className="h-4 w-4 text-[#7A8A74]" />
+                  No app required
+                </span>
+              </div>
             </div>
 
-            <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
-              Turn Family Stories Into a{' '}
-              <span className="text-primary">Treasured Keepsake</span>
-            </h1>
-
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Send thoughtful prompts via text message, collect memories from loved ones,
-              and create a beautiful book — no app downloads required.
-            </p>
-
-            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-              <Link to="/sign-up">
-                <Button size="lg" className="text-lg px-8 w-full sm:w-auto">
-                  Start Free
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Button>
-              </Link>
-              <Link to="/sign-in">
-                <Button variant="outline" size="lg" className="text-lg px-8 w-full sm:w-auto">
-                  Sign In
-                </Button>
-              </Link>
-            </div>
-
-            {/* Trust indicators */}
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-muted-foreground">
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" />
-                No app required
+            {/* Image side */}
+            <div className="relative">
+              <div className="aspect-[4/5] rounded-[2rem] overflow-hidden shadow-2xl shadow-[#3C4858]/15 border border-white/40">
+                <img
+                  src={LANDING_IMAGES.heroHands}
+                  alt="A family looking at photos together"
+                  className="w-full h-full object-cover"
+                />
               </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" />
-                Works with any phone
-              </div>
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-green-500" />
-                Free to start
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Phone mockup / Visual section */}
-      <section className="py-16 px-4 bg-muted/30">
-        <div className="container mx-auto max-w-5xl">
-          <div className="bg-gradient-to-br from-primary/5 to-pink-50 rounded-3xl p-8 md:p-12 border">
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              <div>
-                <h2 className="text-3xl font-bold mb-4">As Simple as Texting</h2>
-                <p className="text-muted-foreground mb-6">
-                  Your family members receive prompts like "What's your favorite childhood memory?"
-                  via text. They simply reply — no accounts, no passwords, no apps.
+              {/* Floating editorial card */}
+              <div className="absolute -bottom-10 -left-6 max-w-xs bg-white rounded-2xl p-5 shadow-xl shadow-[#3C4858]/10 border border-[#DCCCB7]/60 hidden md:block">
+                <p className="font-serif text-lg italic text-[#1F2328] leading-snug">
+                  "Dad dressed up as Santa and got stuck in the chimney. We're
+                  still laughing about it."
                 </p>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                      <MessageSquare className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">We send the prompt</p>
-                      <p className="text-sm text-muted-foreground">Thoughtful questions delivered on your schedule</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                      <Camera className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">They reply with stories & photos</p>
-                      <p className="text-sm text-muted-foreground">Text or MMS — whatever works for them</p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
-                    <div className="bg-primary/10 p-2 rounded-lg">
-                      <BookHeart className="h-5 w-5 text-primary" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Memories are collected for you</p>
-                      <p className="text-sm text-muted-foreground">View and organize in a beautiful timeline</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Phone mockup */}
-              <div className="flex justify-center">
-                <div className="bg-gray-900 rounded-[2.5rem] p-3 shadow-2xl max-w-[280px]">
-                  <div className="bg-background rounded-[2rem] overflow-hidden">
-                    <div className="bg-green-500/10 p-4">
-                      <p className="text-xs text-muted-foreground mb-1">From: Keepswell</p>
-                      <p className="text-sm">What's your favorite memory from a family holiday?</p>
-                    </div>
-                    <div className="p-4 space-y-3">
-                      <div className="bg-primary/10 rounded-lg p-3 ml-8">
-                        <p className="text-sm">Oh, I remember when we all went to Grandma's house for Christmas 1987. Dad dressed up as Santa and got stuck in the chimney! 😂</p>
-                      </div>
-                      <div className="bg-muted rounded-lg p-3 mr-8">
-                        <p className="text-xs text-muted-foreground">Thanks for sharing! This memory has been saved to "Family Christmas Memories" ❤️</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <p className="text-xs text-[#3C4858]/70 mt-3">— a memory collected for Mom's birthday book</p>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Use Cases Section */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Perfect For Every Occasion</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Whether you're celebrating a milestone or preserving everyday moments,
-              Keepswell makes it easy to collect what matters most.
+      {/* ============================== HOW IT WORKS ============================== */}
+      <section className="py-28 px-6 bg-white">
+        <div className="container mx-auto max-w-5xl">
+          <div className="text-center mb-20 max-w-2xl mx-auto">
+            <p className="text-sm uppercase tracking-[0.2em] text-[#D86F5C] font-medium mb-4">
+              How it works
+            </p>
+            <h2 className="font-serif text-4xl md:text-5xl text-[#1F2328] mb-6">
+              Memories arrive, one text at a time.
+            </h2>
+            <p className="text-lg text-[#3C4858] leading-relaxed">
+              You set the prompts. We send them to the people you love.
+              Their replies — stories, photos, voice notes — gather into
+              one beautiful keepsake.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-            <UseCaseCard
-              icon={<Heart className="h-8 w-8" />}
-              title="Wedding Guest Book"
-              description="Collect well-wishes and stories from guests before, during, or after the big day."
-              gradient="from-pink-500 to-rose-500"
-              imageUrl={LANDING_IMAGES.usecaseWedding}
+          <div className="grid md:grid-cols-3 gap-10 lg:gap-16">
+            <StepCard
+              number="01"
+              title="Create a journal"
+              description="Choose a moment to remember — a wedding, a baby's first year, a road trip, a season of life — and we'll suggest prompts."
             />
-            <UseCaseCard
-              icon={<Gift className="h-8 w-8" />}
-              title="Birthday Memories"
-              description="Create a surprise book of memories from friends and family for a milestone birthday."
-              gradient="from-purple-500 to-indigo-500"
-              imageUrl={LANDING_IMAGES.usecaseBirthday}
+            <StepCard
+              number="02"
+              title="Invite the people you love"
+              description="Add anyone by phone number. They reply by text. No app, no login, no friction."
             />
-            <UseCaseCard
-              icon={<Users className="h-8 w-8" />}
-              title="Family History"
-              description="Preserve stories from grandparents and older relatives before they're lost to time."
-              gradient="from-amber-500 to-orange-500"
-              imageUrl={LANDING_IMAGES.usecaseFamily}
-            />
-            <UseCaseCard
-              icon={<Clock className="h-8 w-8" />}
-              title="Year in Review"
-              description="Gather highlights and favorite moments from family members throughout the year."
-              gradient="from-emerald-500 to-teal-500"
-              imageUrl={LANDING_IMAGES.usecaseYearReview}
+            <StepCard
+              number="03"
+              title="Cherish what comes back"
+              description="Stories and photos collect into a private memory book you can share, print, or keep close."
             />
           </div>
         </div>
       </section>
 
-      {/* How It Works Section */}
-      <section className="py-20 px-4 bg-muted/50">
-        <div className="container mx-auto max-w-5xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Get Started in Minutes</h2>
-            <p className="text-muted-foreground">Three simple steps to start collecting memories</p>
+      {/* ============================== USE CASES ============================== */}
+      <section className="py-28 px-6">
+        <div className="container mx-auto max-w-6xl">
+          <div className="text-center mb-16 max-w-2xl mx-auto">
+            <p className="text-sm uppercase tracking-[0.2em] text-[#D86F5C] font-medium mb-4">
+              For every kind of memory
+            </p>
+            <h2 className="font-serif text-4xl md:text-5xl text-[#1F2328] mb-6">
+              Whatever you want to remember.
+            </h2>
+            <p className="text-lg text-[#3C4858] leading-relaxed">
+              From once-in-a-lifetime celebrations to the quiet days you'll
+              miss someday — Keepswell holds them all.
+            </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
-            <StepCard
-              number="1"
-              title="Create Your Journal"
-              description="Pick a theme and customize your prompts, or use our ready-made templates."
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <UseCaseCard
+              icon={<Heart className="h-5 w-5" />}
+              title="Weddings"
+              description="Collect well-wishes and toasts from guests across the room or across the world."
+              imageUrl={LANDING_IMAGES.useWedding}
             />
-            <StepCard
-              number="2"
-              title="Invite Participants"
-              description="Add family members by phone number. They'll get an SMS invitation to join."
+            <UseCaseCard
+              icon={<Sparkles className="h-5 w-5" />}
+              title="Family stories"
+              description="Preserve the stories grandparents tell — in their own words, before time slips by."
+              imageUrl={LANDING_IMAGES.useFamily}
             />
-            <StepCard
-              number="3"
-              title="Watch Memories Arrive"
-              description="Prompts go out automatically. Responses flow in and are beautifully organized."
+            <UseCaseCard
+              icon={<Baby className="h-5 w-5" />}
+              title="Baby journals"
+              description="Capture the firsts and the in-betweens of a first year you'll want back."
+              imageUrl={LANDING_IMAGES.useBaby}
+            />
+            <UseCaseCard
+              icon={<Plane className="h-5 w-5" />}
+              title="Travel memories"
+              description="Trade postcards for prompts — and come home with more than photos."
+              imageUrl={LANDING_IMAGES.useTravel}
+            />
+            <UseCaseCard
+              icon={<Music className="h-5 w-5" />}
+              title="Concerts & events"
+              description="Save the night — the soundcheck, the encore, the after-party, the friends you went with."
+              imageUrl={LANDING_IMAGES.useEvents}
+            />
+            <UseCaseCard
+              icon={<Sun className="h-5 w-5" />}
+              title="Year in review"
+              description="One prompt a week. By December, you have a year you can actually hold onto."
+              imageUrl={LANDING_IMAGES.useYear}
             />
           </div>
         </div>
       </section>
 
-      {/* Testimonial / Social Proof */}
-      <section className="py-20 px-4">
-        <div className="container mx-auto max-w-4xl">
-          <div className="bg-gradient-to-br from-primary/5 to-pink-50 rounded-3xl p-8 md:p-12 text-center border">
-            <div className="max-w-2xl mx-auto">
-              <div className="text-5xl mb-6">"</div>
-              <p className="text-xl md:text-2xl font-medium mb-6">
-                I created a journal for my mom's 70th birthday. Getting stories from aunts, uncles,
-                and cousins via text was so easy — even my 85-year-old grandmother participated!
-                The final book made my mom cry happy tears.
-              </p>
-              <p className="text-muted-foreground">
-                — Sarah M., collected 47 memories for her mom's birthday book
-              </p>
-            </div>
-          </div>
+      {/* ============================== EDITORIAL QUOTE ============================== */}
+      <section className="py-28 px-6 bg-white">
+        <div className="container mx-auto max-w-4xl text-center">
+          <img src="/logo-mark.png" alt="" className="h-12 w-auto mx-auto mb-8 opacity-70" />
+          <p className="font-serif text-3xl md:text-4xl leading-[1.3] text-[#1F2328] italic mb-8">
+            "I made a journal for my mom's 70th. Getting stories by text was so
+            easy — even my 85-year-old grandmother joined in. The book made
+            her cry happy tears."
+          </p>
+          <p className="text-sm uppercase tracking-[0.2em] text-[#3C4858]/70">
+            — Sarah M., 47 memories collected
+          </p>
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="py-20 px-4 bg-gradient-to-br from-primary/10 via-background to-pink-50">
-        <div className="container mx-auto text-center max-w-2xl">
-          <BookHeart className="h-16 w-16 text-primary mx-auto mb-6" />
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Start Collecting Memories Today
+      {/* ============================== FINAL CTA ============================== */}
+      <section className="py-32 px-6 relative overflow-hidden">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#F6F1EA] to-[#DCCCB7]/60" />
+        <div className="container mx-auto max-w-3xl text-center">
+          <h2 className="font-serif text-4xl md:text-6xl text-[#1F2328] mb-6 leading-tight">
+            The moments worth keeping <em className="text-[#D86F5C] not-italic font-medium">don't keep themselves</em>.
           </h2>
-          <p className="text-lg text-muted-foreground mb-8">
-            Create your first Memory Journal in minutes. Free to start,
-            no credit card required.
+          <p className="text-lg md:text-xl text-[#3C4858] mb-10 leading-relaxed max-w-2xl mx-auto">
+            Start a Keepswell journal today. Free, simple, and shaped around
+            the people and moments that matter most.
           </p>
           <Link to="/sign-up">
-            <Button size="lg" className="text-lg px-8">
-              Get Started Free
+            <Button
+              size="lg"
+              className="text-base px-10 py-7 rounded-full bg-[#D86F5C] text-[#F6F1EA] hover:bg-[#c2604f] shadow-md hover:shadow-xl transition-all"
+            >
+              Start your journal — free
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
           </Link>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-8 px-4 border-t">
-        <div className="container mx-auto text-center text-sm text-muted-foreground">
-          <div className="flex flex-wrap justify-center gap-4 mb-4">
-            <Link to="/pricing" className="hover:text-foreground transition-colors">
-              Pricing
+      {/* ============================== FOOTER ============================== */}
+      <footer className="py-12 px-6 bg-[#1F2328] text-[#F6F1EA]/80">
+        <div className="container mx-auto max-w-5xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <Link to="/" className="flex items-center gap-3">
+              <img
+                src="/logo-mark.png"
+                alt="Keepswell"
+                className="h-9 w-auto rounded-lg bg-[#F6F1EA] p-1"
+              />
+              <span className="font-serif text-xl text-[#F6F1EA]">keepswell</span>
             </Link>
-            <span className="text-muted-foreground/50">|</span>
-            <Link to="/privacy" className="hover:text-foreground transition-colors">
-              Privacy Policy
-            </Link>
-            <span className="text-muted-foreground/50">|</span>
-            <Link to="/terms" className="hover:text-foreground transition-colors">
-              Terms & Conditions
-            </Link>
-            <span className="text-muted-foreground/50">|</span>
-            <Link to="/sms-consent" className="hover:text-foreground transition-colors">
-              SMS Program
-            </Link>
-            <span className="text-muted-foreground/50">|</span>
-            <Link to="/support" className="hover:text-foreground transition-colors">
-              Support
-            </Link>
+
+            <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+              <Link to="/pricing" className="hover:text-[#F6F1EA] transition-colors">
+                Pricing
+              </Link>
+              <Link to="/privacy" className="hover:text-[#F6F1EA] transition-colors">
+                Privacy
+              </Link>
+              <Link to="/terms" className="hover:text-[#F6F1EA] transition-colors">
+                Terms
+              </Link>
+              <Link to="/sms-consent" className="hover:text-[#F6F1EA] transition-colors">
+                SMS program
+              </Link>
+              <Link to="/support" className="hover:text-[#F6F1EA] transition-colors">
+                Support
+              </Link>
+            </nav>
           </div>
-          <p>&copy; {new Date().getFullYear()} Keepswell. A product of PikeSquare, LLC.</p>
+
+          <p className="mt-8 text-xs text-[#F6F1EA]/50 text-center md:text-left">
+            &copy; {new Date().getFullYear()} Keepswell. A product of PikeSquare, LLC.
+          </p>
         </div>
       </footer>
     </div>
@@ -282,33 +287,31 @@ function UseCaseCard({
   icon,
   title,
   description,
-  gradient,
   imageUrl,
 }: {
   icon: React.ReactNode;
   title: string;
   description: string;
-  gradient: string;
-  imageUrl?: string;
+  imageUrl: string;
 }) {
   return (
-    <div className="bg-background rounded-xl overflow-hidden shadow-sm border hover:shadow-md transition-shadow">
-      {imageUrl && (
+    <article className="group bg-white rounded-3xl overflow-hidden border border-[#DCCCB7]/60 shadow-sm hover:shadow-xl transition-all duration-300">
+      <div className="aspect-[5/3] overflow-hidden">
         <img
           src={imageUrl}
           alt={title}
-          className="w-full h-40 object-cover"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
           loading="lazy"
         />
-      )}
-      <div className="p-6">
-        <div className={`bg-gradient-to-br ${gradient} text-white p-3 rounded-lg inline-block mb-4`}>
+      </div>
+      <div className="p-7">
+        <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-[#D86F5C]/10 text-[#D86F5C] mb-4">
           {icon}
         </div>
-        <h3 className="text-lg font-semibold mb-2">{title}</h3>
-        <p className="text-sm text-muted-foreground">{description}</p>
+        <h3 className="font-serif text-2xl text-[#1F2328] mb-2">{title}</h3>
+        <p className="text-[#3C4858] leading-relaxed">{description}</p>
       </div>
-    </div>
+    </article>
   );
 }
 
@@ -322,12 +325,10 @@ function StepCard({
   description: string;
 }) {
   return (
-    <div className="text-center">
-      <div className="bg-primary text-primary-foreground w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4">
-        {number}
-      </div>
-      <h3 className="text-xl font-semibold mb-2">{title}</h3>
-      <p className="text-muted-foreground">{description}</p>
+    <div className="text-center md:text-left">
+      <span className="font-serif text-5xl text-[#D86F5C]/80 leading-none">{number}</span>
+      <h3 className="font-serif text-2xl text-[#1F2328] mt-4 mb-3">{title}</h3>
+      <p className="text-[#3C4858] leading-relaxed">{description}</p>
     </div>
   );
 }

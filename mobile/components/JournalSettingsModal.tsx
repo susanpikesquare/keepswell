@@ -3,13 +3,11 @@ import {
   StyleSheet,
   View,
   Text,
-  Modal,
   TouchableOpacity,
   ScrollView,
   TextInput,
   Alert,
   ActivityIndicator,
-  Switch,
   Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -70,7 +68,6 @@ const COVER_TEMPLATES = [
 ];
 
 interface JournalSettingsModalProps {
-  visible: boolean;
   onClose: () => void;
   journal: Journal;
 }
@@ -105,7 +102,7 @@ const TIMEZONE_OPTIONS = [
   { value: 'Australia/Sydney', label: 'Sydney (AEST)' },
 ];
 
-export function JournalSettingsModal({ visible, onClose, journal }: JournalSettingsModalProps) {
+export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalProps) {
   const router = useRouter();
   const updateJournal = useUpdateJournal();
   const deleteJournal = useDeleteJournal();
@@ -148,7 +145,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
     setCoverImage(journal.cover_image_url || '');
     setCustomUrl('');
     setCoverChanged(false);
-  }, [journal.id, visible]);
+  }, [journal.id]);
 
   // Track changes
   useEffect(() => {
@@ -241,30 +238,20 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
   };
 
   return (
-    <Modal
-      visible={visible}
-      animationType="slide"
-      presentationStyle="fullScreen"
-      onRequestClose={onClose}
-    >
-      <View style={styles.container}>
-        <SafeAreaView style={styles.safeHeader}>
-          {/* Header */}
-          <View style={styles.header}>
-            <TouchableOpacity onPress={onClose}>
-              <Text style={styles.cancelText}>Done</Text>
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>Journal Settings</Text>
-            <View style={{ width: 50 }} />
-          </View>
-        </SafeAreaView>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onClose}>
+            <Text style={styles.cancelText}>Done</Text>
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Journal Settings</Text>
+          <View style={{ width: 50 }} />
+        </View>
 
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
-          bounces={true}
-          nestedScrollEnabled={true}
         >
           {/* SMS Join Info Section */}
           <View style={styles.section}>
@@ -280,7 +267,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
                 <FontAwesome
                   name={copiedField === 'phone' ? 'check' : 'copy'}
                   size={14}
-                  color={copiedField === 'phone' ? '#22c55e' : '#6366f1'}
+                  color={copiedField === 'phone' ? '#22c55e' : '#D86F5C'}
                 />
                 <Text style={[styles.copyButtonText, copiedField === 'phone' && styles.copiedText]}>
                   {copiedField === 'phone' ? 'Copied!' : 'Copy'}
@@ -300,7 +287,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
                     <FontAwesome
                       name={copiedField === 'keyword' ? 'check' : 'copy'}
                       size={14}
-                      color={copiedField === 'keyword' ? '#22c55e' : '#6366f1'}
+                      color={copiedField === 'keyword' ? '#22c55e' : '#D86F5C'}
                     />
                     <Text style={[styles.copyButtonText, copiedField === 'keyword' && styles.copiedText]}>
                       {copiedField === 'keyword' ? 'Copied!' : 'Copy'}
@@ -464,7 +451,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
                     <Text style={[styles.optionText, frequency === opt.value && styles.optionTextSelected]}>
                       {opt.label}
                     </Text>
-                    {frequency === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                    {frequency === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -494,7 +481,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
                         <Text style={[styles.optionText, dayOfWeek === opt.value && styles.optionTextSelected]}>
                           {opt.label}
                         </Text>
-                        {dayOfWeek === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                        {dayOfWeek === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -545,7 +532,7 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
                     <Text style={[styles.optionText, timezone === opt.value && styles.optionTextSelected]}>
                       {opt.label}
                     </Text>
-                    {timezone === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                    {timezone === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -602,9 +589,8 @@ export function JournalSettingsModal({ visible, onClose, journal }: JournalSetti
             </TouchableOpacity>
           </View>
 
-        </ScrollView>
-      </View>
-    </Modal>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -629,7 +615,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   headerTitle: {
     fontSize: 17,
@@ -701,18 +687,18 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   optionItemSelected: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
   },
   optionText: {
     fontSize: 15,
     color: '#1a1a1a',
   },
   optionTextSelected: {
-    color: '#6366f1',
+    color: '#D86F5C',
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -755,13 +741,13 @@ const styles = StyleSheet.create({
   copyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   copiedText: {
     color: '#22c55e',
   },
   instructionsBox: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
     borderRadius: 10,
     padding: 16,
     marginTop: 16,
@@ -778,7 +764,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -838,7 +824,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   templateItemSelected: {
-    borderColor: '#6366f1',
+    borderColor: '#D86F5C',
   },
   templateImage: {
     width: '100%',
@@ -868,7 +854,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e5e5',
   },
   customUrlButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 10,
     paddingHorizontal: 16,
     justifyContent: 'center',

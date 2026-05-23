@@ -13,7 +13,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 
 import { useInviteParticipant, useParticipants, useUsageLimits } from '../hooks';
@@ -124,7 +124,8 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
       presentationStyle="fullScreen"
       onRequestClose={handleClose}
     >
-      <SafeAreaView style={styles.container}>
+      <SafeAreaProvider>
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
         <KeyboardAvoidingView
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -251,7 +252,7 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
                         {rel}
                       </Text>
                       {relationship === rel && (
-                        <FontAwesome name="check" size={14} color="#6366f1" />
+                        <FontAwesome name="check" size={14} color="#D86F5C" />
                       )}
                     </TouchableOpacity>
                   ))}
@@ -282,7 +283,7 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
                     value={smsConsent}
                     onValueChange={setSmsConsent}
                     trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
-                    thumbColor={smsConsent ? '#6366f1' : '#f4f4f5'}
+                    thumbColor={smsConsent ? '#D86F5C' : '#f4f4f5'}
                   />
                   <Text style={styles.consentLabel}>
                     I confirm this person has agreed to receive SMS messages from Keepswell
@@ -320,6 +321,7 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
+      </SafeAreaProvider>
     </Modal>
   );
 }
@@ -494,14 +496,14 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   pickerOptionSelected: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
   },
   pickerOptionText: {
     fontSize: 15,
     color: '#1a1a1a',
   },
   pickerOptionTextSelected: {
-    color: '#6366f1',
+    color: '#D86F5C',
     fontWeight: '600',
   },
   consentBox: {
@@ -533,7 +535,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 12,
     paddingVertical: 16,
     marginTop: 8,

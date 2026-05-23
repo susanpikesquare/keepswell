@@ -366,9 +366,9 @@ export function SmsConsentPage() {
         {/* =========================== */}
         {/* KEYWORD RESPONSES */}
         {/* =========================== */}
-        <div className="bg-gray-50 rounded-xl p-6 mb-8 border-2 border-purple-300">
+        <div className="bg-gray-50 rounded-xl p-6 mb-8 border-2 border-[#DCCCB7]">
           <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-            <CheckSquare className="h-6 w-6 text-purple-600" />
+            <CheckSquare className="h-6 w-6 text-[#D86F5C]" />
             Required Keyword Responses
           </h2>
 

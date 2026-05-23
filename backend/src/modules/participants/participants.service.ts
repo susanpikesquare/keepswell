@@ -343,7 +343,7 @@ export class ParticipantsService {
     if (participant.phone_number) {
       await this.smsService.sendSms(
         participant.phone_number,
-        `Keepswell: Your request to join "${participant.journal.title}" was not approved. If you believe this is an error, please contact the journal owner.`,
+        `Keepswell (PikeSquare, LLC): Your request to join "${participant.journal.title}" was not approved. If you believe this is an error, please contact the journal owner.`,
       );
     }
 

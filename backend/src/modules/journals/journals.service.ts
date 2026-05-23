@@ -586,7 +586,7 @@ export class JournalsService {
     // Send confirmation SMS to the requester
     await this.smsService.sendSms(
       normalizedPhone,
-      `Keepswell: Your request to join "${journal.title}" has been sent to the owner for approval. You'll receive a confirmation once approved.`,
+      `Keepswell (PikeSquare, LLC): Your request to join "${journal.title}" has been sent to the owner for approval. You'll receive a confirmation once approved.`,
     );
 
     // Notify the journal owner
@@ -595,7 +595,7 @@ export class JournalsService {
       const displayName = dto.display_name || `Guest ${normalizedPhone.slice(-4)}`;
       await this.smsService.sendSms(
         ownerPhone,
-        `Keepswell: ${displayName} wants to join "${journal.title}". Log in to keepswell.com to approve or decline their request.`,
+        `Keepswell (PikeSquare, LLC): ${displayName} wants to join "${journal.title}". Log in to keepswell.com to approve or decline their request.`,
       );
     }
 

@@ -98,7 +98,7 @@ export class SmsService {
   }
 
   async sendPrompt(to: string, promptText: string, journalTitle: string, viewUrl?: string): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const message = `${journalTitle}: ${promptText}\n\nReply to this message with your response.${viewUrl ? `\n\nView the memory book: ${viewUrl}` : ''}`;
+    const message = `${journalTitle}: ${promptText}\n\nReply to this message with your response.${viewUrl ? `\n\nView the memory book: ${viewUrl}` : ''}\n\n— Keepswell (PikeSquare, LLC). Reply STOP to opt out.`;
     return this.sendSms(to, message);
   }
 

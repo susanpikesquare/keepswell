@@ -30,7 +30,7 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   gratitude: { bg: '#dcfce7', text: '#15803d' },
   milestones: { bg: '#dbeafe', text: '#1d4ed8' },
   traditions: { bg: '#fef3c7', text: '#b45309' },
-  wisdom: { bg: '#e0e7ff', text: '#4338ca' },
+  wisdom: { bg: '#DCCCB7', text: '#4338ca' },
   stories: { bg: '#fce7f3', text: '#be185d' },
   dreams: { bg: '#cffafe', text: '#0e7490' },
   daily: { bg: '#f3f4f6', text: '#374151' },
@@ -219,7 +219,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
                   {cat.charAt(0).toUpperCase() + cat.slice(1)}
                 </Text>
               </View>
-              {formData.category === cat && <FontAwesome name="check" size={14} color="#6366f1" />}
+              {formData.category === cat && <FontAwesome name="check" size={14} color="#D86F5C" />}
             </TouchableOpacity>
           ))}
         </View>
@@ -230,7 +230,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
         <Switch
           value={formData.is_starter}
           onValueChange={(v) => setFormData({ ...formData, is_starter: v })}
-          trackColor={{ true: '#6366f1' }}
+          trackColor={{ true: '#D86F5C' }}
         />
       </View>
       <View style={styles.switchRow}>
@@ -238,7 +238,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
         <Switch
           value={formData.is_deep}
           onValueChange={(v) => setFormData({ ...formData, is_deep: v })}
-          trackColor={{ true: '#6366f1' }}
+          trackColor={{ true: '#D86F5C' }}
         />
       </View>
       <View style={styles.switchRow}>
@@ -246,7 +246,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
         <Switch
           value={formData.requires_photo}
           onValueChange={(v) => setFormData({ ...formData, requires_photo: v })}
-          trackColor={{ true: '#6366f1' }}
+          trackColor={{ true: '#D86F5C' }}
         />
       </View>
 
@@ -272,7 +272,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="small" color="#6366f1" />
+        <ActivityIndicator size="small" color="#D86F5C" />
       </View>
     );
   }
@@ -282,7 +282,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
       {/* Add prompt button */}
       {!showAddForm ? (
         <TouchableOpacity style={styles.addButton} onPress={handleAddPrompt}>
-          <FontAwesome name="plus" size={14} color="#6366f1" />
+          <FontAwesome name="plus" size={14} color="#D86F5C" />
           <Text style={styles.addButtonText}>Add Custom Prompt</Text>
         </TouchableOpacity>
       ) : (
@@ -453,7 +453,7 @@ const styles = StyleSheet.create({
   addButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   emptyText: {
     fontSize: 14,
@@ -544,7 +544,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   saveOrderButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
@@ -638,7 +638,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   formSaveButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,

@@ -270,7 +270,7 @@ export function AdminDashboardPage() {
                           disabled={setSubscriptionTier.isPending}
                           className={`
                             text-sm px-2 py-1 rounded-md border cursor-pointer
-                            ${user.subscription_tier === 'pro' ? 'bg-purple-100 border-purple-300 text-purple-800' : ''}
+                            ${user.subscription_tier === 'pro' ? 'bg-[#DCCCB7]/40 border-[#DCCCB7] text-[#3C4858]' : ''}
                             ${user.subscription_tier === 'premium' ? 'bg-blue-100 border-blue-300 text-blue-800' : ''}
                             ${(!user.subscription_tier || user.subscription_tier === 'free') ? 'bg-gray-100 border-gray-300 text-gray-700' : ''}
                             ${setSubscriptionTier.isPending ? 'opacity-50 cursor-not-allowed' : ''}

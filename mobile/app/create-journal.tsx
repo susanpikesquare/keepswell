@@ -253,7 +253,7 @@ export default function CreateJournalScreen() {
                 value={ownerParticipate}
                 onValueChange={setOwnerParticipate}
                 trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
-                thumbColor={ownerParticipate ? '#6366f1' : '#f4f4f5'}
+                thumbColor={ownerParticipate ? '#D86F5C' : '#f4f4f5'}
               />
             </View>
 
@@ -275,7 +275,7 @@ export default function CreateJournalScreen() {
                       value={smsConsent}
                       onValueChange={setSmsConsent}
                       trackColor={{ false: '#d1d5db', true: '#a5b4fc' }}
-                      thumbColor={smsConsent ? '#6366f1' : '#f4f4f5'}
+                      thumbColor={smsConsent ? '#D86F5C' : '#f4f4f5'}
                     />
                     <Text style={styles.consentText}>
                       I agree to receive SMS messages from Keepswell at this number
@@ -300,12 +300,12 @@ export default function CreateJournalScreen() {
             style={styles.advancedToggle}
             onPress={() => setShowAdvanced(!showAdvanced)}
           >
-            <FontAwesome name="sliders" size={16} color="#6366f1" />
+            <FontAwesome name="sliders" size={16} color="#D86F5C" />
             <Text style={styles.advancedToggleText}>Prompt Schedule</Text>
             <FontAwesome
               name={showAdvanced ? 'chevron-up' : 'chevron-down'}
               size={12}
-              color="#6366f1"
+              color="#D86F5C"
             />
           </TouchableOpacity>
 
@@ -333,7 +333,7 @@ export default function CreateJournalScreen() {
                       <Text style={[styles.optionText, frequency === opt.value && styles.optionTextSelected]}>
                         {opt.label}
                       </Text>
-                      {frequency === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                      {frequency === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -363,7 +363,7 @@ export default function CreateJournalScreen() {
                           <Text style={[styles.optionText, dayOfWeek === opt.value && styles.optionTextSelected]}>
                             {opt.label}
                           </Text>
-                          {dayOfWeek === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                          {dayOfWeek === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -414,7 +414,7 @@ export default function CreateJournalScreen() {
                       <Text style={[styles.optionText, timezone === opt.value && styles.optionTextSelected]}>
                         {opt.label}
                       </Text>
-                      {timezone === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                      {timezone === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                     </TouchableOpacity>
                   ))}
                 </View>
@@ -424,7 +424,7 @@ export default function CreateJournalScreen() {
 
           {/* Info Note */}
           <View style={styles.infoBox}>
-            <FontAwesome name="info-circle" size={16} color="#6366f1" />
+            <FontAwesome name="info-circle" size={16} color="#D86F5C" />
             <Text style={styles.infoText}>
               You can invite contributors and adjust settings after creating the journal.
             </Text>
@@ -466,7 +466,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   createButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 18,
@@ -520,8 +520,8 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   templateCardSelected: {
-    backgroundColor: '#e0e7ff',
-    borderColor: '#6366f1',
+    backgroundColor: '#DCCCB7',
+    borderColor: '#D86F5C',
   },
   templateEmoji: {
     fontSize: 28,
@@ -533,7 +533,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   templateLabelSelected: {
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   titleInput: {
     fontSize: 17,
@@ -626,13 +626,13 @@ const styles = StyleSheet.create({
     marginTop: 16,
     marginHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
     borderRadius: 10,
   },
   advancedToggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   fieldLabel: {
     fontSize: 14,
@@ -673,20 +673,20 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   optionItemSelected: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
   },
   optionText: {
     fontSize: 15,
     color: '#1a1a1a',
   },
   optionTextSelected: {
-    color: '#6366f1',
+    color: '#D86F5C',
     fontWeight: '600',
   },
   infoBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    backgroundColor: '#e0e7ff',
+    backgroundColor: '#DCCCB7',
     padding: 16,
     margin: 16,
     borderRadius: 12,
