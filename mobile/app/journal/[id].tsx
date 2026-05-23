@@ -311,6 +311,12 @@ export default function JournalDetailScreen() {
         <View style={styles.headerActions}>
           <TouchableOpacity
             style={styles.headerActionButton}
+            onPress={() => router.push(`/journal-book/${id}`)}
+          >
+            <FontAwesome name="book" size={16} color="#6366f1" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerActionButton}
             onPress={() => setInviteModalVisible(true)}
           >
             <FontAwesome name="user-plus" size={16} color="#6366f1" />
