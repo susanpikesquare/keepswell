@@ -269,40 +269,52 @@ export default function SignUpScreen() {
               />
             </View>
 
-            {/* Terms / Privacy consent — required by Clerk (Configure → Legal). */}
-            <TouchableOpacity
-              style={styles.legalRow}
-              onPress={() => setLegalAccepted((v) => !v)}
-              activeOpacity={0.7}
-            >
-              <View style={[styles.checkbox, legalAccepted && styles.checkboxChecked]}>
-                {legalAccepted && (
-                  <FontAwesome name="check" size={12} color="#fff" />
-                )}
-              </View>
+            {/* Terms / Privacy consent — required by Clerk (Configure → Legal).
+                Only the checkbox toggles consent; the link Texts open URLs in
+                Safari. Keeping them in separate Touchables (instead of a single
+                row-wide TouchableOpacity) avoids the link taps also flipping
+                the checkbox. */}
+            <View style={styles.legalRow}>
+              <TouchableOpacity
+                onPress={() => setLegalAccepted((v) => !v)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: legalAccepted }}
+                accessibilityLabel="I agree to the Terms of Service and Privacy Policy"
+              >
+                <View style={[styles.checkbox, legalAccepted && styles.checkboxChecked]}>
+                  {legalAccepted && (
+                    <FontAwesome name="check" size={12} color="#fff" />
+                  )}
+                </View>
+              </TouchableOpacity>
               <Text style={styles.legalText}>
-                I agree to the{' '}
+                <Text onPress={() => setLegalAccepted((v) => !v)}>I agree to the </Text>
                 <Text
                   style={styles.legalLink}
                   onPress={() => Linking.openURL('https://keepswell.com/terms')}
                 >
                   Terms of Service
                 </Text>
-                {' '}and{' '}
+                <Text onPress={() => setLegalAccepted((v) => !v)}> and </Text>
                 <Text
                   style={styles.legalLink}
                   onPress={() => Linking.openURL('https://keepswell.com/privacy')}
                 >
                   Privacy Policy
                 </Text>
-                .
+                <Text onPress={() => setLegalAccepted((v) => !v)}>.</Text>
               </Text>
-            </TouchableOpacity>
+            </View>
 
             <TouchableOpacity
-              style={[styles.button, (loading || !legalAccepted) && styles.buttonDisabled]}
+              style={[
+                styles.button,
+                (loading || !legalAccepted) && styles.buttonDisabled,
+              ]}
               onPress={handleSignUp}
-              disabled={loading}
+              disabled={loading || !legalAccepted}
             >
               {loading ? (
                 <ActivityIndicator color="#fff" />
