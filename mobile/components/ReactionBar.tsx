@@ -113,7 +113,7 @@ export function ReactionBar({ entryId, journalId, compact = false }: ReactionBar
             <View style={styles.picker}>
               {toggleReaction.isPending && (
                 <View style={styles.pickerLoading}>
-                  <ActivityIndicator size="small" color="#6366f1" />
+                  <ActivityIndicator size="small" color="#D86F5C" />
                 </View>
               )}
               {ALLOWED_REACTIONS.map((emoji) => (
@@ -167,9 +167,9 @@ const styles = StyleSheet.create({
   reactionBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
     borderWidth: 1,
-    borderColor: '#e0e7ff',
+    borderColor: '#DCCCB7',
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
   reactionCount: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   reactionCountCompact: {
     fontSize: 12,

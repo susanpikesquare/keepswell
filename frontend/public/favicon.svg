@@ -1,14 +1,28 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <defs>
-    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#6366f1;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <!-- Book shape -->
-  <path d="M15 20 C15 15, 20 10, 50 10 C80 10, 85 15, 85 20 L85 80 C85 85, 80 90, 50 90 C20 90, 15 85, 15 80 Z" fill="url(#grad)" />
-  <!-- Book spine -->
-  <path d="M50 10 L50 90" stroke="white" stroke-width="2" opacity="0.3"/>
-  <!-- Heart on book -->
-  <path d="M50 35 C45 28, 32 28, 32 40 C32 52, 50 65, 50 65 C50 65, 68 52, 68 40 C68 28, 55 28, 50 35 Z" fill="white"/>
+  <!-- Cream background -->
+  <circle cx="50" cy="50" r="49" fill="#F6F1EA"/>
+
+  <!-- Coral ring -->
+  <circle cx="48" cy="51" r="32" fill="none" stroke="#D86F5C" stroke-width="1.6" stroke-linecap="round"/>
+
+  <!-- Accent dots on ring -->
+  <circle cx="78" cy="34" r="1.8" fill="#D86F5C"/>
+  <circle cx="22" cy="72" r="1.4" fill="#D86F5C"/>
+
+  <!-- Serif 'k' monogram -->
+  <text
+    x="48" y="65"
+    font-family="Playfair Display, Didot, Georgia, serif"
+    font-size="44" font-weight="500" fill="#3C4858" text-anchor="middle"
+  >k</text>
+
+  <!-- Tittle -->
+  <circle cx="55" cy="35" r="2.4" fill="#3C4858"/>
+
+  <!-- Sage leaves on the right -->
+  <g fill="#7A8A74">
+    <ellipse cx="76" cy="55" rx="6" ry="2.4" transform="rotate(-25 76 55)"/>
+    <ellipse cx="70" cy="60" rx="5" ry="2.0" transform="rotate(15 70 60)"/>
+    <ellipse cx="80" cy="48" rx="5" ry="1.8" transform="rotate(-40 80 48)" opacity="0.85"/>
+  </g>
 </svg>

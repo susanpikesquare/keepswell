@@ -15,7 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 const { width } = Dimensions.get('window');
 
-const BRAND_COLOR = '#6366F1';
+const BRAND_COLOR = '#D86F5C';
 
 interface Slide {
   id: string;
@@ -197,7 +197,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: '#EEF2FF',
+    backgroundColor: '#F6F1EA',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 40,

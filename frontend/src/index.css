@@ -1,24 +1,48 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: hsl(0 0% 100%);
-  --color-foreground: hsl(222.2 84% 4.9%);
-  --color-card: hsl(0 0% 100%);
-  --color-card-foreground: hsl(222.2 84% 4.9%);
-  --color-primary: hsl(262.1 83.3% 57.8%);
-  --color-primary-foreground: hsl(210 40% 98%);
-  --color-secondary: hsl(210 40% 96.1%);
-  --color-secondary-foreground: hsl(222.2 47.4% 11.2%);
-  --color-muted: hsl(210 40% 96.1%);
-  --color-muted-foreground: hsl(215.4 16.3% 46.9%);
-  --color-accent: hsl(210 40% 96.1%);
-  --color-accent-foreground: hsl(222.2 47.4% 11.2%);
-  --color-destructive: hsl(0 84.2% 60.2%);
-  --color-destructive-foreground: hsl(210 40% 98%);
-  --color-border: hsl(214.3 31.8% 91.4%);
-  --color-input: hsl(214.3 31.8% 91.4%);
-  --color-ring: hsl(262.1 83.3% 57.8%);
-  --radius: 0.5rem;
+  /*
+   * Keepswell brand palette
+   *   Coral       #D86F5C   primary accent
+   *   Warm Cream  #F6F1EA   background
+   *   Sand        #DCCCB7   secondary / border
+   *   Sage        #7A8A74   accent
+   *   Slate       #3C4858   secondary text
+   *   Charcoal    #1F2328   primary text
+   */
+
+  /* Brand color tokens (addressable as text-coral / bg-sage / etc.) */
+  --color-coral: #D86F5C;
+  --color-warm-cream: #F6F1EA;
+  --color-sand: #DCCCB7;
+  --color-sage: #7A8A74;
+  --color-slate-brand: #3C4858;
+  --color-charcoal: #1F2328;
+
+  /* Semantic tokens consumed by shadcn-style components */
+  --color-background: #F6F1EA;           /* warm cream */
+  --color-foreground: #1F2328;           /* charcoal text */
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1F2328;
+  --color-primary: #D86F5C;              /* coral */
+  --color-primary-foreground: #F6F1EA;   /* cream on coral buttons */
+  --color-secondary: #DCCCB7;            /* sand */
+  --color-secondary-foreground: #3C4858; /* slate on sand */
+  --color-muted: #F6F1EA;                /* warm cream as muted surface */
+  --color-muted-foreground: #3C4858;     /* slate as muted text */
+  --color-accent: #7A8A74;               /* sage */
+  --color-accent-foreground: #F6F1EA;
+  --color-destructive: hsl(0 70% 55%);
+  --color-destructive-foreground: #F6F1EA;
+  --color-border: #DCCCB7;               /* sand */
+  --color-input: #DCCCB7;
+  --color-ring: #D86F5C;                 /* coral focus ring */
+
+  /* Typography */
+  --font-serif: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-sans: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --radius: 0.75rem;
 }
 
 * {
@@ -28,4 +52,9 @@
 body {
   background-color: var(--color-background);
   color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-serif);
 }

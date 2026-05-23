@@ -196,7 +196,7 @@ export default function SettingsScreen() {
                 </View>
                 {usageLimits.extraParticipantSlots > 0 && (
                   <View style={styles.addOnRow}>
-                    <FontAwesome name="users" size={14} color="#6366f1" />
+                    <FontAwesome name="users" size={14} color="#D86F5C" />
                     <Text style={styles.addOnText}>
                       +{usageLimits.extraParticipantSlots} extra participant slots
                     </Text>
@@ -309,7 +309,7 @@ export default function SettingsScreen() {
             <Text style={styles.modalTitle}>Edit Profile</Text>
             <TouchableOpacity onPress={handleSaveProfile} disabled={saving}>
               {saving ? (
-                <ActivityIndicator size="small" color="#6366f1" />
+                <ActivityIndicator size="small" color="#D86F5C" />
               ) : (
                 <Text style={styles.modalSave}>Save</Text>
               )}
@@ -413,7 +413,7 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   proBadge: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
@@ -504,13 +504,13 @@ const styles = StyleSheet.create({
   },
   manageButton: {
     borderWidth: 1,
-    borderColor: '#6366f1',
+    borderColor: '#D86F5C',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
   },
   manageButtonText: {
-    color: '#6366f1',
+    color: '#D86F5C',
     fontSize: 14,
     fontWeight: '600',
   },
@@ -532,10 +532,10 @@ const styles = StyleSheet.create({
   },
   restoreButtonText: {
     fontSize: 14,
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   upgradeButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 6,
@@ -611,7 +611,7 @@ const styles = StyleSheet.create({
   modalSave: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   modalScroll: {
     flex: 1,
@@ -624,7 +624,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 32,

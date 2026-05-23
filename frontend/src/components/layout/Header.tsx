@@ -7,8 +7,8 @@ import {
   UserButton,
   useAuth,
 } from '@clerk/clerk-react';
-import { BookHeart } from 'lucide-react';
 import { Button } from '../ui';
+import { KeepswellLogo } from './KeepswellLogo';
 
 export function Header() {
   // Check if we're in a Clerk context
@@ -23,8 +23,8 @@ export function Header() {
     <header className="border-b border-border bg-background">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
-          <BookHeart className="h-8 w-8 text-primary" />
-          <span className="text-xl font-bold">Keepswell</span>
+          <KeepswellLogo className="h-9 w-9" />
+          <span className="text-2xl font-serif text-charcoal">keepswell</span>
         </Link>
 
         <nav className="flex items-center gap-4">

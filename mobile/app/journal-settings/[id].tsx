@@ -13,7 +13,7 @@ export default function JournalSettingsScreen() {
     return (
       <View style={styles.loading}>
         <Stack.Screen options={{ headerShown: false }} />
-        <ActivityIndicator size="large" color="#6366f1" />
+        <ActivityIndicator size="large" color="#D86F5C" />
       </View>
     );
   }

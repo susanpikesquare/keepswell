@@ -1,5 +1,11 @@
 // Visual themes for the mobile Memory Book view, keyed by journal template type.
-// Hex colors (React Native friendly) — keep in sync with frontend/src/lib/themes.ts.
+// Derived from the Keepswell brand palette:
+//   Coral       #D86F5C   primary accent
+//   Warm Cream  #F6F1EA   background
+//   Sand        #DCCCB7   secondary surface / border
+//   Sage        #7A8A74   accent / nature
+//   Slate       #3C4858   secondary text
+//   Charcoal    #1F2328   primary text
 
 import type { TemplateType } from '../api';
 
@@ -9,7 +15,7 @@ export interface JournalTheme {
   bgColor: string;
   // Text colors
   primaryColor: string;   // headings
-  accentColor: string;    // accents (icons, timeline dot)
+  accentColor: string;    // icons, timeline dot
   textColor: string;      // body text
   mutedColor: string;     // secondary text
   // Card
@@ -25,93 +31,101 @@ export interface JournalTheme {
   quoteFontFamily: 'serif' | 'sans';
 }
 
+// Brand colors as named constants for readability
+const CORAL = '#D86F5C';
+const WARM_CREAM = '#F6F1EA';
+const SAND = '#DCCCB7';
+const SAGE = '#7A8A74';
+const SLATE = '#3C4858';
+const CHARCOAL = '#1F2328';
+
 export const journalThemes: Record<TemplateType, JournalTheme> = {
   family: {
     name: 'Family Memories',
-    bgColor: '#fff7ed', // amber-50/orange-50 blend
-    primaryColor: '#92400e', // amber-800
-    accentColor: '#e11d48', // rose-600
-    textColor: '#451a03', // amber-950
-    mutedColor: '#b45309', // amber-700
+    bgColor: WARM_CREAM,
+    primaryColor: CORAL,
+    accentColor: SAGE,
+    textColor: CHARCOAL,
+    mutedColor: SLATE,
     cardBg: '#ffffff',
-    cardBorder: '#fde68a', // amber-200
-    timelineColor: '#fbbf24', // amber-400
-    timelineDot: '#f59e0b', // amber-500
+    cardBorder: SAND,
+    timelineColor: SAND,
+    timelineDot: CORAL,
     iconName: 'heart',
     quoteFontStyle: 'italic',
     quoteFontFamily: 'serif',
   },
   friends: {
     name: 'Friend Circle',
-    bgColor: '#eef2ff', // indigo-50
-    primaryColor: '#3730a3', // indigo-800
-    accentColor: '#8b5cf6', // violet-500
-    textColor: '#1e1b4b', // indigo-950
-    mutedColor: '#4338ca', // indigo-700
+    bgColor: WARM_CREAM,
+    primaryColor: SAGE,
+    accentColor: CORAL,
+    textColor: CHARCOAL,
+    mutedColor: SLATE,
     cardBg: '#ffffff',
-    cardBorder: '#c7d2fe', // indigo-200
-    timelineColor: '#a5b4fc', // indigo-300
-    timelineDot: '#6366f1', // indigo-500
+    cardBorder: SAND,
+    timelineColor: SAND,
+    timelineDot: SAGE,
     iconName: 'star',
     quoteFontStyle: 'normal',
     quoteFontFamily: 'sans',
   },
   romantic: {
     name: 'Love Story',
-    bgColor: '#fff1f2', // rose-50
-    primaryColor: '#9f1239', // rose-800
-    accentColor: '#ec4899', // pink-500
-    textColor: '#4c0519', // rose-950
-    mutedColor: '#be123c', // rose-700
+    bgColor: WARM_CREAM,
+    primaryColor: CORAL,
+    accentColor: CORAL,
+    textColor: CHARCOAL,
+    mutedColor: SLATE,
     cardBg: '#ffffff',
-    cardBorder: '#fecdd3', // rose-200
-    timelineColor: '#fda4af', // rose-300
-    timelineDot: '#f43f5e', // rose-500
+    cardBorder: SAND,
+    timelineColor: SAND,
+    timelineDot: CORAL,
     iconName: 'heart',
     quoteFontStyle: 'italic',
     quoteFontFamily: 'serif',
   },
   vacation: {
     name: 'Travel Journal',
-    bgColor: '#f0f9ff', // sky-50
-    primaryColor: '#075985', // sky-800
-    accentColor: '#f59e0b', // amber-500
-    textColor: '#0c4a6e', // sky-900
-    mutedColor: '#0369a1', // sky-700
+    bgColor: WARM_CREAM,
+    primaryColor: SLATE,
+    accentColor: SAGE,
+    textColor: CHARCOAL,
+    mutedColor: SLATE,
     cardBg: '#ffffff',
-    cardBorder: '#bae6fd', // sky-200
-    timelineColor: '#7dd3fc', // sky-300
-    timelineDot: '#0ea5e9', // sky-500
+    cardBorder: SAND,
+    timelineColor: SAND,
+    timelineDot: SLATE,
     iconName: 'plane',
     quoteFontStyle: 'normal',
     quoteFontFamily: 'sans',
   },
   retirement: {
     name: 'Retirement Journey',
-    bgColor: '#fefce8', // yellow-50
-    primaryColor: '#854d0e', // yellow-800
-    accentColor: '#ca8a04', // yellow-600
-    textColor: '#422006', // yellow-950
-    mutedColor: '#a16207', // yellow-700
+    bgColor: WARM_CREAM,
+    primaryColor: SAND,
+    accentColor: CORAL,
+    textColor: CHARCOAL,
+    mutedColor: SLATE,
     cardBg: '#ffffff',
-    cardBorder: '#fde68a', // amber-200
-    timelineColor: '#fde047', // yellow-300
-    timelineDot: '#eab308', // yellow-500
+    cardBorder: SAND,
+    timelineColor: SAND,
+    timelineDot: CORAL,
     iconName: 'sun-o',
     quoteFontStyle: 'italic',
     quoteFontFamily: 'serif',
   },
   custom: {
     name: 'Custom Journal',
-    bgColor: '#f8fafc', // slate-50
-    primaryColor: '#1e293b', // slate-800
-    accentColor: '#64748b', // slate-500
-    textColor: '#0f172a', // slate-900
-    mutedColor: '#475569', // slate-600
+    bgColor: WARM_CREAM,
+    primaryColor: CHARCOAL,
+    accentColor: CORAL,
+    textColor: CHARCOAL,
+    mutedColor: SLATE,
     cardBg: '#ffffff',
-    cardBorder: '#e2e8f0', // slate-200
-    timelineColor: '#cbd5e1', // slate-300
-    timelineDot: '#64748b', // slate-500
+    cardBorder: SAND,
+    timelineColor: SAND,
+    timelineDot: SLATE,
     iconName: 'book',
     quoteFontStyle: 'normal',
     quoteFontFamily: 'sans',

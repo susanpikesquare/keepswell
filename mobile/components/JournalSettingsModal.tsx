@@ -267,7 +267,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                 <FontAwesome
                   name={copiedField === 'phone' ? 'check' : 'copy'}
                   size={14}
-                  color={copiedField === 'phone' ? '#22c55e' : '#6366f1'}
+                  color={copiedField === 'phone' ? '#22c55e' : '#D86F5C'}
                 />
                 <Text style={[styles.copyButtonText, copiedField === 'phone' && styles.copiedText]}>
                   {copiedField === 'phone' ? 'Copied!' : 'Copy'}
@@ -287,7 +287,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                     <FontAwesome
                       name={copiedField === 'keyword' ? 'check' : 'copy'}
                       size={14}
-                      color={copiedField === 'keyword' ? '#22c55e' : '#6366f1'}
+                      color={copiedField === 'keyword' ? '#22c55e' : '#D86F5C'}
                     />
                     <Text style={[styles.copyButtonText, copiedField === 'keyword' && styles.copiedText]}>
                       {copiedField === 'keyword' ? 'Copied!' : 'Copy'}
@@ -451,7 +451,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                     <Text style={[styles.optionText, frequency === opt.value && styles.optionTextSelected]}>
                       {opt.label}
                     </Text>
-                    {frequency === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                    {frequency === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -481,7 +481,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                         <Text style={[styles.optionText, dayOfWeek === opt.value && styles.optionTextSelected]}>
                           {opt.label}
                         </Text>
-                        {dayOfWeek === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                        {dayOfWeek === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                       </TouchableOpacity>
                     ))}
                   </View>
@@ -532,7 +532,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                     <Text style={[styles.optionText, timezone === opt.value && styles.optionTextSelected]}>
                       {opt.label}
                     </Text>
-                    {timezone === opt.value && <FontAwesome name="check" size={14} color="#6366f1" />}
+                    {timezone === opt.value && <FontAwesome name="check" size={14} color="#D86F5C" />}
                   </TouchableOpacity>
                 ))}
               </View>
@@ -615,7 +615,7 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   headerTitle: {
     fontSize: 17,
@@ -687,18 +687,18 @@ const styles = StyleSheet.create({
     borderBottomColor: '#f0f0f0',
   },
   optionItemSelected: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
   },
   optionText: {
     fontSize: 15,
     color: '#1a1a1a',
   },
   optionTextSelected: {
-    color: '#6366f1',
+    color: '#D86F5C',
     fontWeight: '600',
   },
   saveButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 10,
     paddingVertical: 14,
     alignItems: 'center',
@@ -741,13 +741,13 @@ const styles = StyleSheet.create({
   copyButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#6366f1',
+    color: '#D86F5C',
   },
   copiedText: {
     color: '#22c55e',
   },
   instructionsBox: {
-    backgroundColor: '#eef2ff',
+    backgroundColor: '#F6F1EA',
     borderRadius: 10,
     padding: 16,
     marginTop: 16,
@@ -764,7 +764,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 10,
@@ -824,7 +824,7 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   templateItemSelected: {
-    borderColor: '#6366f1',
+    borderColor: '#D86F5C',
   },
   templateImage: {
     width: '100%',
@@ -854,7 +854,7 @@ const styles = StyleSheet.create({
     borderColor: '#e5e5e5',
   },
   customUrlButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 10,
     paddingHorizontal: 16,
     justifyContent: 'center',

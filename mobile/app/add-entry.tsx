@@ -174,7 +174,7 @@ export default function AddEntryScreen() {
             <FontAwesome
               name="image"
               size={24}
-              color={isUploading ? '#ccc' : '#6366f1'}
+              color={isUploading ? '#ccc' : '#D86F5C'}
             />
             <Text style={[styles.actionText, isUploading && styles.actionTextDisabled]}>
               Gallery
@@ -189,7 +189,7 @@ export default function AddEntryScreen() {
             <FontAwesome
               name="camera"
               size={24}
-              color={isUploading ? '#ccc' : '#6366f1'}
+              color={isUploading ? '#ccc' : '#D86F5C'}
             />
             <Text style={[styles.actionText, isUploading && styles.actionTextDisabled]}>
               Camera
@@ -232,7 +232,7 @@ const styles = StyleSheet.create({
     color: '#1a1a1a',
   },
   submitButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 18,
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
   },
   progressText: {
     fontSize: 13,
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
   },
   actionText: {
     fontSize: 15,
-    color: '#6366f1',
+    color: '#D86F5C',
     fontWeight: '500',
   },
   actionTextDisabled: {

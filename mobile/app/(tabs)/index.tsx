@@ -98,7 +98,7 @@ export default function JournalsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6366f1" />
+          <ActivityIndicator size="large" color="#D86F5C" />
           <Text style={styles.loadingText}>Loading journals...</Text>
         </View>
       </SafeAreaView>
@@ -143,7 +143,7 @@ export default function JournalsScreen() {
               <RefreshControl
                 refreshing={refreshing}
                 onRefresh={onRefresh}
-                tintColor="#6366f1"
+                tintColor="#D86F5C"
               />
             }
             ItemSeparatorComponent={() => <View style={styles.separator} />}
@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     paddingHorizontal: 24,
     paddingVertical: 12,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     borderRadius: 8,
   },
   retryButtonText: {
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   createButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     paddingHorizontal: 24,
     paddingVertical: 14,
     borderRadius: 10,
@@ -327,10 +327,10 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: '#6366f1',
+    backgroundColor: '#D86F5C',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#6366f1',
+    shadowColor: '#D86F5C',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
