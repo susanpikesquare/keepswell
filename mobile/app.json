@@ -20,6 +20,9 @@
         "NSCameraUsageDescription": "Take photos for your memory journal",
         "NSPhotoLibraryUsageDescription": "Select photos for your memory journal",
         "ITSAppUsesNonExemptEncryption": false
+      },
+      "entitlements": {
+        "aps-environment": "production"
       }
     },
     "android": {
@@ -57,7 +60,15 @@
         }
       ],
       "expo-web-browser",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#D86F5C",
+          "sounds": []
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

@@ -6,12 +6,14 @@ import { SmsController } from './sms.controller';
 import { Entry, Participant, MediaAttachment, Journal, PromptSend, PendingMemory, User } from '../../database/entities';
 import { StorageModule } from '../storage/storage.module';
 import { JournalsModule } from '../journals/journals.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Entry, Participant, MediaAttachment, Journal, PromptSend, PendingMemory, User]),
     StorageModule,
     forwardRef(() => JournalsModule),
+    NotificationsModule,
   ],
   controllers: [SmsController],
   providers: [SmsService, SmsLimitsService],

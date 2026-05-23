@@ -5,12 +5,14 @@ import { ParticipantsService } from './participants.service';
 import { Participant, Journal, User, Entry } from '../../database/entities';
 import { SmsModule } from '../sms/sms.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Participant, Journal, User, Entry]),
     SmsModule,
     PaymentsModule,
+    NotificationsModule,
   ],
   controllers: [JournalParticipantsController, ParticipantsController, ParticipantMagicLinkController, AdminParticipantsController],
   providers: [ParticipantsService],

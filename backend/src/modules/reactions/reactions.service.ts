@@ -16,6 +16,7 @@ import {
   ReactionType,
 } from '../../database/entities';
 import { CreateReactionDto } from './dto/create-reaction.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ReactionsService {
@@ -32,6 +33,7 @@ export class ReactionsService {
     private participantRepo: Repository<Participant>,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    private notifications: NotificationsService,
   ) {}
 
   private async getUserByClerkId(clerkId: string): Promise<User> {
@@ -197,6 +199,29 @@ export class ReactionsService {
     this.logger.log(
       `Reaction ${dto.emoji} added by ${participant.display_name} on entry ${entryId}`,
     );
+
+    // Push notification to journal audience (best-effort). Reactions are
+    // higher-volume than entries/comments, so this could get noisy — keep
+    // the message minimal. Exclude the reactor.
+    try {
+      await this.notifications.notifyJournalAudience(
+        entry.journal_id,
+        {
+          title: entry.journal.title,
+          body: `${participant.display_name || 'Someone'} reacted ${dto.emoji} to a memory`,
+          data: {
+            kind: 'reaction',
+            journalId: entry.journal_id,
+            entryId,
+            reactionId: reaction.id,
+            emoji: dto.emoji,
+          },
+        },
+        user.id,
+      );
+    } catch (err) {
+      this.logger.warn(`Reaction push notify failed: ${(err as Error).message}`);
+    }
 
     // Return with participant relation
     return this.reactionRepo.findOne({

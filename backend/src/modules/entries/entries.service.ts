@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Entry, Journal, Participant, MediaAttachment, User } from '../../database/entities';
 import { SimulateEntryDto, WebEntryDto } from './dto/create-entry.dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class EntriesService {
@@ -19,7 +20,48 @@ export class EntriesService {
     private mediaRepo: Repository<MediaAttachment>,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    private notifications: NotificationsService,
   ) {}
+
+  /**
+   * Fan out a push notification for a new entry. Best-effort — failures
+   * here should never break the entry-create flow.
+   */
+  private async notifyNewEntry(
+    entry: Entry,
+    journal: Journal,
+    participant: Participant,
+    actorUserId?: string,
+  ) {
+    try {
+      const who = participant.display_name || 'Someone';
+      const hasPhoto = entry.entry_type === 'photo' || entry.entry_type === 'mixed';
+      const preview =
+        entry.content && entry.content.trim().length > 0
+          ? entry.content.length > 80
+            ? entry.content.slice(0, 77) + '…'
+            : entry.content
+          : hasPhoto
+            ? '📷 shared a photo'
+            : '';
+
+      await this.notifications.notifyJournalAudience(
+        journal.id,
+        {
+          title: `New memory in "${journal.title}"`,
+          body: preview ? `${who}: ${preview}` : `${who} added a new memory`,
+          data: {
+            kind: 'entry',
+            journalId: journal.id,
+            entryId: entry.id,
+          },
+        },
+        actorUserId,
+      );
+    } catch (err) {
+      this.logger.warn(`notifyNewEntry failed: ${(err as Error).message}`);
+    }
+  }
 
   private async getUserByClerkId(clerkId: string): Promise<User> {
     const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
@@ -151,6 +193,9 @@ export class EntriesService {
       `Simulated entry created for participant ${participant.display_name} in journal ${journal.title}`,
     );
 
+    // Fire push to journal audience (owner + linked participants). Best-effort.
+    await this.notifyNewEntry(entry, journal, participant, user.id);
+
     // Return with relations
     return this.entryRepo.findOne({
       where: { id: entry.id },
@@ -261,6 +306,9 @@ export class EntriesService {
     this.logger.log(
       `Web entry created by ${user.email} for journal ${journal.title}`,
     );
+
+    // Fire push to journal audience (owner + linked participants). Best-effort.
+    await this.notifyNewEntry(entry, journal, participant, user.id);
 
     // Return with relations
     return this.entryRepo.findOne({

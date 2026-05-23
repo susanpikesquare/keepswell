@@ -14,6 +14,7 @@ import {
   User,
 } from '../../database/entities';
 import { CreateCommentDto, UpdateCommentDto } from './dto';
+import { NotificationsService } from '../notifications/notifications.service';
 
 export interface CommentWithReplies extends Comment {
   replies: CommentWithReplies[];
@@ -35,6 +36,7 @@ export class CommentsService {
     private participantRepo: Repository<Participant>,
     @InjectRepository(User)
     private userRepo: Repository<User>,
+    private notifications: NotificationsService,
   ) {}
 
   private async getUserByClerkId(clerkId: string): Promise<User> {
@@ -202,6 +204,29 @@ export class CommentsService {
     this.logger.log(
       `Comment created by ${participant.display_name} on entry ${entryId}`,
     );
+
+    // Push notification to journal audience (best-effort). Exclude the
+    // commenter so they don't get a push for their own comment.
+    try {
+      const preview =
+        dto.content.length > 80 ? dto.content.slice(0, 77) + '…' : dto.content;
+      await this.notifications.notifyJournalAudience(
+        entry.journal_id,
+        {
+          title: `New comment in "${entry.journal.title}"`,
+          body: `${participant.display_name || 'Someone'}: ${preview}`,
+          data: {
+            kind: 'comment',
+            journalId: entry.journal_id,
+            entryId,
+            commentId: comment.id,
+          },
+        },
+        user.id,
+      );
+    } catch (err) {
+      this.logger.warn(`Comment push notify failed: ${(err as Error).message}`);
+    }
 
     // Return with participant relation
     return this.commentRepo.findOne({

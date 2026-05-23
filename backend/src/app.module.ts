@@ -30,6 +30,7 @@ import {
   PendingMemory,
   Reaction,
   Comment,
+  PushToken,
 } from './database/entities';
 
 // Modules
@@ -45,6 +46,7 @@ import { ExportModule } from './modules/export/export.module';
 import { ReactionsModule } from './modules/reactions/reactions.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
 
 @Module({
   imports: [
@@ -81,6 +83,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
           PendingMemory,
           Reaction,
           Comment,
+          PushToken,
         ],
         synchronize: true, // Enabled for early development - TODO: use migrations in production
         logging: configService.get<string>('NODE_ENV') !== 'production',
@@ -108,6 +111,7 @@ import { SchedulerModule } from './modules/scheduler/scheduler.module';
     ReactionsModule,
     CommentsModule,
     SchedulerModule,
+    NotificationsModule,
   ],
   controllers: [HealthController],
   providers: [

@@ -9,10 +9,12 @@ import {
   Participant,
   User,
 } from '../../database/entities';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Reaction, Entry, Journal, Participant, User]),
+    NotificationsModule,
   ],
   controllers: [ReactionsController],
   providers: [ReactionsService],
