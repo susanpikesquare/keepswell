@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -133,6 +133,16 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
   const [coverChanged, setCoverChanged] = useState(false);
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  // Incremented every time the user changes the cover via any non-upload path
+  // (template tap, custom URL, remove). The in-flight upload captures a token
+  // at start and only applies its result if the token still matches — that way
+  // a slow upload finishing in the background can't clobber what the user
+  // explicitly chose in the meantime.
+  const coverActionTokenRef = useRef(0);
+  const setCoverImageManual = (value: string) => {
+    coverActionTokenRef.current += 1;
+    setCoverImage(value);
+  };
 
   // Delete state
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -274,14 +284,23 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
     if (result.canceled || !result.assets?.length) return;
     const asset = result.assets[0];
 
-    // 3) Upload to Cloudinary
+    // 3) Upload to Cloudinary. Snapshot the action token so we can detect if
+    // the user changed the cover in another way (template tap, URL paste,
+    // remove) while this upload was in flight — in which case we drop our
+    // result rather than clobber their choice.
+    const myToken = coverActionTokenRef.current;
     setUploadingCover(true);
     setUploadProgress(0);
     try {
       const url = await uploadToCloudinary(asset.uri, (p) =>
         setUploadProgress(p.progress),
       );
-      setCoverImage(url); // triggers coverChanged via the useEffect → reveals Save button
+      if (coverActionTokenRef.current === myToken) {
+        setCoverImage(url); // triggers coverChanged via the useEffect → reveals Save button
+      } else {
+        // User picked something else while we were uploading. Don't override.
+        console.log('[cover-upload] result discarded; user changed cover meanwhile');
+      }
     } catch (err: any) {
       Alert.alert('Upload failed', err?.message ?? 'Please try again.');
     } finally {
@@ -441,7 +460,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                 />
                 <TouchableOpacity
                   style={styles.coverRemoveButton}
-                  onPress={() => setCoverImage('')}
+                  onPress={() => setCoverImageManual('')}
                 >
                   <FontAwesome name="times" size={14} color="#fff" />
                 </TouchableOpacity>
@@ -463,7 +482,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                     styles.templateItem,
                     coverImage === template.url && styles.templateItemSelected,
                   ]}
-                  onPress={() => setCoverImage(template.url)}
+                  onPress={() => setCoverImageManual(template.url)}
                 >
                   <Image
                     source={{ uri: template.url }}
@@ -516,7 +535,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
                 style={[styles.customUrlButton, !customUrl && styles.customUrlButtonDisabled]}
                 onPress={() => {
                   if (customUrl) {
-                    setCoverImage(customUrl);
+                    setCoverImageManual(customUrl);
                     setCustomUrl('');
                   }
                 }}

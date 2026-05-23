@@ -14,8 +14,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 
-// Required for OAuth to work with Expo
+// Required for OAuth to work with Expo. Calling this once at module load
+// time lets the in-app browser dismiss itself cleanly when the OAuth
+// redirect deep-links back into the app.
 WebBrowser.maybeCompleteAuthSession();
 
 export default function SignInScreen() {
@@ -33,13 +36,25 @@ export default function SignInScreen() {
 
     setGoogleLoading(true);
     try {
+      // Pass an explicit redirectUrl so Clerk's hosted OAuth knows how to
+      // return to the app via the `keepswell://` scheme. Without this the
+      // OAuth window completes in Safari but never deep-links back, so the
+      // promise hangs forever (which is the bug Steve hit in TestFlight).
+      // Linking.createURL respects app.json's `scheme: "keepswell"`, giving
+      // us something like `keepswell:///oauth-native-callback`.
+      const redirectUrl = Linking.createURL('/oauth-native-callback');
+
       const { createdSessionId, setActive: ssoSetActive } = await startSSOFlow({
         strategy: 'oauth_google',
+        redirectUrl,
       });
 
       if (createdSessionId) {
         await ssoSetActive!({ session: createdSessionId });
         router.replace('/(tabs)');
+      } else {
+        // Flow didn't complete (user cancelled or Clerk needs another step).
+        console.log('[google-sso] flow ended without createdSessionId');
       }
     } catch (err: any) {
       console.error('Google sign in error:', err);
