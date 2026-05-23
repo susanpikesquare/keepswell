@@ -3,7 +3,35 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';
 import { Expo, ExpoPushMessage, ExpoPushTicket } from 'expo-server-sdk';
 
-import { PushToken, Journal, Participant, User } from '../../database/entities';
+import {
+  PushToken,
+  Journal,
+  Participant,
+  User,
+  NotificationPreference,
+} from '../../database/entities';
+
+/** Event kinds we send notifications for. Add new ones here. */
+export type NotificationEventKind =
+  | 'entry'
+  | 'comment'
+  | 'reaction'
+  | 'participant_joined';
+
+/** Per-journal preferences shape exposed to the API. */
+export interface NotificationPreferencesDto {
+  notify_entries: boolean;
+  notify_comments: boolean;
+  notify_reactions: boolean;
+  notify_joins: boolean;
+}
+
+const PREFS_DEFAULT: NotificationPreferencesDto = {
+  notify_entries: true,
+  notify_comments: true,
+  notify_reactions: true,
+  notify_joins: true,
+};
 
 export interface NotificationPayload {
   /** Title shown at the top of the push banner. */
@@ -41,7 +69,103 @@ export class NotificationsService {
     private readonly participantRepo: Repository<Participant>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(NotificationPreference)
+    private readonly prefRepo: Repository<NotificationPreference>,
   ) {}
+
+  // ---- Preferences ------------------------------------------------------
+
+  /** Map a NotificationEventKind to the column on NotificationPreference. */
+  private prefColumnFor(kind: NotificationEventKind): keyof NotificationPreferencesDto {
+    switch (kind) {
+      case 'entry':
+        return 'notify_entries';
+      case 'comment':
+        return 'notify_comments';
+      case 'reaction':
+        return 'notify_reactions';
+      case 'participant_joined':
+        return 'notify_joins';
+    }
+  }
+
+  /** Read prefs for a (user, journal); returns defaults when no row exists. */
+  async getPreferences(
+    userId: string,
+    journalId: string,
+  ): Promise<NotificationPreferencesDto> {
+    const row = await this.prefRepo.findOne({
+      where: { user_id: userId, journal_id: journalId },
+    });
+    if (!row) return { ...PREFS_DEFAULT };
+    return {
+      notify_entries: row.notify_entries,
+      notify_comments: row.notify_comments,
+      notify_reactions: row.notify_reactions,
+      notify_joins: row.notify_joins,
+    };
+  }
+
+  /**
+   * Upsert prefs. Any field omitted from `patch` keeps its current value
+   * (or the default, if the row is being created).
+   */
+  async upsertPreferences(
+    userId: string,
+    journalId: string,
+    patch: Partial<NotificationPreferencesDto>,
+  ): Promise<NotificationPreferencesDto> {
+    const existing = await this.prefRepo.findOne({
+      where: { user_id: userId, journal_id: journalId },
+    });
+
+    if (existing) {
+      Object.assign(existing, patch);
+      const saved = await this.prefRepo.save(existing);
+      return {
+        notify_entries: saved.notify_entries,
+        notify_comments: saved.notify_comments,
+        notify_reactions: saved.notify_reactions,
+        notify_joins: saved.notify_joins,
+      };
+    }
+
+    const created = this.prefRepo.create({
+      user_id: userId,
+      journal_id: journalId,
+      ...PREFS_DEFAULT,
+      ...patch,
+    });
+    const saved = await this.prefRepo.save(created);
+    return {
+      notify_entries: saved.notify_entries,
+      notify_comments: saved.notify_comments,
+      notify_reactions: saved.notify_reactions,
+      notify_joins: saved.notify_joins,
+    };
+  }
+
+  /**
+   * Given a candidate audience and an event kind, return the subset of users
+   * who have NOT opted out of that kind for this journal. Users with no prefs
+   * row pass through unchanged (defaults are opt-in).
+   */
+  private async filterAudienceByPrefs(
+    userIds: string[],
+    journalId: string,
+    kind: NotificationEventKind,
+  ): Promise<string[]> {
+    if (!userIds.length) return userIds;
+    const column = this.prefColumnFor(kind);
+
+    const rows = await this.prefRepo.find({
+      where: { user_id: In(userIds), journal_id: journalId },
+    });
+    const optedOut = new Set(
+      rows.filter((r) => r[column] === false).map((r) => r.user_id),
+    );
+    return userIds.filter((id) => !optedOut.has(id));
+  }
 
   // ---- Audience helpers -------------------------------------------------
 
@@ -95,19 +219,28 @@ export class NotificationsService {
 
   /**
    * Convenience: dispatch a notification to everyone associated with a
-   * journal (owner + linked participants), excluding the actor.
+   * journal (owner + linked participants), excluding the actor and anyone
+   * who has opted out of this event kind in their journal preferences.
    */
   async notifyJournalAudience(
     journalId: string,
+    kind: NotificationEventKind,
     payload: NotificationPayload,
     excludeUserId?: string,
   ): Promise<void> {
-    const userIds = await this.findJournalAudience(journalId, excludeUserId);
-    if (!userIds.length) {
+    const audience = await this.findJournalAudience(journalId, excludeUserId);
+    if (!audience.length) {
       this.logger.debug(`notifyJournalAudience: nobody to notify for journal ${journalId}`);
       return;
     }
-    await this.sendToUsers(userIds, payload);
+    const filtered = await this.filterAudienceByPrefs(audience, journalId, kind);
+    if (!filtered.length) {
+      this.logger.debug(
+        `notifyJournalAudience: all ${audience.length} candidates opted out of ${kind} on ${journalId}`,
+      );
+      return;
+    }
+    await this.sendToUsers(filtered, payload);
   }
 
   // ---- Token management -------------------------------------------------
@@ -162,6 +295,22 @@ export class NotificationsService {
    */
   async sendToUser(userId: string, payload: NotificationPayload): Promise<void> {
     return this.sendToUsers([userId], payload);
+  }
+
+  /**
+   * Send a journal-scoped notification to a single user, respecting their
+   * notification preferences for that journal and event kind. Use this for
+   * events that only have one recipient (e.g. owner notified when someone
+   * joins their journal).
+   */
+  async sendToUserWithPrefs(
+    userId: string,
+    journalId: string,
+    kind: NotificationEventKind,
+    payload: NotificationPayload,
+  ): Promise<void> {
+    const allowed = await this.filterAudienceByPrefs([userId], journalId, kind);
+    if (allowed.length) await this.sendToUsers(allowed, payload);
   }
 
   /**

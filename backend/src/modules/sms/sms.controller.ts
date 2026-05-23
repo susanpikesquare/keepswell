@@ -618,7 +618,7 @@ export class SmsController {
             : hasPhoto
               ? '📷 shared a photo'
               : '';
-        await this.notifications.notifyJournalAudience(journal.id, {
+        await this.notifications.notifyJournalAudience(journal.id, 'entry', {
           title: `New memory in "${journal.title}"`,
           body: preview ? `${who}: ${preview}` : `${who} added a new memory`,
           data: { kind: 'entry', journalId: journal.id, entryId: entry.id },

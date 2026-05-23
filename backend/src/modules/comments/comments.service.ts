@@ -212,6 +212,7 @@ export class CommentsService {
         dto.content.length > 80 ? dto.content.slice(0, 77) + '…' : dto.content;
       await this.notifications.notifyJournalAudience(
         entry.journal_id,
+        'comment',
         {
           title: `New comment in "${entry.journal.title}"`,
           body: `${participant.display_name || 'Someone'}: ${preview}`,

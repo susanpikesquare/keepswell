@@ -206,6 +206,7 @@ export class ReactionsService {
     try {
       await this.notifications.notifyJournalAudience(
         entry.journal_id,
+        'reaction',
         {
           title: entry.journal.title,
           body: `${participant.display_name || 'Someone'} reacted ${dto.emoji} to a memory`,

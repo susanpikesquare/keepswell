@@ -306,17 +306,22 @@ export class ParticipantsService {
 
     this.logger.log(`Participant ${participant.display_name} approved for journal "${participant.journal.title}"`);
 
-    // Push notification to the journal owner (best-effort).
+    // Push notification to the journal owner (best-effort, respects prefs).
     try {
-      await this.notifications.sendToUser(participant.journal.owner_id, {
-        title: `${participant.display_name} joined "${participant.journal.title}"`,
-        body: 'They can now contribute memories.',
-        data: {
-          kind: 'participant_joined',
-          journalId: participant.journal_id,
-          participantId: participant.id,
+      await this.notifications.sendToUserWithPrefs(
+        participant.journal.owner_id,
+        participant.journal_id,
+        'participant_joined',
+        {
+          title: `${participant.display_name} joined "${participant.journal.title}"`,
+          body: 'They can now contribute memories.',
+          data: {
+            kind: 'participant_joined',
+            journalId: participant.journal_id,
+            participantId: participant.id,
+          },
         },
-      });
+      );
     } catch (err) {
       this.logger.warn(`Participant-approved push notify failed: ${(err as Error).message}`);
     }
