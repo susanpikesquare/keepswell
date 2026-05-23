@@ -343,40 +343,47 @@ export class NotificationsService {
       priority: 'high',
     }));
 
+    // Send chunk-by-chunk and process tickets inside the same iteration so
+    // ticket-index alignment is local to each chunk. If we accumulated tickets
+    // across chunks with a flat global index and any earlier chunk failed,
+    // later tickets would be paired with the wrong messages (and wrong tokens),
+    // which would mark the wrong rows inactive. Keeping the pairing per-chunk
+    // avoids that entire class of bug.
     const chunks = this.expo.chunkPushNotifications(messages);
-    const tickets: ExpoPushTicket[] = [];
+    const deadTokens: string[] = [];
 
     for (const chunk of chunks) {
+      let chunkTickets: ExpoPushTicket[];
       try {
-        const ticketChunk = await this.expo.sendPushNotificationsAsync(chunk);
-        tickets.push(...ticketChunk);
+        chunkTickets = await this.expo.sendPushNotificationsAsync(chunk);
       } catch (err) {
+        // Whole-chunk failure: log and move on. No tickets to interpret.
         this.logger.error(`Failed to send push chunk: ${(err as Error).message}`);
+        continue;
+      }
+
+      for (let i = 0; i < chunkTickets.length; i++) {
+        const ticket = chunkTickets[i];
+        if (ticket.status !== 'error') continue;
+
+        const message = chunk[i];
+        const token = typeof message.to === 'string' ? message.to : String(message.to);
+        this.logger.warn(
+          `Push ticket error for token ${token.slice(0, 20)}…: ${ticket.message}`,
+        );
+
+        const deadCode =
+          ticket.details?.error === 'DeviceNotRegistered' ||
+          ticket.details?.error === 'InvalidCredentials';
+        if (deadCode) deadTokens.push(token);
       }
     }
 
-    // Process tickets: mark dead tokens inactive so we don't keep hitting Expo
-    // with known-bad tokens.
-    await Promise.all(
-      tickets.map(async (ticket, i) => {
-        if (ticket.status === 'error') {
-          const message = messages[i];
-          const deadCode =
-            ticket.details?.error === 'DeviceNotRegistered' ||
-            ticket.details?.error === 'InvalidCredentials';
-
-          this.logger.warn(
-            `Push ticket error for token ${String(message.to).slice(0, 20)}…: ${ticket.message}`,
-          );
-
-          if (deadCode) {
-            await this.pushTokenRepo.update(
-              { token: message.to as string },
-              { active: false },
-            );
-          }
-        }
-      }),
-    );
+    if (deadTokens.length) {
+      await this.pushTokenRepo.update(
+        { token: In(deadTokens) },
+        { active: false },
+      );
+    }
   }
 }
