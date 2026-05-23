@@ -158,7 +158,12 @@ export class ParticipantsService {
   async update(
     id: string,
     clerkId: string,
-    data: Partial<{ display_name: string; status: string; relationship: string }>,
+    data: Partial<{
+      display_name: string;
+      status: string;
+      relationship: string;
+      delivery_channel: 'sms' | 'in_app' | 'both';
+    }>,
   ): Promise<Participant> {
     const user = await this.getUserByClerkId(clerkId);
 
@@ -173,6 +178,17 @@ export class ParticipantsService {
 
     if (participant.journal.owner_id !== user.id) {
       throw new ForbiddenException('Not authorized to update this participant');
+    }
+
+    // Validate delivery_channel if present; the column is varchar so TypeORM
+    // wouldn't reject a bad value otherwise.
+    if (data.delivery_channel != null) {
+      const allowed = ['sms', 'in_app', 'both'];
+      if (!allowed.includes(data.delivery_channel)) {
+        throw new ForbiddenException(
+          `delivery_channel must be one of: ${allowed.join(', ')}`,
+        );
+      }
     }
 
     await this.participantRepo.update(id, data);

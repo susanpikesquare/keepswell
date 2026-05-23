@@ -166,8 +166,18 @@ function RootLayoutNav() {
   useEffect(() => {
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as
-        | { kind?: string; journalId?: string; entryId?: string }
+        | { kind?: string; journalId?: string; entryId?: string; promptSendId?: string }
         | undefined;
+
+      // In-app prompt: route straight into the Prompts tab so the user can
+      // pick which prompt to respond to. (We could deep-link directly into
+      // add-entry, but landing on the feed keeps the multi-journal mental
+      // model intact and lets us avoid stale prompt text.)
+      if (data?.kind === 'prompt') {
+        router.push('/(tabs)/prompts');
+        return;
+      }
+
       if (!data?.journalId) return;
       // For entries / comments / reactions, land the user on the journal
       // detail (which scrolls through entries). When we have a dedicated

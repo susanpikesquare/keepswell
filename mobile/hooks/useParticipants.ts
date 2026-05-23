@@ -50,7 +50,11 @@ export function useUpdateParticipant() {
     }: {
       id: string;
       journalId: string;
-      data: Partial<{ display_name: string; status: string }>;
+      data: Partial<{
+        display_name: string;
+        status: string;
+        delivery_channel: 'sms' | 'in_app' | 'both';
+      }>;
     }) => participantsApi.update(id, data),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['journals', variables.journalId, 'participants'] });

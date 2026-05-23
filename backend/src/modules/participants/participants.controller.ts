@@ -53,7 +53,12 @@ export class ParticipantsController {
   update(
     @Param('id') id: string,
     @CurrentUser() user: AuthUser,
-    @Body() data: Partial<{ display_name: string; status: string; relationship: string }>,
+    @Body() data: Partial<{
+      display_name: string;
+      status: string;
+      relationship: string;
+      delivery_channel: 'sms' | 'in_app' | 'both';
+    }>,
   ) {
     return this.participantsService.update(id, user.clerkId, data);
   }

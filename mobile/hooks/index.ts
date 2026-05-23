@@ -10,6 +10,12 @@ export {
   useCreateJournalPrompt,
   useUpdateJournalPrompt,
   useDeleteJournalPrompt,
+  useInAppPromptFeed,
+  useMarkPromptResponded,
+  useUpcomingPrompts,
+  useAddUpcomingPrompt,
+  useEditUpcomingPrompt,
+  useCancelUpcomingPrompt,
 } from './usePrompts';
 export {
   useParticipants,

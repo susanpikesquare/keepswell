@@ -5,12 +5,14 @@ import { JournalsService } from './journals.service';
 import { Journal, User, Entry, Participant } from '../../database/entities';
 import { SmsModule } from '../sms/sms.module';
 import { PaymentsModule } from '../payments/payments.module';
+import { SchedulerModule } from '../scheduler/scheduler.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Journal, User, Entry, Participant]),
     forwardRef(() => SmsModule),
     PaymentsModule,
+    SchedulerModule,
   ],
   controllers: [JournalsController],
   providers: [JournalsService],

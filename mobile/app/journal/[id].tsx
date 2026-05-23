@@ -15,7 +15,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 
-import { useJournal, useJournalEntries, useParticipants, useRemoveParticipant, useApproveParticipant, useDeclineParticipant } from '../../hooks';
+import { useJournal, useJournalEntries, useParticipants, useRemoveParticipant, useApproveParticipant, useDeclineParticipant, useUpdateParticipant } from '../../hooks';
 import { ReactionBar } from '../../components/ReactionBar';
 import { CommentSection } from '../../components/CommentSection';
 import { InviteParticipantModal } from '../../components/InviteParticipantModal';
@@ -126,6 +126,8 @@ function ParticipantRow({
   const removeParticipant = useRemoveParticipant();
   const approveParticipant = useApproveParticipant();
   const declineParticipant = useDeclineParticipant();
+  const updateParticipant = useUpdateParticipant();
+  const channel = participant.delivery_channel ?? 'sms';
 
   const handleActions = () => {
     const buttons: Array<{ text: string; style?: 'destructive' | 'cancel'; onPress?: () => void }> = [];
@@ -170,26 +172,103 @@ function ParticipantRow({
     }
   };
 
+  // Only show the delivery-channel chooser for active participants when the
+  // current user owns the journal. Pending / removed participants don't get
+  // prompts yet, so the control would be noise.
+  const showChannelChooser = isOwner && participant.status === 'active';
+
+  const setChannel = (next: 'sms' | 'in_app' | 'both') => {
+    if (next === channel) return;
+    updateParticipant.mutate({
+      id: participant.id,
+      journalId,
+      data: { delivery_channel: next },
+    });
+  };
+
+  return (
+    <View style={styles.participantRow}>
+      <TouchableOpacity
+        style={styles.participantRowMain}
+        onPress={isOwner ? handleActions : undefined}
+        activeOpacity={isOwner ? 0.7 : 1}
+      >
+        <View style={styles.participantAvatar}>
+          <Text style={styles.participantInitial}>{initial}</Text>
+        </View>
+        <View style={styles.participantInfo}>
+          <Text style={styles.participantName}>{participant.display_name}</Text>
+          {participant.relationship && (
+            <Text style={styles.participantRelationship}>{participant.relationship}</Text>
+          )}
+        </View>
+        <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
+          <Text style={[styles.statusText, { color: statusColor.text }]}>
+            {participant.status}
+          </Text>
+        </View>
+      </TouchableOpacity>
+
+      {showChannelChooser && (
+        <View style={styles.channelChooser}>
+          <Text style={styles.channelLabel}>Prompt delivery</Text>
+          <View style={styles.channelSegments}>
+            <ChannelSegment
+              label="SMS"
+              active={channel === 'sms'}
+              disabled={updateParticipant.isPending || !participant.phone_number}
+              onPress={() => setChannel('sms')}
+            />
+            <ChannelSegment
+              label="In-app"
+              active={channel === 'in_app'}
+              disabled={updateParticipant.isPending}
+              onPress={() => setChannel('in_app')}
+            />
+            <ChannelSegment
+              label="Both"
+              active={channel === 'both'}
+              disabled={updateParticipant.isPending || !participant.phone_number}
+              onPress={() => setChannel('both')}
+            />
+          </View>
+        </View>
+      )}
+    </View>
+  );
+}
+
+function ChannelSegment({
+  label,
+  active,
+  disabled,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  disabled?: boolean;
+  onPress: () => void;
+}) {
   return (
     <TouchableOpacity
-      style={styles.participantRow}
-      onPress={isOwner ? handleActions : undefined}
-      activeOpacity={isOwner ? 0.7 : 1}
+      style={[
+        styles.channelSegment,
+        active && styles.channelSegmentActive,
+        disabled && !active && styles.channelSegmentDisabled,
+      ]}
+      onPress={onPress}
+      disabled={disabled}
+      activeOpacity={0.7}
     >
-      <View style={styles.participantAvatar}>
-        <Text style={styles.participantInitial}>{initial}</Text>
-      </View>
-      <View style={styles.participantInfo}>
-        <Text style={styles.participantName}>{participant.display_name}</Text>
-        {participant.relationship && (
-          <Text style={styles.participantRelationship}>{participant.relationship}</Text>
-        )}
-      </View>
-      <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
-        <Text style={[styles.statusText, { color: statusColor.text }]}>
-          {participant.status}
-        </Text>
-      </View>
+      <Text
+        style={[
+          styles.channelSegmentText,
+          active && styles.channelSegmentTextActive,
+          disabled && !active && styles.channelSegmentTextDisabled,
+        ]}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 }
@@ -477,10 +556,55 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   participantRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 10,
+  },
+  participantRowMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  channelChooser: {
+    marginTop: 10,
+    marginLeft: 48, // align with name (avatar width + spacing)
+  },
+  channelLabel: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#999',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  channelSegments: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderColor: '#e5e5e5',
+    borderRadius: 8,
+    overflow: 'hidden',
+    alignSelf: 'flex-start',
+  },
+  channelSegment: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: '#fff',
+  },
+  channelSegmentActive: {
+    backgroundColor: '#D86F5C',
+  },
+  channelSegmentDisabled: {
+    backgroundColor: '#f5f5f5',
+  },
+  channelSegmentText: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  channelSegmentTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  channelSegmentTextDisabled: {
+    color: '#ccc',
   },
   participantAvatar: {
     width: 36,

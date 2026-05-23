@@ -68,6 +68,10 @@ export default function CreateJournalScreen() {
   const [description, setDescription] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateType>('family');
 
+  // Prompts: default ON, auto-generate from the template. Owner can later
+  // override individual upcoming prompts from journal settings.
+  const [promptsEnabled, setPromptsEnabled] = useState(true);
+
   // Schedule settings
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [frequency, setFrequency] = useState<'daily' | 'weekly' | 'biweekly' | 'monthly'>('weekly');
@@ -132,6 +136,10 @@ export default function CreateJournalScreen() {
         timezone,
         owner_participate: ownerParticipate || undefined,
         owner_phone: ownerParticipate && phoneDigits.length >= 10 ? `+1${phoneDigits}` : undefined,
+        // Tell the backend whether to auto-seed the prompt queue. When the
+        // owner unchecks this, we ship an empty journal and they manage all
+        // prompts manually from the "Upcoming prompts" UI.
+        seed_prompts: promptsEnabled,
       });
 
       router.replace(`/journal/${journal.id}`);
@@ -293,6 +301,27 @@ export default function CreateJournalScreen() {
                 </Text>
               </View>
             )}
+          </View>
+
+          {/* Prompts on/off */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Prompts</Text>
+            <View style={styles.switchRow}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.switchLabel}>Send writing prompts</Text>
+                <Text style={styles.switchHint}>
+                  {promptsEnabled
+                    ? "We'll auto-generate prompts from this template. You can preview, edit, or add your own anytime from journal settings."
+                    : 'Start with an empty queue. You can add your own prompts manually from journal settings.'}
+                </Text>
+              </View>
+              <Switch
+                value={promptsEnabled}
+                onValueChange={setPromptsEnabled}
+                trackColor={{ false: '#d1d5db', true: '#F5C9BF' }}
+                thumbColor={promptsEnabled ? '#D86F5C' : '#f4f4f5'}
+              />
+            </View>
           </View>
 
           {/* Advanced Settings */}
