@@ -3,7 +3,11 @@ import { Platform } from 'react-native';
 import Purchases, { LOG_LEVEL, CustomerInfo } from 'react-native-purchases';
 import { useUser } from '@clerk/clerk-expo';
 
-const REVENUECAT_API_KEY = 'test_wKYmCLfOITeiUElHLjbvDQVafqi';
+// API key is read from env. In dev (Expo Go / `expo run:ios`) a test key
+// (`test_...`) is fine; in TestFlight / App Store builds RevenueCat refuses
+// to start with a test key and closes the app, so we require a production
+// key for non-dev builds.
+const REVENUECAT_API_KEY = process.env.EXPO_PUBLIC_REVENUECAT_IOS_KEY || '';
 
 const ENTITLEMENTS = {
   PRO: 'Keepswell Pro',
@@ -32,6 +36,17 @@ export function RevenueCatProvider({ children }: { children: React.ReactNode }) 
   const [initialized, setInitialized] = useState(false);
 
   const initRevenueCat = useCallback(async () => {
+    // Skip init entirely if no key configured (e.g. TestFlight builds where we
+    // haven't wired up a production key yet). The app stays usable; IAP just
+    // won't be available until a key is provided.
+    if (!REVENUECAT_API_KEY) {
+      console.warn(
+        '[RevenueCat] No API key configured (EXPO_PUBLIC_REVENUECAT_IOS_KEY). Skipping init; IAP disabled.'
+      );
+      setLoading(false);
+      return;
+    }
+
     try {
       if (__DEV__) {
         Purchases.setLogLevel(LOG_LEVEL.DEBUG);
