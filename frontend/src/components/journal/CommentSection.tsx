@@ -103,13 +103,13 @@ function CommentForm({ onSubmit, isPending, placeholder, autoFocus }: CommentFor
         autoFocus={autoFocus}
         disabled={isPending}
         className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg
-                   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                   focus:outline-none focus:ring-2 focus:ring-[#F6F1EA]0 focus:border-transparent
                    disabled:opacity-50 disabled:cursor-not-allowed"
       />
       <button
         type="submit"
         disabled={!content.trim() || isPending}
-        className="px-3 py-2 bg-indigo-500 text-white rounded-lg hover:bg-indigo-600
+        className="px-3 py-2 bg-[#F6F1EA]0 text-white rounded-lg hover:bg-[#D86F5C]
                    disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         <Send className="h-4 w-4" />
@@ -156,8 +156,8 @@ function CommentThread({ comment, entryId, journalId, compact }: CommentThreadPr
         {/* Comment header */}
         <div className="flex items-center justify-between mb-1">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-indigo-100 flex items-center justify-center">
-              <span className="text-xs font-medium text-indigo-600">
+            <div className="w-6 h-6 rounded-full bg-[#DCCCB7]/40 flex items-center justify-center">
+              <span className="text-xs font-medium text-[#D86F5C]">
                 {comment.participant?.display_name?.[0]?.toUpperCase() || '?'}
               </span>
             </div>
@@ -184,7 +184,7 @@ function CommentThread({ comment, entryId, journalId, compact }: CommentThreadPr
         <div className="flex items-center gap-3 mt-2">
           <button
             onClick={() => setShowReplyForm(!showReplyForm)}
-            className="flex items-center gap-1 text-xs text-gray-500 hover:text-indigo-600 transition-colors"
+            className="flex items-center gap-1 text-xs text-gray-500 hover:text-[#D86F5C] transition-colors"
           >
             <CornerDownRight className="h-3 w-3" />
             Reply
@@ -192,7 +192,7 @@ function CommentThread({ comment, entryId, journalId, compact }: CommentThreadPr
           {hasReplies && (
             <button
               onClick={() => setShowReplies(!showReplies)}
-              className="text-xs text-gray-500 hover:text-indigo-600 transition-colors"
+              className="text-xs text-gray-500 hover:text-[#D86F5C] transition-colors"
             >
               {showReplies ? 'Hide' : 'Show'} {comment.replies.length} repl{comment.replies.length === 1 ? 'y' : 'ies'}
             </button>

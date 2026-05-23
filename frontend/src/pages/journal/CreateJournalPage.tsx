@@ -55,7 +55,7 @@ function PromptPreview({ templateType, isExpanded }: { templateType: TemplateTyp
                     </span>
                   )}
                   {prompt.is_deep && (
-                    <span className="inline-flex items-center gap-0.5 text-xs text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded">
+                    <span className="inline-flex items-center gap-0.5 text-xs text-[#D86F5C] bg-[#DCCCB7]/40 px-1.5 py-0.5 rounded">
                       <Lightbulb className="h-3 w-3" />
                       deep
                     </span>

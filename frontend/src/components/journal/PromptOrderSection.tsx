@@ -17,11 +17,11 @@ interface PromptOrderSectionProps {
 
 // Category badge colors
 const CATEGORY_COLORS: Record<string, string> = {
-  memories: 'bg-purple-100 text-purple-700',
+  memories: 'bg-[#DCCCB7]/40 text-[#3C4858]',
   gratitude: 'bg-green-100 text-green-700',
   milestones: 'bg-blue-100 text-blue-700',
   traditions: 'bg-amber-100 text-amber-700',
-  wisdom: 'bg-indigo-100 text-indigo-700',
+  wisdom: 'bg-[#DCCCB7]/40 text-[#3C4858]',
   stories: 'bg-pink-100 text-pink-700',
   dreams: 'bg-cyan-100 text-cyan-700',
   daily: 'bg-gray-100 text-gray-700',
@@ -322,7 +322,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
                       )}
 
                       {prompt.is_deep && (
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-violet-100 text-violet-700">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-[#DCCCB7]/40 text-[#3C4858]">
                           deep
                         </span>
                       )}

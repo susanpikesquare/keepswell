@@ -154,11 +154,11 @@ function hexToTailwindClass(hex: string, property: 'text' | 'bg' | 'border'): st
     '#451a03': 'amber-950',
     '#b45309': 'amber-700',
     // Friends - indigo/purple
-    '#3730a3': 'indigo-800',
-    '#8b5cf6': 'violet-500',
-    '#eef2ff': 'indigo-50',
-    '#1e1b4b': 'indigo-950',
-    '#4338ca': 'indigo-700',
+    '#3730a3': '[#3C4858]',
+    '#8b5cf6': '[#D86F5C]',
+    '#eef2ff': '[#F6F1EA]',
+    '#1e1b4b': '[#1F2328]',
+    '#4338ca': '[#3C4858]',
     // Romantic - rose/pink
     '#9f1239': 'rose-800',
     '#ec4899': 'pink-500',

@@ -52,7 +52,7 @@ export function ReactionBar({ entryId, journalId, compact = false }: ReactionBar
           disabled={toggleReaction.isPending}
           className={`
             inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm
-            bg-indigo-50 hover:bg-indigo-100 border border-indigo-100
+            bg-[#F6F1EA] hover:bg-[#DCCCB7]/40 border border-[#DCCCB7]/40
             transition-all duration-200
             ${compact ? 'text-xs px-2 py-1' : ''}
             ${toggleReaction.isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}
@@ -60,7 +60,7 @@ export function ReactionBar({ entryId, journalId, compact = false }: ReactionBar
           title={`${data.participants.map(p => p.display_name).join(', ')} reacted with ${emoji}`}
         >
           <span className="text-base">{REACTION_EMOJI_MAP[emoji as ReactionType] || emoji}</span>
-          <span className="text-indigo-600 font-semibold">{data.count}</span>
+          <span className="text-[#D86F5C] font-semibold">{data.count}</span>
         </button>
       ))}
 
@@ -73,7 +73,7 @@ export function ReactionBar({ entryId, journalId, compact = false }: ReactionBar
             bg-gray-100 hover:bg-gray-200 transition-all duration-200
             text-gray-500 hover:text-gray-700
             ${compact ? 'px-2 py-1' : ''}
-            ${showPicker ? 'bg-gray-200 ring-2 ring-indigo-300' : ''}
+            ${showPicker ? 'bg-gray-200 ring-2 ring-[#DCCCB7]' : ''}
           `}
           title="Add a reaction"
         >
@@ -129,7 +129,7 @@ function ReactionPicker({ onSelect, isPending }: ReactionPickerProps) {
             disabled={isPending}
             className={`
               w-11 h-11 flex items-center justify-center rounded-xl text-2xl
-              hover:bg-indigo-50 transition-all duration-150
+              hover:bg-[#F6F1EA] transition-all duration-150
               ${isPending ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:scale-125 active:scale-100'}
             `}
             title={`React with ${emoji}`}
