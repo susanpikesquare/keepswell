@@ -19,12 +19,13 @@ import {
 } from '@expo-google-fonts/inter';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import 'react-native-reanimated';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import * as Notifications from 'expo-notifications';
+import { useQueryClient } from '@tanstack/react-query';
 
 import { useColorScheme } from '@/components/useColorScheme';
 import { tokenCache } from '@/lib/tokenCache';
@@ -103,11 +104,13 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { isLoaded, isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn, userId } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [hasOnboarded, setHasOnboarded] = useState(false);
+  const previousUserIdRef = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
     AsyncStorage.getItem('onboarding_complete').then((value) => {
@@ -132,6 +135,22 @@ function RootLayoutNav() {
       router.replace('/(tabs)');
     }
   }, [isLoaded, isSignedIn, segments, onboardingChecked, hasOnboarded]);
+
+  // Defense-in-depth: if the signed-in user identity ever transitions
+  // (sign-out → sign-in as someone else, or sign-in as a different user
+  // than was last cached), clear React Query so we never serve one user's
+  // cached journals/entries/participants to another. Sign-out also clears
+  // the cache explicitly in settings.tsx; this catches paths that don't go
+  // through that handler.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const prev = previousUserIdRef.current;
+    if (prev !== undefined && prev !== userId) {
+      console.log(`[auth] user transition (${prev} → ${userId}); clearing query cache`);
+      queryClient.clear();
+    }
+    previousUserIdRef.current = userId;
+  }, [isLoaded, userId, queryClient]);
 
   // Register push token with the backend whenever the user is signed in.
   // Best-effort — failures don't break the app.
