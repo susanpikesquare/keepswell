@@ -11,8 +11,10 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
+  Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { FontAwesome } from '@expo/vector-icons';
 
 export default function SignUpScreen() {
   const { signUp, setActive, isLoaded } = useSignUp();
@@ -21,6 +23,7 @@ export default function SignUpScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingVerification, setPendingVerification] = useState(false);
   const [code, setCode] = useState('');
@@ -44,6 +47,13 @@ export default function SignUpScreen() {
       Alert.alert('Password required', 'Please enter a password.');
       return;
     }
+    if (!legalAccepted) {
+      Alert.alert(
+        'Please accept the terms',
+        'You need to agree to the Terms of Service and Privacy Policy to continue.'
+      );
+      return;
+    }
 
     const firstName = fullName.trim().split(/\s+/)[0];
     const lastName = fullName.trim().split(/\s+/).slice(1).join(' ');
@@ -56,6 +66,11 @@ export default function SignUpScreen() {
         password,
         firstName,
         lastName: lastName || undefined,
+        // Clerk requires express consent to legal documents (Configure →
+        // Legal in the Clerk dashboard). We collect that via the checkbox
+        // below; passing legalAccepted lets Clerk record the consent and
+        // complete the sign-up after email verification.
+        legalAccepted: true,
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
@@ -254,8 +269,38 @@ export default function SignUpScreen() {
               />
             </View>
 
+            {/* Terms / Privacy consent — required by Clerk (Configure → Legal). */}
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={styles.legalRow}
+              onPress={() => setLegalAccepted((v) => !v)}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.checkbox, legalAccepted && styles.checkboxChecked]}>
+                {legalAccepted && (
+                  <FontAwesome name="check" size={12} color="#fff" />
+                )}
+              </View>
+              <Text style={styles.legalText}>
+                I agree to the{' '}
+                <Text
+                  style={styles.legalLink}
+                  onPress={() => Linking.openURL('https://keepswell.com/terms')}
+                >
+                  Terms of Service
+                </Text>
+                {' '}and{' '}
+                <Text
+                  style={styles.legalLink}
+                  onPress={() => Linking.openURL('https://keepswell.com/privacy')}
+                >
+                  Privacy Policy
+                </Text>
+                .
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, (loading || !legalAccepted) && styles.buttonDisabled]}
               onPress={handleSignUp}
               disabled={loading}
             >
@@ -361,5 +406,37 @@ const styles = StyleSheet.create({
     color: '#D86F5C',
     fontSize: 14,
     fontWeight: '600',
+  },
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 10,
+    paddingVertical: 4,
+    marginTop: 4,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 5,
+    borderWidth: 1.5,
+    borderColor: '#9CA3AF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 2,
+  },
+  checkboxChecked: {
+    backgroundColor: '#D86F5C',
+    borderColor: '#D86F5C',
+  },
+  legalText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 19,
+    color: '#374151',
+  },
+  legalLink: {
+    color: '#D86F5C',
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
 });
