@@ -8,7 +8,6 @@ import {
   useAuth,
 } from '@clerk/clerk-react';
 import { Button } from '../ui';
-import { KeepswellLogo } from './KeepswellLogo';
 
 export function Header() {
   // Check if we're in a Clerk context
@@ -20,11 +19,14 @@ export function Header() {
   }
 
   return (
-    <header className="border-b border-border bg-background">
+    <header className="border-b border-[#DCCCB7]/70 bg-[#F6F1EA]/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <Link to="/" className="flex items-center gap-2">
-          <KeepswellLogo className="h-9 w-9" />
-          <span className="text-2xl font-serif text-charcoal">keepswell</span>
+        <Link to="/" aria-label="Keepswell — home" className="flex items-center">
+          <img
+            src="/logo-wordmark.png"
+            alt="Keepswell"
+            className="h-10 w-auto"
+          />
         </Link>
 
         <nav className="flex items-center gap-4">

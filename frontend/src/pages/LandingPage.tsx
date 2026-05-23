@@ -10,7 +10,6 @@ import {
   Check,
 } from 'lucide-react';
 import { Button } from '../components/ui';
-import { KeepswellLogo } from '../components/layout';
 
 // Editorial lifestyle photography for the landing page.
 const LANDING_IMAGES = {
@@ -38,7 +37,7 @@ export function LandingPage() {
             {/* Copy side */}
             <div>
               <div className="inline-flex items-center gap-2 bg-white/70 backdrop-blur-sm border border-[#DCCCB7] text-[#3C4858] px-4 py-2 rounded-full text-sm font-medium mb-8">
-                <KeepswellLogo className="h-4 w-4" />
+                <img src="/logo-mark.png" alt="" className="h-5 w-auto" />
                 <span>Capture moments. Cherish life.</span>
               </div>
 
@@ -208,7 +207,7 @@ export function LandingPage() {
       {/* ============================== EDITORIAL QUOTE ============================== */}
       <section className="py-28 px-6 bg-white">
         <div className="container mx-auto max-w-4xl text-center">
-          <KeepswellLogo className="h-12 w-12 mx-auto mb-8 opacity-60" />
+          <img src="/logo-mark.png" alt="" className="h-12 w-auto mx-auto mb-8 opacity-70" />
           <p className="font-serif text-3xl md:text-4xl leading-[1.3] text-[#1F2328] italic mb-8">
             "I made a journal for my mom's 70th. Getting stories by text was so
             easy — even my 85-year-old grandmother joined in. The book made
@@ -248,7 +247,11 @@ export function LandingPage() {
         <div className="container mx-auto max-w-5xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <Link to="/" className="flex items-center gap-3">
-              <KeepswellLogo className="h-8 w-8" filled />
+              <img
+                src="/logo-mark.png"
+                alt="Keepswell"
+                className="h-9 w-auto rounded-lg bg-[#F6F1EA] p-1"
+              />
               <span className="font-serif text-xl text-[#F6F1EA]">keepswell</span>
             </Link>
 
