@@ -8,6 +8,7 @@ import { Entry, Participant, MediaAttachment, Journal, PromptSend, PendingMemory
 import { StorageService } from '../storage/storage.service';
 import { SmsService } from './sms.service';
 import { JournalsService } from '../journals/journals.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 // Keywords for opt-in/opt-out/help
 const OPT_IN_KEYWORDS = ['yes', 'y', 'start', 'subscribe', 'optin', 'opt-in'];
@@ -34,6 +35,7 @@ export class SmsController {
     private storageService: StorageService,
     private smsService: SmsService,
     private journalsService: JournalsService,
+    private notifications: NotificationsService,
   ) {
     this.logger.log('SmsController initialized - webhooks ready at /api/webhooks/sms/*');
   }
@@ -597,6 +599,35 @@ export class SmsController {
     });
 
     this.logger.log(`Created entry ${entry.id} for participant ${participant.display_name}`);
+
+    // Push notification to journal audience (owner + linked participants).
+    // The actor is the SMS sender, who isn't a User in our system — so we
+    // don't exclude anyone; the owner sees their own SMS replies too (rare).
+    try {
+      const journal = await this.journalRepo.findOne({
+        where: { id: participant.journal_id },
+      });
+      if (journal) {
+        const hasPhoto = imageUrls.length > 0;
+        const who = participant.display_name || 'Someone';
+        const preview =
+          content && content.trim().length > 0
+            ? content.length > 80
+              ? content.slice(0, 77) + '…'
+              : content
+            : hasPhoto
+              ? '📷 shared a photo'
+              : '';
+        await this.notifications.notifyJournalAudience(journal.id, {
+          title: `New memory in "${journal.title}"`,
+          body: preview ? `${who}: ${preview}` : `${who} added a new memory`,
+          data: { kind: 'entry', journalId: journal.id, entryId: entry.id },
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`SMS-entry push notify failed: ${(err as Error).message}`);
+    }
+
     return entry;
   }
 

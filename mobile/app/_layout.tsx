@@ -24,9 +24,12 @@ import 'react-native-reanimated';
 
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import * as Notifications from 'expo-notifications';
+
 import { useColorScheme } from '@/components/useColorScheme';
 import { tokenCache } from '@/lib/tokenCache';
 import { RevenueCatProvider } from '@/providers/RevenueCatProvider';
+import { registerPushTokenWithBackend } from '@/lib/notifications';
 
 export {
   ErrorBoundary,
@@ -129,6 +132,31 @@ function RootLayoutNav() {
       router.replace('/(tabs)');
     }
   }, [isLoaded, isSignedIn, segments, onboardingChecked, hasOnboarded]);
+
+  // Register push token with the backend whenever the user is signed in.
+  // Best-effort — failures don't break the app.
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn) return;
+    registerPushTokenWithBackend().catch((err) =>
+      console.warn('[push] registerPushTokenWithBackend threw:', err)
+    );
+  }, [isLoaded, isSignedIn]);
+
+  // Handle taps on notifications: deep-link the user into the right journal
+  // or entry based on the notification's `data` payload (set on the backend).
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+      const data = response.notification.request.content.data as
+        | { kind?: string; journalId?: string; entryId?: string }
+        | undefined;
+      if (!data?.journalId) return;
+      // For entries / comments / reactions, land the user on the journal
+      // detail (which scrolls through entries). When we have a dedicated
+      // entry-detail screen we can deep-link more precisely.
+      router.push(`/journal/${data.journalId}`);
+    });
+    return () => sub.remove();
+  }, [router]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

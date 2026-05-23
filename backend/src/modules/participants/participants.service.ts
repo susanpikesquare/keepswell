@@ -8,6 +8,7 @@ import { CreateParticipantDto } from './dto/create-participant.dto';
 import { SmsService } from '../sms/sms.service';
 import { SmsLimitsService } from '../sms/sms-limits.service';
 import { SubscriptionService } from '../payments/subscription.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class ParticipantsService {
@@ -25,6 +26,7 @@ export class ParticipantsService {
     private smsLimitsService: SmsLimitsService,
     private subscriptionService: SubscriptionService,
     private configService: ConfigService,
+    private notifications: NotificationsService,
   ) {
     this.frontendUrl = this.configService.get<string>('FRONTEND_URL') || 'https://keepswell.com';
   }
@@ -303,6 +305,21 @@ export class ParticipantsService {
     });
 
     this.logger.log(`Participant ${participant.display_name} approved for journal "${participant.journal.title}"`);
+
+    // Push notification to the journal owner (best-effort).
+    try {
+      await this.notifications.sendToUser(participant.journal.owner_id, {
+        title: `${participant.display_name} joined "${participant.journal.title}"`,
+        body: 'They can now contribute memories.',
+        data: {
+          kind: 'participant_joined',
+          journalId: participant.journal_id,
+          participantId: participant.id,
+        },
+      });
+    } catch (err) {
+      this.logger.warn(`Participant-approved push notify failed: ${(err as Error).message}`);
+    }
 
     // Send opt-in confirmation SMS to the approved participant (10DLC compliant - keyword opt-in format)
     if (participant.phone_number) {

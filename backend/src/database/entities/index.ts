@@ -13,6 +13,7 @@ export { PendingMemory } from './pending-memory.entity';
 export { Reaction, ALLOWED_REACTIONS, REACTION_EMOJI_MAP } from './reaction.entity';
 export type { ReactionType } from './reaction.entity';
 export { Comment } from './comment.entity';
+export { PushToken } from './push-token.entity';
 
 // Re-export interfaces from entities
 export type {
