@@ -16,10 +16,12 @@ import { FontAwesome } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
+import * as ImagePicker from 'expo-image-picker';
 
 import { useUpdateJournal, useDeleteJournal } from '../hooks';
 import { PromptOrderSection } from './PromptOrderSection';
 import { notificationsApi, type NotificationPreferences, type Journal } from '../api';
+import { uploadToCloudinary } from '../lib/cloudinary';
 
 // SMS phone number (Telnyx number)
 const SMS_PHONE_NUMBER = '+1 (916) 439-8709';
@@ -129,6 +131,8 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
   const [coverImage, setCoverImage] = useState(journal.cover_image_url || '');
   const [customUrl, setCustomUrl] = useState('');
   const [coverChanged, setCoverChanged] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
 
   // Delete state
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
@@ -240,6 +244,49 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
       Alert.alert('Saved', 'Cover image updated.');
     } catch {
       Alert.alert('Error', 'Failed to update cover image.');
+    }
+  };
+
+  /**
+   * Let the user pick a photo from their device, upload it to Cloudinary,
+   * and set it as the cover image. We don't auto-save — the existing
+   * "Save Cover Image" button appears (because coverChanged flips true),
+   * so the user still confirms before persisting.
+   */
+  const handlePickCoverFromDevice = async () => {
+    // 1) Permission
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert(
+        'Photo access needed',
+        'Please enable photo library access in Settings to choose a cover image.',
+      );
+      return;
+    }
+
+    // 2) Pick — single image with 16:9-ish crop for a banner-ready aspect
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.85,
+    });
+    if (result.canceled || !result.assets?.length) return;
+    const asset = result.assets[0];
+
+    // 3) Upload to Cloudinary
+    setUploadingCover(true);
+    setUploadProgress(0);
+    try {
+      const url = await uploadToCloudinary(asset.uri, (p) =>
+        setUploadProgress(p.progress),
+      );
+      setCoverImage(url); // triggers coverChanged via the useEffect → reveals Save button
+    } catch (err: any) {
+      Alert.alert('Upload failed', err?.message ?? 'Please try again.');
+    } finally {
+      setUploadingCover(false);
+      setUploadProgress(0);
     }
   };
 
@@ -430,8 +477,30 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
               ))}
             </View>
 
+            {/* Upload from device */}
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Upload your own</Text>
+            <TouchableOpacity
+              style={[styles.uploadButton, uploadingCover && styles.uploadButtonDisabled]}
+              onPress={handlePickCoverFromDevice}
+              disabled={uploadingCover}
+            >
+              {uploadingCover ? (
+                <>
+                  <ActivityIndicator color="#fff" size="small" style={{ marginRight: 8 }} />
+                  <Text style={styles.uploadButtonText}>
+                    Uploading {Math.round(uploadProgress * 100)}%
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <FontAwesome name="upload" size={14} color="#fff" style={{ marginRight: 8 }} />
+                  <Text style={styles.uploadButtonText}>Choose photo from device</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
             {/* Custom URL input */}
-            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Custom URL</Text>
+            <Text style={[styles.fieldLabel, { marginTop: 16 }]}>Or paste an image URL</Text>
             <View style={styles.customUrlRow}>
               <TextInput
                 style={styles.customUrlInput}
@@ -987,6 +1056,24 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   customUrlButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  uploadButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#D86F5C',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginTop: 6,
+  },
+  uploadButtonDisabled: {
+    opacity: 0.65,
+  },
+  uploadButtonText: {
     fontSize: 14,
     fontWeight: '600',
     color: '#fff',
