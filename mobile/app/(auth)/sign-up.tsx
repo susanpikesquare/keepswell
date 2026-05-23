@@ -28,19 +28,34 @@ export default function SignUpScreen() {
   const handleSignUp = async () => {
     if (!isLoaded) return;
 
-    if (!email || !password) {
-      Alert.alert('Error', 'Please enter your email and password');
+    // Require all three fields up front so Clerk's sign-up never starts in a
+    // half-state that can't be completed (Steve B. hit this: an email-only
+    // sign-up that left firstName empty got stuck at missing_requirements
+    // after verification, so the User was never actually created).
+    if (!fullName.trim()) {
+      Alert.alert('Name required', 'Please enter your full name.');
       return;
     }
+    if (!email.trim()) {
+      Alert.alert('Email required', 'Please enter your email address.');
+      return;
+    }
+    if (!password) {
+      Alert.alert('Password required', 'Please enter a password.');
+      return;
+    }
+
+    const firstName = fullName.trim().split(/\s+/)[0];
+    const lastName = fullName.trim().split(/\s+/).slice(1).join(' ');
 
     setLoading(true);
 
     try {
       await signUp.create({
-        emailAddress: email,
+        emailAddress: email.trim(),
         password,
-        firstName: fullName.split(' ')[0] || undefined,
-        lastName: fullName.split(' ').slice(1).join(' ') || undefined,
+        firstName,
+        lastName: lastName || undefined,
       });
 
       await signUp.prepareEmailAddressVerification({ strategy: 'email_code' });
@@ -48,8 +63,8 @@ export default function SignUpScreen() {
     } catch (err: any) {
       console.error('Sign up error:', err);
       Alert.alert(
-        'Error',
-        err.errors?.[0]?.message || 'Failed to sign up. Please try again.'
+        'Sign-up failed',
+        err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Failed to sign up. Please try again.'
       );
     } finally {
       setLoading(false);
@@ -66,19 +81,75 @@ export default function SignUpScreen() {
         code,
       });
 
+      // Log everything we know about the attempt so TestFlight crash logs
+      // and Clerk dashboard logs can be cross-referenced.
+      console.log('[sign-up] verify attempt result:', {
+        status: signUpAttempt.status,
+        missingFields: signUpAttempt.missingFields,
+        unverifiedFields: signUpAttempt.unverifiedFields,
+        createdSessionId: signUpAttempt.createdSessionId,
+      });
+
       if (signUpAttempt.status === 'complete') {
         await setActive({ session: signUpAttempt.createdSessionId });
         router.replace('/(tabs)');
-      } else {
-        console.log('Verification not complete:', signUpAttempt);
-        Alert.alert('Error', 'Verification failed. Please try again.');
+        return;
       }
+
+      // Status is 'missing_requirements' (or 'abandoned'): the email is verified
+      // but Clerk requires more attributes before the User record is created.
+      // Surface exactly what's missing so the user (and we) can act.
+      if (signUpAttempt.status === 'missing_requirements') {
+        const missing = signUpAttempt.missingFields ?? [];
+        const unverified = signUpAttempt.unverifiedFields ?? [];
+        const both = [...missing, ...unverified];
+
+        // Be specific so users aren't stuck guessing.
+        const messageBits: string[] = [];
+        if (missing.includes('first_name') || missing.includes('last_name')) {
+          messageBits.push('Please enter your full name on the previous step.');
+        }
+        if (unverified.includes('phone_number') || missing.includes('phone_number')) {
+          messageBits.push('A phone number is required for your account.');
+        }
+        if (missing.includes('username')) {
+          messageBits.push('A username is required.');
+        }
+
+        Alert.alert(
+          'Almost there',
+          messageBits.length > 0
+            ? messageBits.join(' ')
+            : `Your email is verified, but the account isn't complete yet. ` +
+              `Missing: ${both.join(', ') || 'unknown'}. Please contact support@keepswell.com.`
+        );
+        return;
+      }
+
+      // Some other unexpected status
+      Alert.alert(
+        'Verification incomplete',
+        `Got unexpected status "${signUpAttempt.status}". Please contact support@keepswell.com.`
+      );
     } catch (err: any) {
       console.error('Verification error:', err);
-      Alert.alert(
-        'Error',
-        err.errors?.[0]?.message || 'Invalid verification code. Please try again.'
-      );
+
+      // Clerk returns a specific error code for "already verified". Don't
+      // surface that as "invalid code" — it almost always means the previous
+      // attempt actually succeeded and we just need to look at the SignUp
+      // object's current state.
+      const errCode = err.errors?.[0]?.code;
+      if (errCode === 'verification_already_verified') {
+        Alert.alert(
+          'Already verified',
+          'Your email is already verified. If you still see this, your account may be missing required fields. Please contact support@keepswell.com.'
+        );
+      } else {
+        Alert.alert(
+          'Verification error',
+          err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Invalid verification code. Please try again.'
+        );
+      }
     } finally {
       setLoading(false);
     }
