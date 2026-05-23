@@ -38,7 +38,10 @@ export class PushToken {
   platform: string;
 
   /** Device label (e.g. "iPhone 15"), best-effort, optional. */
-  @Column({ nullable: true })
+  // Explicit `type` is required here. TypeORM uses reflection to infer the
+  // SQL type from the TS field type, and `string | null` reflects as
+  // `Object`, which postgres rejects (DataTypeNotSupportedError on boot).
+  @Column({ type: 'varchar', nullable: true })
   device_name: string | null;
 
   /**
