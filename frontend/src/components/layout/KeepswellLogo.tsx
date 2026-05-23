@@ -1,15 +1,22 @@
-// Reusable Keepswell brand mark: coral ring + serif 'k' + sage leaves.
-// Used in the Header (and anywhere else the small brand mark is needed).
+// Reusable Keepswell brand mark: ring + serif 'k' + sage olive branch.
+// Used in the Header, footer, and anywhere the small brand mark is needed.
 
 interface Props {
   className?: string;
   size?: number;
-  /** When true, swap to filled-coral background variant (matching the iOS app icon). */
+  /** When true, swap to the coral-filled background variant (matching the iOS app icon). */
   filled?: boolean;
 }
 
 export function KeepswellLogo({ className, size, filled = false }: Props) {
   const style = size ? { width: size, height: size } : undefined;
+
+  // Foreground colors for the two variants:
+  //   filled  = cream marks on a coral background tile (matches iOS app icon)
+  //   unfilled = coral ring + slate 'k' on whatever surface (header use)
+  const ringStroke = filled ? '#F6F1EA' : '#D86F5C';
+  const kFill = filled ? '#F6F1EA' : '#3C4858';
+  const dotFill = filled ? '#F6F1EA' : '#D86F5C';
 
   return (
     <svg
@@ -22,20 +29,20 @@ export function KeepswellLogo({ className, size, filled = false }: Props) {
     >
       {filled && <rect width="100" height="100" rx="22" fill="#D86F5C" />}
 
-      {/* Coral ring (or cream if filled) */}
+      {/* Ring */}
       <circle
         cx="48"
         cy="51"
         r="32"
         fill="none"
-        stroke={filled ? '#F6F1EA' : '#D86F5C'}
-        strokeWidth="1.8"
+        stroke={ringStroke}
+        strokeWidth="1.6"
         strokeLinecap="round"
       />
 
-      {/* Accent dots */}
-      <circle cx="78" cy="34" r="2" fill={filled ? '#F6F1EA' : '#D86F5C'} />
-      <circle cx="22" cy="72" r="1.6" fill={filled ? '#F6F1EA' : '#D86F5C'} />
+      {/* Accent dots on ring */}
+      <circle cx="78" cy="34" r="2" fill={dotFill} />
+      <circle cx="22" cy="72" r="1.6" fill={dotFill} />
 
       {/* Serif 'k' */}
       <text
@@ -44,27 +51,50 @@ export function KeepswellLogo({ className, size, filled = false }: Props) {
         fontFamily="Playfair Display, Didot, Georgia, serif"
         fontSize="44"
         fontWeight={500}
-        fill={filled ? '#F6F1EA' : '#3C4858'}
+        fill={kFill}
         textAnchor="middle"
       >
         k
       </text>
 
       {/* Tittle */}
-      <circle cx="55" cy="35" r="2.4" fill={filled ? '#F6F1EA' : '#3C4858'} />
+      <circle cx="55" cy="35" r="2.4" fill={kFill} />
 
-      {/* Sage leaves */}
-      <g fill="#7A8A74">
-        <ellipse cx="76" cy="55" rx="6" ry="2.4" transform="rotate(-25 76 55)" />
-        <ellipse cx="70" cy="60" rx="5" ry="2" transform="rotate(15 70 60)" />
-        <ellipse
-          cx="80"
-          cy="48"
-          rx="5"
-          ry="1.8"
-          transform="rotate(-40 80 48)"
+      {/* Olive branch — curved stem + 8 pointed leaves alternating sides */}
+      <g>
+        <path
+          d="M 72 36 Q 82 46 86 58 Q 89 70 84 78"
+          stroke="#7A8A74"
+          strokeWidth="0.6"
+          fill="none"
+          strokeLinecap="round"
           opacity="0.85"
         />
+        {/* Each leaf: pointed teardrop ~7 wide × 2.2 tall, placed by translate+rotate */}
+        <g transform="translate(72 34) rotate(-50)">
+          <path d="M -3.5 0 Q -2 -1.2 0 -1.2 Q 2 -1.2 3.5 0 Q 2 1.2 0 1.2 Q -2 1.2 -3.5 0 Z" fill="#7A8A74" />
+        </g>
+        <g transform="translate(76 39) rotate(45)">
+          <path d="M -3.5 0 Q -2 -1.2 0 -1.2 Q 2 -1.2 3.5 0 Q 2 1.2 0 1.2 Q -2 1.2 -3.5 0 Z" fill="#7A8A74" opacity="0.9" />
+        </g>
+        <g transform="translate(81 45) rotate(-25)">
+          <path d="M -4 0 Q -2.2 -1.3 0 -1.3 Q 2.2 -1.3 4 0 Q 2.2 1.3 0 1.3 Q -2.2 1.3 -4 0 Z" fill="#7A8A74" />
+        </g>
+        <g transform="translate(83 51) rotate(55)">
+          <path d="M -3.5 0 Q -2 -1.2 0 -1.2 Q 2 -1.2 3.5 0 Q 2 1.2 0 1.2 Q -2 1.2 -3.5 0 Z" fill="#7A8A74" opacity="0.9" />
+        </g>
+        <g transform="translate(86 57) rotate(-10)">
+          <path d="M -4 0 Q -2.2 -1.4 0 -1.4 Q 2.2 -1.4 4 0 Q 2.2 1.4 0 1.4 Q -2.2 1.4 -4 0 Z" fill="#7A8A74" />
+        </g>
+        <g transform="translate(87 64) rotate(60)">
+          <path d="M -3.5 0 Q -2 -1.2 0 -1.2 Q 2 -1.2 3.5 0 Q 2 1.2 0 1.2 Q -2 1.2 -3.5 0 Z" fill="#7A8A74" opacity="0.9" />
+        </g>
+        <g transform="translate(86 72) rotate(35)">
+          <path d="M -3.5 0 Q -2 -1.2 0 -1.2 Q 2 -1.2 3.5 0 Q 2 1.2 0 1.2 Q -2 1.2 -3.5 0 Z" fill="#7A8A74" />
+        </g>
+        <g transform="translate(83 78) rotate(80)">
+          <path d="M -3 0 Q -1.8 -1 0 -1 Q 1.8 -1 3 0 Q 1.8 1 0 1 Q -1.8 1 -3 0 Z" fill="#7A8A74" opacity="0.85" />
+        </g>
       </g>
     </svg>
   );
