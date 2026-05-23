@@ -7,6 +7,8 @@ export { commentsApi } from './comments';
 export { participantsApi } from './participants';
 export { authApi } from './auth';
 export { promptsApi } from './prompts';
+export { notificationsApi } from './notifications';
+export type { NotificationPreferences } from './notifications';
 export type {
   Journal,
   Entry,

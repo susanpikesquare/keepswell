@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  Switch,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -18,7 +19,7 @@ import * as Clipboard from 'expo-clipboard';
 
 import { useUpdateJournal, useDeleteJournal } from '../hooks';
 import { PromptOrderSection } from './PromptOrderSection';
-import type { Journal } from '../api';
+import { notificationsApi, type NotificationPreferences, type Journal } from '../api';
 
 // SMS phone number (Telnyx number)
 const SMS_PHONE_NUMBER = '+1 (916) 439-8709';
@@ -132,6 +133,15 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
   // Delete state
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
 
+  // Notification preferences (loaded async; defaults to all-on while loading)
+  const [prefs, setPrefs] = useState<NotificationPreferences>({
+    notify_entries: true,
+    notify_comments: true,
+    notify_reactions: true,
+    notify_joins: true,
+  });
+  const [prefsLoading, setPrefsLoading] = useState(false);
+
   // Reset state when journal changes
   useEffect(() => {
     setFrequency(journal.prompt_frequency);
@@ -146,6 +156,42 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
     setCustomUrl('');
     setCoverChanged(false);
   }, [journal.id]);
+
+  // Load notification preferences for this journal whenever the journal changes.
+  useEffect(() => {
+    let cancelled = false;
+    setPrefsLoading(true);
+    notificationsApi
+      .getPreferences(journal.id)
+      .then((p) => {
+        if (!cancelled) setPrefs(p);
+      })
+      .catch((err) => {
+        console.warn('[prefs] load failed:', err?.message ?? err);
+      })
+      .finally(() => {
+        if (!cancelled) setPrefsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [journal.id]);
+
+  // Optimistically toggle a single preference and persist; revert on failure.
+  const togglePref = async (key: keyof NotificationPreferences) => {
+    const next = { ...prefs, [key]: !prefs[key] };
+    setPrefs(next);
+    try {
+      const saved = await notificationsApi.updatePreferences(journal.id, {
+        [key]: next[key],
+      });
+      setPrefs(saved);
+    } catch (err: any) {
+      // Revert
+      setPrefs((current) => ({ ...current, [key]: !current[key] }));
+      Alert.alert('Couldn’t update', err?.message ?? 'Please try again.');
+    }
+  };
 
   // Track changes
   useEffect(() => {
@@ -554,6 +600,45 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
             )}
           </View>
 
+          {/* Notifications Section */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Notifications</Text>
+            <Text style={styles.promptDescription}>
+              Choose what you want to be notified about in this journal.
+            </Text>
+
+            {prefsLoading ? (
+              <ActivityIndicator color="#D86F5C" style={{ marginVertical: 12 }} />
+            ) : (
+              <>
+                <NotificationToggle
+                  label="New memories"
+                  description="When a contributor adds a memory"
+                  value={prefs.notify_entries}
+                  onValueChange={() => togglePref('notify_entries')}
+                />
+                <NotificationToggle
+                  label="New comments"
+                  description="When someone comments on a memory"
+                  value={prefs.notify_comments}
+                  onValueChange={() => togglePref('notify_comments')}
+                />
+                <NotificationToggle
+                  label="Reactions"
+                  description="When someone reacts to a memory"
+                  value={prefs.notify_reactions}
+                  onValueChange={() => togglePref('notify_reactions')}
+                />
+                <NotificationToggle
+                  label="Participants joined"
+                  description="When a new contributor opts in"
+                  value={prefs.notify_joins}
+                  onValueChange={() => togglePref('notify_joins')}
+                />
+              </>
+            )}
+          </View>
+
           {/* Danger Zone */}
           <View style={[styles.section, styles.dangerSection]}>
             <Text style={[styles.sectionTitle, { color: '#ef4444' }]}>Danger Zone</Text>
@@ -591,6 +676,34 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
 
       </ScrollView>
     </SafeAreaView>
+  );
+}
+
+function NotificationToggle({
+  label,
+  description,
+  value,
+  onValueChange,
+}: {
+  label: string;
+  description: string;
+  value: boolean;
+  onValueChange: () => void;
+}) {
+  return (
+    <View style={styles.toggleRow}>
+      <View style={styles.toggleText}>
+        <Text style={styles.toggleLabel}>{label}</Text>
+        <Text style={styles.toggleDescription}>{description}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#e5e5e5', true: '#D86F5C' }}
+        thumbColor="#ffffff"
+        ios_backgroundColor="#e5e5e5"
+      />
+    </View>
   );
 }
 
@@ -909,5 +1022,27 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#fff',
+  },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0ece4',
+  },
+  toggleText: {
+    flex: 1,
+    marginRight: 12,
+  },
+  toggleLabel: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#1F2328',
+    marginBottom: 2,
+  },
+  toggleDescription: {
+    fontSize: 12,
+    color: '#3C4858',
   },
 });

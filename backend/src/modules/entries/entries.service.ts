@@ -47,6 +47,7 @@ export class EntriesService {
 
       await this.notifications.notifyJournalAudience(
         journal.id,
+        'entry',
         {
           title: `New memory in "${journal.title}"`,
           body: preview ? `${who}: ${preview}` : `${who} added a new memory`,

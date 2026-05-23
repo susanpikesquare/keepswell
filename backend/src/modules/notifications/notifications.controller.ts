@@ -2,8 +2,11 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
+  NotFoundException,
   Param,
   Post,
+  Put,
   UseGuards,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -15,6 +18,7 @@ import type { AuthUser } from '../../common/decorators/current-user.decorator';
 import { User } from '../../database/entities';
 import { NotificationsService } from './notifications.service';
 import { RegisterTokenDto } from './dto/register-token.dto';
+import { UpdateNotificationPreferencesDto } from './dto/update-preferences.dto';
 
 @Controller('notifications')
 @UseGuards(ClerkAuthGuard)
@@ -53,5 +57,30 @@ export class NotificationsController {
   async unregister(@Param('token') token: string) {
     await this.notifications.unregisterToken(token);
     return { unregistered: true };
+  }
+
+  // ---- Per-journal preferences -----------------------------------------
+
+  /** Read prefs for the signed-in user on a specific journal. */
+  @Get('preferences/:journalId')
+  async getPreferences(
+    @CurrentUser() auth: AuthUser,
+    @Param('journalId') journalId: string,
+  ) {
+    const user = await this.userRepo.findOne({ where: { clerk_id: auth.clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.notifications.getPreferences(user.id, journalId);
+  }
+
+  /** Upsert prefs. Any omitted field keeps its current value (or default). */
+  @Put('preferences/:journalId')
+  async updatePreferences(
+    @CurrentUser() auth: AuthUser,
+    @Param('journalId') journalId: string,
+    @Body() body: UpdateNotificationPreferencesDto,
+  ) {
+    const user = await this.userRepo.findOne({ where: { clerk_id: auth.clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    return this.notifications.upsertPreferences(user.id, journalId, body);
   }
 }

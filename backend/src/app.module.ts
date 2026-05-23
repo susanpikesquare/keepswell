@@ -31,6 +31,7 @@ import {
   Reaction,
   Comment,
   PushToken,
+  NotificationPreference,
 } from './database/entities';
 
 // Modules
@@ -84,6 +85,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
           Reaction,
           Comment,
           PushToken,
+          NotificationPreference,
         ],
         synchronize: true, // Enabled for early development - TODO: use migrations in production
         logging: configService.get<string>('NODE_ENV') !== 'production',

@@ -14,6 +14,7 @@ export { Reaction, ALLOWED_REACTIONS, REACTION_EMOJI_MAP } from './reaction.enti
 export type { ReactionType } from './reaction.entity';
 export { Comment } from './comment.entity';
 export { PushToken } from './push-token.entity';
+export { NotificationPreference } from './notification-preference.entity';
 
 // Re-export interfaces from entities
 export type {
