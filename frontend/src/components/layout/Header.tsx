@@ -29,10 +29,16 @@ export function Header() {
           />
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2 sm:gap-4">
           {isClerkAvailable ? (
             <>
               <SignedOut>
+                <Link to="/how-it-works" className="hidden sm:inline-flex">
+                  <Button variant="ghost">How it works</Button>
+                </Link>
+                <Link to="/pricing" className="hidden sm:inline-flex">
+                  <Button variant="ghost">Pricing</Button>
+                </Link>
                 <SignInButton mode="modal">
                   <Button variant="ghost">Sign In</Button>
                 </SignInButton>
@@ -41,6 +47,9 @@ export function Header() {
                 </SignUpButton>
               </SignedOut>
               <SignedIn>
+                <Link to="/how-it-works" className="hidden sm:inline-flex">
+                  <Button variant="ghost">How it works</Button>
+                </Link>
                 <Link to="/dashboard">
                   <Button variant="ghost">Dashboard</Button>
                 </Link>
@@ -49,6 +58,9 @@ export function Header() {
             </>
           ) : (
             <>
+              <Link to="/how-it-works" className="hidden sm:inline-flex">
+                <Button variant="ghost">How it works</Button>
+              </Link>
               <Link to="/dashboard">
                 <Button variant="ghost">Dashboard</Button>
               </Link>
