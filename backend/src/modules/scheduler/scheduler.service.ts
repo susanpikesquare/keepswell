@@ -203,19 +203,31 @@ export class SchedulerService {
   }
 
   /**
-   * Check if a prompt has already been sent today for a journal
-   * Uses created_at (UTC) to avoid timezone issues
+   * Check if a prompt has already been dispatched today for a journal.
+   *
+   * Important: this MUST filter to actually-dispatched rows (status='sent',
+   * sent_at within the window). The old version filtered by `created_at`
+   * regardless of status, which broke once `seedUpcomingScheduledPrompts`
+   * started creating PENDING rows at journal-creation time — the seeded
+   * pending rows would make this return true for ~20 hours and block the
+   * cron from ever firing the first real prompt.
+   *
+   * We use `sent_at` (a UTC timestamp written when dispatch completes)
+   * rather than `created_at` because `created_at` for sent rows now reflects
+   * whenever they were seeded, not when they were sent.
    */
   private async hasPromptBeenSentToday(journalId: string, journalTime: Date): Promise<boolean> {
-    // Check for any prompt sent in the last 20 hours to be safe
-    // This prevents duplicates regardless of timezone issues
+    void journalTime; // kept for signature compat; window is UTC by design
+    // Check for any prompt sent in the last 20 hours to be safe.
+    // This prevents duplicates regardless of timezone issues.
     const twentyHoursAgo = new Date();
     twentyHoursAgo.setHours(twentyHoursAgo.getHours() - 20);
 
     const existingPrompt = await this.scheduledPromptRepository
       .createQueryBuilder('sp')
       .where('sp.journal_id = :journalId', { journalId })
-      .andWhere('sp.created_at >= :twentyHoursAgo', { twentyHoursAgo })
+      .andWhere('sp.status = :status', { status: 'sent' })
+      .andWhere('sp.sent_at >= :twentyHoursAgo', { twentyHoursAgo })
       .getOne();
 
     return !!existingPrompt;
@@ -259,18 +271,49 @@ export class SchedulerService {
         return;
       }
 
-      // Select a prompt for this journal
-      const { prompt } = await this.promptSelectionService.selectNextPrompt({
-        journalId: journal.id,
-      });
+      // Look for the next pending ScheduledPrompt that's due — either one
+      // seeded at journal creation, or one the owner added/edited from the
+      // "Upcoming prompts" manager. We sort by scheduled_for ASC so the
+      // oldest-due prompt goes out first; if the user has edited the text,
+      // the edited prompt_id is what we dispatch (since the manager updates
+      // either the underlying prompt or forks a new is_custom prompt).
+      //
+      // If no pending row is due (queue empty, journal newly opted-in to
+      // prompts but never seeded, etc.) we fall back to picking a fresh
+      // prompt from the template via PromptSelectionService and creating a
+      // new ScheduledPrompt row. This preserves the original cron behavior
+      // for any journal that doesn't use the queue.
+      const now = new Date();
+      let scheduledPrompt = await this.scheduledPromptRepository
+        .createQueryBuilder('sp')
+        .leftJoinAndSelect('sp.prompt', 'prompt')
+        .where('sp.journal_id = :journalId', { journalId: journal.id })
+        .andWhere('sp.status = :status', { status: 'pending' })
+        .andWhere('sp.scheduled_for <= :now', { now })
+        .orderBy('sp.scheduled_for', 'ASC')
+        .getOne();
 
-      // Create scheduled prompt record
-      const scheduledPrompt = await this.scheduledPromptRepository.save({
-        journal_id: journal.id,
-        prompt_id: prompt.id,
-        scheduled_for: new Date(),
-        status: 'pending',
-      });
+      let prompt: Prompt;
+      if (scheduledPrompt && scheduledPrompt.prompt) {
+        prompt = scheduledPrompt.prompt;
+        this.logger.log(
+          `Consuming queued prompt ${prompt.id} (scheduled_for=${scheduledPrompt.scheduled_for.toISOString()}) for journal ${journal.id}`,
+        );
+      } else {
+        const selected = await this.promptSelectionService.selectNextPrompt({
+          journalId: journal.id,
+        });
+        prompt = selected.prompt;
+        scheduledPrompt = await this.scheduledPromptRepository.save({
+          journal_id: journal.id,
+          prompt_id: prompt.id,
+          scheduled_for: now,
+          status: 'pending',
+        });
+        this.logger.log(
+          `No queued prompt due for journal ${journal.id}; created fresh ScheduledPrompt ${scheduledPrompt.id}`,
+        );
+      }
 
       // Construct memory book URL if journal has share_token
       const viewUrl = journal.share_token
