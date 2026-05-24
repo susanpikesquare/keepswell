@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Entry, Journal, Participant, MediaAttachment, User } from '../../database/entities';
 import { SimulateEntryDto, WebEntryDto } from './dto/create-entry.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { requireJournalReader } from '../../common/access/journal-access';
 
 @Injectable()
 export class EntriesService {
@@ -77,16 +78,17 @@ export class EntriesService {
     clerkId: string,
     options?: { page?: number; limit?: number },
   ) {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Verify user owns the journal
-    const journal = await this.journalRepo.findOne({
-      where: { id: journalId, owner_id: user.id },
-    });
-
-    if (!journal) {
-      throw new NotFoundException('Journal not found');
-    }
+    // Allow both the owner and active contributors to read entries.
+    // Contributors need this to render the journal detail screen.
+    await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      journalId,
+      clerkId,
+    );
 
     const page = options?.page || 1;
     const limit = options?.limit || 20;
@@ -110,8 +112,6 @@ export class EntriesService {
   }
 
   async findOne(id: string, clerkId: string): Promise<Entry> {
-    const user = await this.getUserByClerkId(clerkId);
-
     const entry = await this.entryRepo.findOne({
       where: { id },
       relations: ['journal', 'participant', 'media_attachments'],
@@ -121,9 +121,16 @@ export class EntriesService {
       throw new NotFoundException('Entry not found');
     }
 
-    if (entry.journal.owner_id !== user.id) {
-      throw new ForbiddenException('Not authorized to view this entry');
-    }
+    // Owner OR active contributor can read an entry.
+    await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      entry.journal_id,
+      clerkId,
+    );
 
     return entry;
   }
@@ -213,16 +220,19 @@ export class EntriesService {
     clerkId: string,
     dto: WebEntryDto,
   ): Promise<Entry> {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Verify user owns the journal
-    const journal = await this.journalRepo.findOne({
-      where: { id: journalId, owner_id: user.id },
-    });
-
-    if (!journal) {
-      throw new NotFoundException('Journal not found');
-    }
+    // Anyone with read access can also create an entry — that's the whole
+    // point of being a contributor. Owners and active contributors both
+    // qualify; the resolved user/journal are reused below for owner-vs-
+    // contributor participant resolution.
+    const { user, journal } = await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      journalId,
+      clerkId,
+    );
 
     // Validate that we have content or media
     if (!dto.content && (!dto.media_urls || dto.media_urls.length === 0)) {

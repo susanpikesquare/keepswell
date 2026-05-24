@@ -9,6 +9,7 @@ import { SmsService } from '../sms/sms.service';
 import { SmsLimitsService } from '../sms/sms-limits.service';
 import { SubscriptionService } from '../payments/subscription.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { requireJournalReader } from '../../common/access/journal-access';
 
 @Injectable()
 export class ParticipantsService {
@@ -119,16 +120,17 @@ export class ParticipantsService {
   }
 
   async findByJournal(journalId: string, clerkId: string): Promise<Participant[]> {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Verify user owns the journal
-    const journal = await this.journalRepo.findOne({
-      where: { id: journalId, owner_id: user.id },
-    });
-
-    if (!journal) {
-      throw new NotFoundException('Journal not found');
-    }
+    // Owner OR active contributor can read the participant list; the
+    // journal detail screen renders the participant strip for everyone.
+    await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      journalId,
+      clerkId,
+    );
 
     return this.participantRepo.find({
       where: { journal_id: journalId },
