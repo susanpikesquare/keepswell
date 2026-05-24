@@ -295,7 +295,10 @@ export default function JournalDetailScreen() {
 
   const isLoading = journalLoading || entriesLoading;
   const entries = entriesData?.data || [];
-  const isOwner = true; // The mobile app user is typically the journal owner
+  // Default true while the journal is still loading so we don't briefly
+  // hide owner controls; the backend tags every detail response with
+  // _role so this resolves to the right value as soon as data arrives.
+  const isOwner = (journal?._role ?? 'owner') === 'owner';
 
   const getTemplateEmoji = (type: string) => {
     switch (type) {
@@ -394,18 +397,24 @@ export default function JournalDetailScreen() {
           >
             <FontAwesome name="book" size={16} color="#D86F5C" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerActionButton}
-            onPress={() => setInviteModalVisible(true)}
-          >
-            <FontAwesome name="user-plus" size={16} color="#D86F5C" />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerActionButton}
-            onPress={() => router.push(`/journal-settings/${id}`)}
-          >
-            <FontAwesome name="cog" size={18} color="#D86F5C" />
-          </TouchableOpacity>
+          {/* Invite + settings are owner-only — hide them for contributors
+              so they can read and respond but not reconfigure the journal. */}
+          {isOwner ? (
+            <>
+              <TouchableOpacity
+                style={styles.headerActionButton}
+                onPress={() => setInviteModalVisible(true)}
+              >
+                <FontAwesome name="user-plus" size={16} color="#D86F5C" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.headerActionButton}
+                onPress={() => router.push(`/journal-settings/${id}`)}
+              >
+                <FontAwesome name="cog" size={18} color="#D86F5C" />
+              </TouchableOpacity>
+            </>
+          ) : null}
         </View>
       </View>
 

@@ -1,8 +1,15 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { randomBytes, randomInt } from 'crypto';
 import { Journal, User, Entry, Participant } from '../../database/entities';
+
+/**
+ * Journal returned by listing endpoints, augmented with the requesting
+ * user's relationship to it. Lets the mobile UI distinguish "mine" from
+ * "shared with me" without a second round-trip.
+ */
+export type JournalWithRole = Journal & { _role: 'owner' | 'contributor' };
 import { CreateJournalDto } from './dto/create-journal.dto';
 import { UpdateJournalDto } from './dto/update-journal.dto';
 import { JoinRequestDto } from './dto/join-request.dto';
@@ -158,20 +165,96 @@ export class JournalsService {
     return randomBytes(6).toString('hex').toUpperCase();
   }
 
-  async findAllByUser(clerkId: string): Promise<Journal[]> {
+  async findAllByUser(clerkId: string): Promise<JournalWithRole[]> {
     const user = await this.userRepository.findOne({ where: { clerk_id: clerkId } });
     if (!user) {
       return [];
     }
 
-    return this.journalRepository.find({
+    // 1) Journals the user owns.
+    const owned = await this.journalRepository.find({
       where: { owner_id: user.id },
       relations: ['participants'],
       order: { created_at: 'DESC' },
     });
+
+    // 2) Journals the user is an active *contributor* in. We match
+    //    Participant rows to the User by email or phone — whichever the
+    //    owner had when they invited them. We deliberately exclude
+    //    'pending' and 'removed' so unanswered/cancelled invites don't
+    //    show up in the user's tab.
+    const matchConditions: Array<Record<string, unknown>> = [];
+    if (user.email) {
+      matchConditions.push({ email: user.email, status: 'active' });
+    }
+    if (user.phone_number) {
+      matchConditions.push({ phone_number: user.phone_number, status: 'active' });
+    }
+
+    let contributorJournals: Journal[] = [];
+    if (matchConditions.length > 0) {
+      const matched = await this.participantRepository.find({
+        where: matchConditions as any,
+      });
+      const ownedIds = new Set(owned.map((j) => j.id));
+      const contributorIds = [...new Set(matched.map((p) => p.journal_id))]
+        .filter((id) => !ownedIds.has(id));
+      if (contributorIds.length > 0) {
+        contributorJournals = await this.journalRepository.find({
+          where: { id: In(contributorIds) },
+          relations: ['participants'],
+          order: { created_at: 'DESC' },
+        });
+      }
+    }
+
+    // Tag each journal with the requester's role, then merge and re-sort
+    // so the combined list reads chronologically regardless of role.
+    const combined: JournalWithRole[] = [
+      ...owned.map((j): JournalWithRole => Object.assign(j, { _role: 'owner' as const })),
+      ...contributorJournals.map((j): JournalWithRole =>
+        Object.assign(j, { _role: 'contributor' as const }),
+      ),
+    ];
+    combined.sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+    );
+    return combined;
   }
 
-  async findOne(id: string, clerkId: string): Promise<Journal> {
+  /**
+   * Returns true if the user is an active participant of the journal
+   * (matched by email or phone). Used to authorize read-only access for
+   * contributors.
+   */
+  private async isUserContributor(userId: string, journalId: string): Promise<boolean> {
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) return false;
+
+    const where: Array<Record<string, unknown>> = [];
+    if (user.email) {
+      where.push({ journal_id: journalId, email: user.email, status: 'active' });
+    }
+    if (user.phone_number) {
+      where.push({
+        journal_id: journalId,
+        phone_number: user.phone_number,
+        status: 'active',
+      });
+    }
+    if (where.length === 0) return false;
+
+    const found = await this.participantRepository.findOne({ where: where as any });
+    return !!found;
+  }
+
+  /**
+   * Fetch a journal for *reading*. Allowed for the owner OR any active
+   * contributor (matched by email or phone). Mutations should call
+   * `findOwnedJournal()` instead — it throws if the requester isn't the
+   * owner.
+   */
+  async findOne(id: string, clerkId: string): Promise<JournalWithRole> {
     const user = await this.userRepository.findOne({ where: { clerk_id: clerkId } });
     if (!user) {
       throw new NotFoundException('User not found');
@@ -181,27 +264,54 @@ export class JournalsService {
       where: { id },
       relations: ['participants', 'entries'],
     });
-
     if (!journal) {
       throw new NotFoundException('Journal not found');
     }
 
-    if (journal.owner_id !== user.id) {
+    if (journal.owner_id === user.id) {
+      return Object.assign(journal, { _role: 'owner' as const });
+    }
+
+    const isContributor = await this.isUserContributor(user.id, id);
+    if (!isContributor) {
       throw new ForbiddenException('You do not have access to this journal');
     }
 
+    return Object.assign(journal, { _role: 'contributor' as const });
+  }
+
+  /**
+   * Owner-only fetch — used by mutation methods. Behaves like the
+   * pre-contributor `findOne` did: throws if the requester is not the
+   * journal's owner.
+   */
+  private async findOwnedJournal(id: string, clerkId: string): Promise<Journal> {
+    const user = await this.userRepository.findOne({ where: { clerk_id: clerkId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    const journal = await this.journalRepository.findOne({
+      where: { id },
+      relations: ['participants', 'entries'],
+    });
+    if (!journal) {
+      throw new NotFoundException('Journal not found');
+    }
+    if (journal.owner_id !== user.id) {
+      throw new ForbiddenException('Only the journal owner can do this');
+    }
     return journal;
   }
 
   async update(id: string, clerkId: string, updateJournalDto: UpdateJournalDto): Promise<Journal> {
-    const journal = await this.findOne(id, clerkId);
+    const journal = await this.findOwnedJournal(id, clerkId);
 
     Object.assign(journal, updateJournalDto);
     return this.journalRepository.save(journal);
   }
 
   async remove(id: string, clerkId: string): Promise<void> {
-    const journal = await this.findOne(id, clerkId);
+    const journal = await this.findOwnedJournal(id, clerkId);
     await this.journalRepository.remove(journal);
   }
 
@@ -209,7 +319,7 @@ export class JournalsService {
    * Enable sharing for a journal and generate a share token
    */
   async enableSharing(id: string, clerkId: string): Promise<{ shareToken: string; shareUrl: string }> {
-    const journal = await this.findOne(id, clerkId);
+    const journal = await this.findOwnedJournal(id, clerkId);
 
     // Generate a new token if one doesn't exist
     if (!journal.share_token) {
@@ -230,13 +340,15 @@ export class JournalsService {
    * Disable sharing for a journal
    */
   async disableSharing(id: string, clerkId: string): Promise<void> {
-    const journal = await this.findOne(id, clerkId);
+    const journal = await this.findOwnedJournal(id, clerkId);
     journal.is_shared = false;
     await this.journalRepository.save(journal);
   }
 
   /**
-   * Get sharing status for a journal
+   * Get sharing status for a journal. Contributors can see the current
+   * share state (so the journal-book screen can render correctly), so
+   * this uses `findOne` rather than the owner-only fetch.
    */
   async getSharingStatus(id: string, clerkId: string): Promise<{
     isShared: boolean;
@@ -268,7 +380,7 @@ export class JournalsService {
    * Update the join keyword for a journal
    */
   async updateJoinKeyword(id: string, clerkId: string, newKeyword: string): Promise<Journal> {
-    const journal = await this.findOne(id, clerkId);
+    const journal = await this.findOwnedJournal(id, clerkId);
 
     // Validate and normalize the keyword
     const normalizedKeyword = newKeyword.toUpperCase().replace(/[^A-Z0-9]/g, '').substring(0, 12);
@@ -629,7 +741,7 @@ export class JournalsService {
     id: string,
     clerkId: string,
   ): Promise<{ keyword: string }> {
-    const journal = await this.findOne(id, clerkId);
+    const journal = await this.findOwnedJournal(id, clerkId);
 
     // Generate a new keyword even if one exists (allows regeneration)
     const keyword = await this.generateUniqueKeyword(journal.title);
