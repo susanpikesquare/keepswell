@@ -135,9 +135,18 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
   /**
    * Wrap setCoverImage so any non-upload mutation bumps the action token,
    * invalidating any in-flight upload's success branch.
+   *
+   * Also explicitly tears down the upload spinner / progress / error
+   * because the in-flight upload's `finally` is token-gated and will be
+   * a no-op once the token bumps — without this teardown the "Uploading…"
+   * label would stay stuck and the choose-photo button would stay
+   * disabled until the user closed and reopened the picker.
    */
   const setCoverImageManual = (value: string) => {
     uploadTokenRef.current += 1;
+    setUploadingCover(false);
+    setUploadProgress(0);
+    setUploadError(null);
     setCoverImage(value);
   };
 
