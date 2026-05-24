@@ -352,13 +352,18 @@ export default function JournalDetailScreen() {
             color="#999"
           />
         </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.inviteButton}
-          onPress={() => setInviteModalVisible(true)}
-        >
-          <FontAwesome name="user-plus" size={12} color="#D86F5C" />
-          <Text style={styles.inviteButtonText}>Invite</Text>
-        </TouchableOpacity>
+        {/* Stats-bar invite is the second invite entry-point alongside the
+            header. Both are owner-only — contributors can read and
+            respond, but they can't add new contributors. */}
+        {isOwner ? (
+          <TouchableOpacity
+            style={styles.inviteButton}
+            onPress={() => setInviteModalVisible(true)}
+          >
+            <FontAwesome name="user-plus" size={12} color="#D86F5C" />
+            <Text style={styles.inviteButtonText}>Invite</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* Participant List (expandable) */}

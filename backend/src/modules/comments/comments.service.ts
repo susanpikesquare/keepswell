@@ -13,6 +13,7 @@ import {
   Participant,
   User,
 } from '../../database/entities';
+import { requireJournalReader } from '../../common/access/journal-access';
 import { CreateCommentDto, UpdateCommentDto } from './dto';
 import { NotificationsService } from '../notifications/notifications.service';
 
@@ -88,9 +89,6 @@ export class CommentsService {
    * Get all comments for an entry (threaded)
    */
   async findByEntry(entryId: string, clerkId: string) {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Find the entry and verify ownership
     const entry = await this.entryRepo.findOne({
       where: { id: entryId },
       relations: ['journal'],
@@ -100,9 +98,16 @@ export class CommentsService {
       throw new NotFoundException('Entry not found');
     }
 
-    if (entry.journal.owner_id !== user.id) {
-      throw new ForbiddenException('Not authorized to view this entry');
-    }
+    // Owner OR active contributor on the journal can read comments.
+    await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      entry.journal_id,
+      clerkId,
+    );
 
     // Get all comments with participants, ordered by creation time
     const comments = await this.commentRepo.find({
@@ -129,9 +134,6 @@ export class CommentsService {
     clerkId: string,
     dto: CreateCommentDto,
   ): Promise<Comment> {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Find the entry and verify ownership
     const entry = await this.entryRepo.findOne({
       where: { id: entryId },
       relations: ['journal'],
@@ -141,9 +143,18 @@ export class CommentsService {
       throw new NotFoundException('Entry not found');
     }
 
-    if (entry.journal.owner_id !== user.id) {
-      throw new ForbiddenException('Not authorized to comment on this entry');
-    }
+    // Owner OR active contributor can comment. The participant resolution
+    // below uses `user.email` to find/create the right Participant row, so
+    // contributors comment under their own profile, not the owner's.
+    const { user } = await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      entry.journal_id,
+      clerkId,
+    );
 
     // Verify parent comment exists if specified
     if (dto.parent_id) {

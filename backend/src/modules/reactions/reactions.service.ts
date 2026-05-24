@@ -17,6 +17,7 @@ import {
 } from '../../database/entities';
 import { CreateReactionDto } from './dto/create-reaction.dto';
 import { NotificationsService } from '../notifications/notifications.service';
+import { requireJournalReader } from '../../common/access/journal-access';
 
 @Injectable()
 export class ReactionsService {
@@ -48,9 +49,6 @@ export class ReactionsService {
    * Get all reactions for an entry, grouped by emoji
    */
   async findByEntry(entryId: string, clerkId: string) {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Find the entry and verify ownership
     const entry = await this.entryRepo.findOne({
       where: { id: entryId },
       relations: ['journal'],
@@ -60,9 +58,16 @@ export class ReactionsService {
       throw new NotFoundException('Entry not found');
     }
 
-    if (entry.journal.owner_id !== user.id) {
-      throw new ForbiddenException('Not authorized to view this entry');
-    }
+    // Owner OR active contributor on the journal can read reactions.
+    await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      entry.journal_id,
+      clerkId,
+    );
 
     // Get all reactions with participants
     const reactions = await this.reactionRepo.find({
@@ -103,9 +108,6 @@ export class ReactionsService {
     clerkId: string,
     dto: CreateReactionDto,
   ): Promise<Reaction> {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Find the entry and verify ownership
     const entry = await this.entryRepo.findOne({
       where: { id: entryId },
       relations: ['journal'],
@@ -115,9 +117,16 @@ export class ReactionsService {
       throw new NotFoundException('Entry not found');
     }
 
-    if (entry.journal.owner_id !== user.id) {
-      throw new ForbiddenException('Not authorized to react to this entry');
-    }
+    // Owner OR active contributor can react.
+    const { user } = await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      entry.journal_id,
+      clerkId,
+    );
 
     // Find or get the participant
     let participant: Participant;
@@ -240,9 +249,6 @@ export class ReactionsService {
     clerkId: string,
     participantId?: string,
   ): Promise<void> {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Find the entry and verify ownership
     const entry = await this.entryRepo.findOne({
       where: { id: entryId },
       relations: ['journal'],
@@ -252,9 +258,18 @@ export class ReactionsService {
       throw new NotFoundException('Entry not found');
     }
 
-    if (entry.journal.owner_id !== user.id) {
-      throw new ForbiddenException('Not authorized to remove reactions from this entry');
-    }
+    // Owner OR active contributor can remove a reaction (downstream
+    // logic only deletes the row that matches the caller's participant,
+    // so a contributor can never remove someone else's reaction).
+    const { user } = await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      entry.journal_id,
+      clerkId,
+    );
 
     // Find the participant
     let participant: Participant | null;
@@ -301,9 +316,6 @@ export class ReactionsService {
     clerkId: string,
     dto: CreateReactionDto,
   ): Promise<{ action: 'added' | 'removed'; reaction?: Reaction }> {
-    const user = await this.getUserByClerkId(clerkId);
-
-    // Find the entry and verify ownership
     const entry = await this.entryRepo.findOne({
       where: { id: entryId },
       relations: ['journal'],
@@ -313,9 +325,16 @@ export class ReactionsService {
       throw new NotFoundException('Entry not found');
     }
 
-    if (entry.journal.owner_id !== user.id) {
-      throw new ForbiddenException('Not authorized to react to this entry');
-    }
+    // Owner OR active contributor can toggle their own reaction.
+    const { user } = await requireJournalReader(
+      {
+        userRepo: this.userRepo,
+        journalRepo: this.journalRepo,
+        participantRepo: this.participantRepo,
+      },
+      entry.journal_id,
+      clerkId,
+    );
 
     // Find the participant
     let participant: Participant | null;
