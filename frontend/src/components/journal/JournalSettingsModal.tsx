@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Clock, AlertTriangle, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered } from 'lucide-react';
+import { Trash2, Clock, AlertTriangle, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered, Upload } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { useUpdateJournal, useDeleteJournal } from '../../hooks';
 import { PromptOrderSection } from './PromptOrderSection';
+import { isCloudinaryConfigured, uploadFileToCloudinary } from '../../lib/cloudinary';
 import type { Journal } from '../../types';
 
 // SMS phone number (Telnyx number)
@@ -117,6 +118,67 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
   // Cover image
   const [coverImage, setCoverImage] = useState(journal.cover_image_url || '');
   const [showCoverPicker, setShowCoverPicker] = useState(false);
+
+  // Cover-image device upload
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  // Action-token guards against stale uploads if the user picks a new file
+  // mid-upload — only the most-recently-started upload may write state.
+  const uploadTokenRef = useRef(0);
+
+  const handlePickCoverFromDevice = () => {
+    setUploadError(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Always reset the input so picking the same file twice still fires onChange.
+    e.target.value = '';
+    if (!file) return;
+
+    // 8 MB cap — Cloudinary unsigned uploads allow more but big photos
+    // make the UI feel broken before the progress bar catches up.
+    if (file.size > 8 * 1024 * 1024) {
+      setUploadError('Please choose an image under 8 MB.');
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      setUploadError('Please choose an image file.');
+      return;
+    }
+
+    const token = ++uploadTokenRef.current;
+    setUploadingCover(true);
+    setUploadProgress(0);
+    setUploadError(null);
+    try {
+      const url = await uploadFileToCloudinary(file, (p) => {
+        if (token === uploadTokenRef.current) {
+          setUploadProgress(Math.round(p.progress * 100));
+        }
+      });
+      if (token !== uploadTokenRef.current) return; // a newer upload superseded us
+      setCoverImage(url);
+      // Persist immediately so the user sees the new cover even if they close
+      // the modal without touching another setting.
+      await updateJournal.mutateAsync({
+        id: journal.id,
+        data: { cover_image_url: url },
+      });
+      setShowCoverPicker(false);
+    } catch (err) {
+      if (token === uploadTokenRef.current) {
+        setUploadError((err as Error).message || 'Upload failed. Please try again.');
+      }
+    } finally {
+      if (token === uploadTokenRef.current) {
+        setUploadingCover(false);
+      }
+    }
+  };
 
   // Copy feedback
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -297,6 +359,48 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
             </Button>
           ) : (
             <div className="space-y-4">
+              {/* Upload from device */}
+              {isCloudinaryConfigured() ? (
+                <div>
+                  <p className="text-sm font-medium mb-2">Upload from your computer or phone</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleCoverFileChange}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePickCoverFromDevice}
+                    disabled={uploadingCover}
+                    className="w-full"
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    {uploadingCover ? `Uploading… ${uploadProgress}%` : 'Choose a photo from this device'}
+                  </Button>
+                  {uploadingCover ? (
+                    <div className="mt-2 h-1 w-full bg-muted rounded overflow-hidden">
+                      <div
+                        className="h-full bg-primary transition-all"
+                        style={{ width: `${uploadProgress}%` }}
+                      />
+                    </div>
+                  ) : null}
+                  {uploadError ? (
+                    <p className="text-sm text-red-600 mt-2">{uploadError}</p>
+                  ) : null}
+                  <div className="my-4 flex items-center gap-3">
+                    <div className="h-px bg-muted flex-1" />
+                    <span className="text-xs text-muted-foreground uppercase tracking-wider">
+                      or
+                    </span>
+                    <div className="h-px bg-muted flex-1" />
+                  </div>
+                </div>
+              ) : null}
+
               {/* Template grid */}
               <div>
                 <p className="text-sm font-medium mb-2">Choose a template</p>
