@@ -142,6 +142,13 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
   const coverActionTokenRef = useRef(0);
   const setCoverImageManual = (value: string) => {
     coverActionTokenRef.current += 1;
+    // The in-flight upload's finally will eventually clear these on its
+    // own (it's unconditional on mobile), but explicitly tearing the
+    // spinner / progress down here means the user doesn't have to watch
+    // a stale "Uploading…" label for several seconds after they picked a
+    // template or pasted a URL.
+    setUploadingCover(false);
+    setUploadProgress(0);
     setCoverImage(value);
   };
 
