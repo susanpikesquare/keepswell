@@ -34,7 +34,15 @@ function JournalCard({ journal, onPress }: { journal: Journal; onPress: () => vo
       <View style={styles.cardHeader}>
         <Text style={styles.templateEmoji}>{getTemplateEmoji(journal.template_type)}</Text>
         <View style={styles.cardTitleContainer}>
-          <Text style={styles.cardTitle} numberOfLines={1}>{journal.title}</Text>
+          <View style={styles.titleRow}>
+            <Text style={styles.cardTitle} numberOfLines={1}>{journal.title}</Text>
+            {journal._role === 'contributor' ? (
+              <View style={styles.sharedBadge}>
+                <FontAwesome name="users" size={10} color="#7A8A74" />
+                <Text style={styles.sharedBadgeText}>Shared with you</Text>
+              </View>
+            ) : null}
+          </View>
           {journal.description && (
             <Text style={styles.cardDescription} numberOfLines={2}>
               {journal.description}
@@ -254,10 +262,35 @@ const styles = StyleSheet.create({
   cardTitleContainer: {
     flex: 1,
   },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
   cardTitle: {
     fontSize: 18,
     fontWeight: '600',
     color: '#1a1a1a',
+    flexShrink: 1,
+  },
+  sharedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    backgroundColor: '#F6F1EA',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DCCCB7',
+  },
+  sharedBadgeText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#7A8A74',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   cardDescription: {
     fontSize: 14,

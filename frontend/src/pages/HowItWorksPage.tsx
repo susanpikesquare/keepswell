@@ -389,9 +389,25 @@ export function HowItWorksPage() {
         </p>
         <Subsection title="Getting the app">
           <p>
-            Search for <strong>Keepswell</strong> on the App Store and download
-            it. Sign in with the same account you use on the website —
-            your journals, contributors, and memories all sync.
+            The iOS app is currently in <strong>private beta</strong> on
+            TestFlight while we get it ready for the App Store. To join
+            the beta, email{' '}
+            <a
+              href="mailto:susan@pikesquare.co?subject=Keepswell%20iOS%20beta%20access%20request&body=Hi!%20I'd%20like%20beta%20access%20to%20the%20Keepswell%20iOS%20app.%0A%0AMy%20Apple%20ID%20email%20(for%20the%20TestFlight%20invite):%0A%0A"
+              className="text-[#D86F5C] underline-offset-4 hover:underline"
+            >
+              susan@pikesquare.co
+            </a>{' '}
+            with the Apple ID you'd like the TestFlight invite sent to —
+            we'll add you the same day. Once invited, install
+            <strong> TestFlight</strong> from the App Store, open the
+            invite link, and tap <strong>Install</strong>. Sign in with
+            the same account you use on the website — journals,
+            contributors, and memories all sync.
+          </p>
+          <p className="mt-3 text-sm text-[#3C4858]/80">
+            We'll switch this section to the App Store link as soon as the
+            public release ships.
           </p>
         </Subsection>
         <Subsection title="Tabs">

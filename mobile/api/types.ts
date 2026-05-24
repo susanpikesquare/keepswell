@@ -31,6 +31,12 @@ export interface Journal {
   created_at: string;
   updated_at: string;
   participants?: Participant[];
+  /**
+   * The signed-in user's relationship to this journal. Set by the
+   * backend listing endpoint. 'owner' = they created it, 'contributor'
+   * = they were invited and accepted. Absent on detail endpoints.
+   */
+  _role?: 'owner' | 'contributor';
 }
 
 export interface Participant {

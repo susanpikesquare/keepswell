@@ -8,8 +8,24 @@ import {
   Music,
   ArrowRight,
   Check,
+  Smartphone,
+  Mail,
 } from 'lucide-react';
 import { Button } from '../components/ui';
+
+// Pre-formatted mailto for beta access requests. Keeps the user out of
+// having to think about subject/body and gives PikeSquare a clean inbox
+// filter to triage from. Swap to an App Store link once shipped.
+const BETA_MAILTO =
+  'mailto:susan@pikesquare.co?subject=' +
+  encodeURIComponent('Keepswell iOS beta access request') +
+  '&body=' +
+  encodeURIComponent(
+    "Hi! I'd like beta access to the Keepswell iOS app.\n\n" +
+      'My Apple ID email (for the TestFlight invite):\n\n' +
+      'Anything you want to share about what you plan to use Keepswell for:\n\n' +
+      'Thanks!\n',
+  );
 
 // Editorial lifestyle photography for the landing page.
 const LANDING_IMAGES = {
@@ -232,6 +248,67 @@ export function LandingPage() {
         </div>
       </section>
 
+      {/* ============================== iOS APP / BETA ============================== */}
+      <section className="py-24 px-6 bg-[#F6F1EA]">
+        <div className="container mx-auto max-w-5xl">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div>
+              <span className="inline-flex items-center gap-2 bg-white border border-[#DCCCB7] text-[#3C4858] px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider mb-5">
+                <Smartphone className="h-3.5 w-3.5 text-[#D86F5C]" />
+                Currently in beta
+              </span>
+              <h2 className="font-serif text-3xl md:text-4xl text-[#1F2328] mb-4 leading-tight">
+                The iOS app is in <em className="text-[#D86F5C] not-italic font-medium">private beta</em>.
+              </h2>
+              <p className="text-[#3C4858] text-lg leading-relaxed mb-6">
+                Capture memories on the go, browse your memory book on your
+                phone, and get gentle push notifications when family
+                contributes. The full Keepswell website experience is
+                available today — the iOS app is coming soon to the App
+                Store, and we're inviting a small group of testers right
+                now.
+              </p>
+              <p className="text-[#3C4858] mb-8">
+                <strong>Want in?</strong> Email us your Apple ID and we'll
+                send you a TestFlight invite.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <a href={BETA_MAILTO}>
+                  <Button
+                    size="lg"
+                    className="text-base px-7 py-6 rounded-full bg-[#D86F5C] text-[#F6F1EA] hover:bg-[#c2604f] shadow-md hover:shadow-lg transition-all w-full sm:w-auto"
+                  >
+                    <Mail className="mr-2 h-4 w-4" />
+                    Request beta access
+                  </Button>
+                </a>
+                <Link to="/how-it-works#ios">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="text-base px-7 py-6 rounded-full border-[#DCCCB7] bg-transparent text-[#3C4858] hover:bg-white/60 w-full sm:w-auto"
+                  >
+                    What's in the app
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            <div className="relative">
+              <div className="relative mx-auto w-64 md:w-72 aspect-[9/19] rounded-[2.5rem] bg-gradient-to-br from-[#DCCCB7]/60 to-[#F5C9BF]/40 border-8 border-[#1F2328]/85 shadow-xl flex flex-col items-center justify-center p-6 text-center">
+                <img src="/logo-mark.png" alt="" className="h-16 w-auto mb-4 opacity-90" />
+                <p className="font-serif text-2xl text-[#1F2328] mb-2 leading-tight">
+                  Capture moments. Cherish life.
+                </p>
+                <p className="text-xs text-[#3C4858]/70 uppercase tracking-widest">
+                  Keepswell for iOS
+                </p>
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 w-20 h-5 rounded-full bg-[#1F2328]/85" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ============================== FINAL CTA ============================== */}
       <section className="py-32 px-6 relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-b from-[#F6F1EA] to-[#DCCCB7]/60" />
@@ -283,6 +360,9 @@ export function LandingPage() {
               <Link to="/how-it-works" className="hover:text-[#F6F1EA] transition-colors">
                 How it works
               </Link>
+              <a href={BETA_MAILTO} className="hover:text-[#F6F1EA] transition-colors">
+                iOS beta
+              </a>
               <Link to="/pricing" className="hover:text-[#F6F1EA] transition-colors">
                 Pricing
               </Link>
