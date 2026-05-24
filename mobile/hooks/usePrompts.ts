@@ -125,3 +125,107 @@ export function useDeleteJournalPrompt() {
     },
   });
 }
+
+// ---- In-app prompts feed (participant-facing) -------------------------
+
+/**
+ * Pending in-app prompts for the signed-in user across all journals.
+ * Stale-while-revalidate at 1 minute — the feed should feel fresh but the
+ * tab is also re-invalidated whenever a prompt is answered/dismissed.
+ */
+export function useInAppPromptFeed() {
+  const { getToken } = useAuth();
+  if (getToken) setGetTokenFn(getToken);
+
+  return useQuery({
+    queryKey: ['prompts', 'in-app-feed'],
+    queryFn: () => promptsApi.getInAppFeed(),
+    staleTime: 1000 * 60,
+  });
+}
+
+/** Marks one prompt as responded; invalidates the feed so it disappears. */
+export function useMarkPromptResponded() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+  if (getToken) setGetTokenFn(getToken);
+
+  return useMutation({
+    mutationFn: (promptSendId: string) => promptsApi.markPromptResponded(promptSendId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['prompts', 'in-app-feed'] });
+    },
+  });
+}
+
+// ---- Owner: manage upcoming prompts -----------------------------------
+
+export function useUpcomingPrompts(journalId: string) {
+  const { getToken } = useAuth();
+  if (getToken) setGetTokenFn(getToken);
+
+  return useQuery({
+    queryKey: ['prompts', 'upcoming', journalId],
+    queryFn: () => promptsApi.getUpcomingPrompts(journalId),
+    enabled: !!journalId,
+    staleTime: 1000 * 30,
+  });
+}
+
+export function useAddUpcomingPrompt() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+  if (getToken) setGetTokenFn(getToken);
+
+  return useMutation({
+    mutationFn: ({
+      journalId,
+      body,
+    }: {
+      journalId: string;
+      body: { text: string; scheduledFor: string; category?: string };
+    }) => promptsApi.addUpcomingPrompt(journalId, body),
+    onSuccess: (_, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['prompts', 'upcoming', journalId] });
+    },
+  });
+}
+
+export function useEditUpcomingPrompt() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+  if (getToken) setGetTokenFn(getToken);
+
+  return useMutation({
+    mutationFn: ({
+      scheduledPromptId,
+      body,
+    }: {
+      scheduledPromptId: string;
+      // journalId is only used to invalidate; not sent in body
+      journalId: string;
+      body: { text?: string; scheduledFor?: string };
+    }) => promptsApi.editUpcomingPrompt(scheduledPromptId, body),
+    onSuccess: (_, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['prompts', 'upcoming', journalId] });
+    },
+  });
+}
+
+export function useCancelUpcomingPrompt() {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+  if (getToken) setGetTokenFn(getToken);
+
+  return useMutation({
+    mutationFn: ({
+      scheduledPromptId,
+    }: {
+      scheduledPromptId: string;
+      journalId: string;
+    }) => promptsApi.cancelUpcomingPrompt(scheduledPromptId),
+    onSuccess: (_, { journalId }) => {
+      queryClient.invalidateQueries({ queryKey: ['prompts', 'upcoming', journalId] });
+    },
+  });
+}

@@ -64,6 +64,21 @@ export class Participant {
   @Column({ type: 'timestamptz', nullable: true })
   opted_in_at: Date;
 
+  /**
+   * How this participant prefers to receive prompts.
+   *   'sms'    → text-only (requires phone_number, requires opted_in)
+   *   'in_app' → push notification + in-app prompt feed (requires linked
+   *              User account with a PushToken; app-only users)
+   *   'both'   → SMS first, also surfaces in the in-app feed (default for
+   *              participants who have both a phone and an app account)
+   *
+   * Default 'sms' preserves backwards compatibility for participants
+   * created before this column existed (they were always SMS-based).
+   * The scheduler honors this on dispatch.
+   */
+  @Column({ type: 'varchar', length: 16, default: 'sms' })
+  delivery_channel: 'sms' | 'in_app' | 'both';
+
   @Column({ type: 'timestamptz', nullable: true })
   last_response_at: Date;
 

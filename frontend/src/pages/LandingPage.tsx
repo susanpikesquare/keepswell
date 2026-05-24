@@ -51,7 +51,7 @@ export function LandingPage() {
                 in one place you'll always come back to.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 mb-10">
+              <div className="flex flex-col sm:flex-row gap-4 mb-6">
                 <Link to="/sign-up">
                   <Button
                     size="lg"
@@ -61,16 +61,29 @@ export function LandingPage() {
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
-                <Link to="/sign-in">
+                <Link to="/how-it-works">
                   <Button
                     variant="outline"
                     size="lg"
                     className="text-base px-8 py-6 rounded-full border-[#DCCCB7] bg-transparent text-[#3C4858] hover:bg-white/60 w-full sm:w-auto"
                   >
-                    Sign in
+                    See how it works
                   </Button>
                 </Link>
               </div>
+
+              <p className="text-sm text-[#3C4858]/70 mb-10">
+                New to Keepswell?{' '}
+                <Link to="/how-it-works" className="text-[#D86F5C] underline-offset-4 hover:underline">
+                  Read the full guide
+                </Link>{' '}
+                — what Keepswell does, how to invite people, and how it works
+                over text. Or{' '}
+                <Link to="/sign-in" className="text-[#D86F5C] underline-offset-4 hover:underline">
+                  sign in
+                </Link>
+                {' '}if you already have an account.
+              </p>
 
               <div className="flex flex-wrap items-center gap-6 text-sm text-[#3C4858]/80">
                 <span className="flex items-center gap-2">
@@ -230,15 +243,26 @@ export function LandingPage() {
             Start a Keepswell journal today. Free, simple, and shaped around
             the people and moments that matter most.
           </p>
-          <Link to="/sign-up">
-            <Button
-              size="lg"
-              className="text-base px-10 py-7 rounded-full bg-[#D86F5C] text-[#F6F1EA] hover:bg-[#c2604f] shadow-md hover:shadow-xl transition-all"
-            >
-              Start your journal — free
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-          </Link>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Link to="/sign-up">
+              <Button
+                size="lg"
+                className="text-base px-10 py-7 rounded-full bg-[#D86F5C] text-[#F6F1EA] hover:bg-[#c2604f] shadow-md hover:shadow-xl transition-all"
+              >
+                Start your journal — free
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+            </Link>
+            <Link to="/how-it-works">
+              <Button
+                variant="outline"
+                size="lg"
+                className="text-base px-10 py-7 rounded-full border-[#DCCCB7] bg-transparent text-[#3C4858] hover:bg-white/60"
+              >
+                Read the full guide
+              </Button>
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -256,6 +280,9 @@ export function LandingPage() {
             </Link>
 
             <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm">
+              <Link to="/how-it-works" className="hover:text-[#F6F1EA] transition-colors">
+                How it works
+              </Link>
               <Link to="/pricing" className="hover:text-[#F6F1EA] transition-colors">
                 Pricing
               </Link>

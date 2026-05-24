@@ -1,0 +1,5 @@
+# Build artifacts produced by build-pdf.mjs — regenerate locally.
+.tmp-user-guide.html
+.tmp-chrome-profile/
+# Vendor copy of `marked`. Installed on demand; not worth checking in.
+vendor/

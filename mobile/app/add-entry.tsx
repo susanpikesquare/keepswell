@@ -17,12 +17,21 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
 
 import { useCreateEntry, useImagePicker } from '../hooks';
+import { useMarkPromptResponded } from '../hooks/usePrompts';
 import { uploadMultipleToCloudinary } from '../lib/cloudinary';
 
 export default function AddEntryScreen() {
-  const { journalId } = useLocalSearchParams<{ journalId: string }>();
+  // promptSendId + promptText come from the in-app prompts feed when the user
+  // taps "Respond". We display the prompt as a banner and, on successful
+  // entry creation, mark the prompt responded so it leaves the feed.
+  const { journalId, promptSendId, promptText } = useLocalSearchParams<{
+    journalId: string;
+    promptSendId?: string;
+    promptText?: string;
+  }>();
   const router = useRouter();
   const createEntry = useCreateEntry(journalId || '');
+  const markPromptResponded = useMarkPromptResponded();
   const { images, pickImages, takePhoto, removeImage, clearImages } = useImagePicker();
 
   const [content, setContent] = useState('');
@@ -63,6 +72,17 @@ export default function AddEntryScreen() {
         content: content.trim() || undefined,
         media_urls: mediaUrls.length > 0 ? mediaUrls : undefined,
       });
+
+      // If this entry was a response to a specific prompt, mark it as
+      // answered so it stops showing in the in-app feed. Best-effort: a
+      // failure here shouldn't block the success of the entry itself.
+      if (promptSendId) {
+        try {
+          await markPromptResponded.mutateAsync(promptSendId);
+        } catch (err) {
+          console.warn('[prompts] markPromptResponded failed:', err);
+        }
+      }
 
       // Clear form and navigate back
       clearImages();
@@ -124,6 +144,17 @@ export default function AddEntryScreen() {
         )}
 
         <ScrollView style={styles.content} keyboardShouldPersistTaps="handled">
+          {/* Prompt banner (only when responding to a prompt from the feed) */}
+          {promptText ? (
+            <View style={styles.promptBanner}>
+              <View style={styles.promptBannerHeader}>
+                <FontAwesome name="comment-o" size={14} color="#D86F5C" />
+                <Text style={styles.promptBannerLabel}>Responding to prompt</Text>
+              </View>
+              <Text style={styles.promptBannerText}>{promptText}</Text>
+            </View>
+          ) : null}
+
           {/* Text Input */}
           <TextInput
             style={styles.textInput}
@@ -270,6 +301,33 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  promptBanner: {
+    margin: 16,
+    marginBottom: 0,
+    padding: 14,
+    backgroundColor: '#F6F1EA',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F5C9BF',
+  },
+  promptBannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 6,
+  },
+  promptBannerLabel: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#D86F5C',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  promptBannerText: {
+    fontSize: 16,
+    color: '#1a1a1a',
+    lineHeight: 22,
   },
   textInput: {
     padding: 16,

@@ -41,6 +41,8 @@ export interface Participant {
   avatar_url: string | null;
   status: 'pending' | 'active' | 'paused' | 'removed';
   opted_in: boolean;
+  /** How this participant receives writing prompts. Default 'sms'. */
+  delivery_channel: 'sms' | 'in_app' | 'both';
   last_response_at: string | null;
   created_at: string;
   updated_at: string;
@@ -228,6 +230,8 @@ export interface CreateJournalDto {
   cover_image_url?: string | null;
   owner_phone?: string;
   owner_participate?: boolean;
+  /** Auto-generate a queue of prompts from the template at creation. Default true. */
+  seed_prompts?: boolean;
 }
 
 export interface InviteParticipantDto {

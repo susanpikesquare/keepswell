@@ -8,6 +8,7 @@ import { UpdateJournalDto } from './dto/update-journal.dto';
 import { JoinRequestDto } from './dto/join-request.dto';
 import { SmsService } from '../sms/sms.service';
 import { SubscriptionService } from '../payments/subscription.service';
+import { SchedulerService } from '../scheduler/scheduler.service';
 
 @Injectable()
 export class JournalsService {
@@ -25,6 +26,7 @@ export class JournalsService {
     @Inject(forwardRef(() => SmsService))
     private smsService: SmsService,
     private subscriptionService: SubscriptionService,
+    private schedulerService: SchedulerService,
   ) {}
 
   async create(clerkId: string, createJournalDto: CreateJournalDto): Promise<Journal> {
@@ -46,8 +48,9 @@ export class JournalsService {
     // Generate a unique join keyword
     const joinKeyword = await this.generateUniqueKeyword(createJournalDto.title);
 
-    // Extract owner participation fields before creating journal
-    const { owner_phone, owner_participate, ...journalData } = createJournalDto;
+    // Extract owner participation + prompt-seeding fields before creating journal
+    const { owner_phone, owner_participate, seed_prompts, ...journalData } =
+      createJournalDto;
 
     // Block owner_phone for free tier users (SMS is Pro only)
     const effectiveOwnerPhone = tierLimits.smsEnabled ? owner_phone : undefined;
@@ -100,6 +103,20 @@ export class JournalsService {
 
       await this.participantRepository.save(ownerParticipant);
       this.logger.log(`Owner added as participant (web only) to journal ${savedJournal.id}`);
+    }
+
+    // Seed upcoming prompts from the template so the owner has something to
+    // preview / edit in the "Upcoming prompts" UI. Default = on (per product
+    // decision: prompts auto-generate; owner can override later). Wrapped in
+    // a try/catch so a templating failure can't block journal creation.
+    if (seed_prompts !== false) {
+      try {
+        await this.schedulerService.seedUpcomingScheduledPrompts(savedJournal.id);
+      } catch (err) {
+        this.logger.warn(
+          `Failed to seed prompts for journal ${savedJournal.id}: ${(err as Error).message}`,
+        );
+      }
     }
 
     return savedJournal;

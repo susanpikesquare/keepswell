@@ -34,6 +34,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="prompts"
+        options={{
+          title: 'Prompts',
+          tabBarIcon: ({ color }) => <TabBarIcon name="comment-o" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',

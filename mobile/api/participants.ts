@@ -19,7 +19,11 @@ export const participantsApi = {
 
   update: async (
     id: string,
-    data: Partial<{ display_name: string; status: string }>
+    data: Partial<{
+      display_name: string;
+      status: string;
+      delivery_channel: 'sms' | 'in_app' | 'both';
+    }>
   ): Promise<Participant> => {
     const response = await apiClient.patch<Participant>(`/participants/${id}`, data);
     return response.data;

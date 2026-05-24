@@ -20,6 +20,7 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { useUpdateJournal, useDeleteJournal } from '../hooks';
 import { PromptOrderSection } from './PromptOrderSection';
+import { UpcomingPromptsSection } from './UpcomingPromptsSection';
 import { notificationsApi, type NotificationPreferences, type Journal } from '../api';
 import { uploadToCloudinary } from '../lib/cloudinary';
 
@@ -561,11 +562,21 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
             )}
           </View>
 
-          {/* Prompt Order Section */}
+          {/* Upcoming Prompts Section — queue + per-prompt edit/cancel/add */}
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Prompts</Text>
+            <Text style={styles.sectionTitle}>Upcoming Prompts</Text>
             <Text style={styles.promptDescription}>
-              Manage your prompts and their delivery order. Move prompts up or down to change the order they'll be sent.
+              These are the next prompts that will be sent. Edit the text,
+              remove ones you don't want, or add your own.
+            </Text>
+            <UpcomingPromptsSection journalId={journal.id} />
+          </View>
+
+          {/* Prompt Library Section — reorder template prompts */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Prompt Library</Text>
+            <Text style={styles.promptDescription}>
+              Reorder the broader pool of prompts the journal can pull from over time.
             </Text>
             <PromptOrderSection journalId={journal.id} />
           </View>

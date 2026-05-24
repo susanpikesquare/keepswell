@@ -99,6 +99,10 @@ export function CreateJournalPage() {
   const [smsConsent, setSmsConsent] = useState(false);
   const [phoneError, setPhoneError] = useState<string | null>(null);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  // Auto-generate the prompt queue from the template at creation. Default ON
+  // (matches the mobile flow and the product decision). The owner can edit
+  // or replace queued prompts later from journal settings.
+  const [seedPrompts, setSeedPrompts] = useState(true);
 
   const formatPhoneNumber = (value: string) => {
     const digits = value.replace(/\D/g, '');
@@ -154,6 +158,7 @@ export function CreateJournalPage() {
         template_type: selectedTemplate,
         owner_phone: (includeOwner && smsConsent && ownerPhoneDigits.length >= 10) ? `+1${ownerPhoneDigits}` : undefined,
         owner_participate: includeOwner,
+        seed_prompts: seedPrompts,
       });
 
       navigate(`/journals/${journal.id}`);
@@ -403,6 +408,26 @@ export function CreateJournalPage() {
                 )}
               </div>
             )}
+          </div>
+
+          {/* Prompts on/off */}
+          <div className="border rounded-lg p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={seedPrompts}
+                onChange={(e) => setSeedPrompts(e.target.checked)}
+                className="mt-1 h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+              />
+              <div>
+                <span className="font-medium text-foreground">Send writing prompts</span>
+                <p className="text-sm text-muted-foreground">
+                  {seedPrompts
+                    ? "We'll auto-generate prompts from this template. You can preview, edit, or add your own anytime from journal settings."
+                    : 'Start with an empty queue. You can add your own prompts manually from journal settings.'}
+                </p>
+              </div>
+            </label>
           </div>
 
           {/* Error Display */}

@@ -19,6 +19,7 @@ import { PrivacyPage } from './pages/PrivacyPage';
 import { TermsPage } from './pages/TermsPage';
 import { SmsConsentPage } from './pages/SmsConsentPage';
 import { SupportPage } from './pages/SupportPage';
+import { HowItWorksPage } from './pages/HowItWorksPage';
 
 function App() {
   return (
@@ -33,6 +34,7 @@ function App() {
         <Route path="/sms-consent" element={<SmsConsentPage />} />
         <Route path="/support" element={<SupportPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/how-it-works" element={<HowItWorksPage />} />
 
         {/* Protected routes */}
         <Route
