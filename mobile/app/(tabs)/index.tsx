@@ -59,7 +59,13 @@ function JournalCard({ journal, onPress }: { journal: Journal; onPress: () => vo
   );
 }
 
-function EmptyState({ onCreatePress }: { onCreatePress: () => void }) {
+function EmptyState({
+  onCreatePress,
+  onGuidePress,
+}: {
+  onCreatePress: () => void;
+  onGuidePress: () => void;
+}) {
   return (
     <View style={styles.emptyContainer}>
       <FontAwesome name="book" size={64} color="#ccc" />
@@ -70,6 +76,11 @@ function EmptyState({ onCreatePress }: { onCreatePress: () => void }) {
       <TouchableOpacity style={styles.createButton} onPress={onCreatePress}>
         <FontAwesome name="plus" size={16} color="#fff" style={{ marginRight: 8 }} />
         <Text style={styles.createButtonText}>Create Journal</Text>
+      </TouchableOpacity>
+      <TouchableOpacity onPress={onGuidePress} style={{ marginTop: 12, paddingVertical: 8 }}>
+        <Text style={{ color: '#D86F5C', fontSize: 14, fontWeight: '600' }}>
+          New here? Read the guide →
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -129,7 +140,10 @@ export default function JournalsScreen() {
       </View>
 
       {journalsList.length === 0 ? (
-        <EmptyState onCreatePress={handleCreatePress} />
+        <EmptyState
+          onCreatePress={handleCreatePress}
+          onGuidePress={() => router.push('/guide')}
+        />
       ) : (
         <>
           <FlatList

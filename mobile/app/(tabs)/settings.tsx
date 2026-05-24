@@ -266,6 +266,17 @@ export default function SettingsScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>About</Text>
           <View style={styles.card}>
+            {/* First entry is the new in-app guide — most useful, so place
+                it at the top of the About card. */}
+            <TouchableOpacity
+              style={styles.menuItem}
+              onPress={() => router.push('/guide')}
+            >
+              <FontAwesome name="book" size={20} color="#D86F5C" />
+              <Text style={styles.menuItemText}>How Keepswell works</Text>
+              <FontAwesome name="chevron-right" size={14} color="#ccc" />
+            </TouchableOpacity>
+            <View style={styles.menuDivider} />
             <View style={styles.menuItem}>
               <FontAwesome name="info-circle" size={20} color="#666" />
               <Text style={styles.menuItemText}>Version</Text>

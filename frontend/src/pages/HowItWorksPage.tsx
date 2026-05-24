@@ -98,6 +98,14 @@ export function HowItWorksPage() {
           Keepswell is the gentle place those moments can live, all
           together, and stay easy to find when you want them.
         </Callout>
+        <Callout
+          icon={<Lock className="h-5 w-5 text-[#D86F5C]" />}
+          title="Our promise"
+        >
+          Your journals are private. Your memories belong to you and the
+          people you've invited. We don't sell your data, and we never
+          will.
+        </Callout>
       </Section>
 
       {/* ============================== WHO ============================== */}
@@ -107,29 +115,29 @@ export function HowItWorksPage() {
           Some of the ways people are using it today:
         </p>
         <div className="grid md:grid-cols-2 gap-4 mt-6">
-          <UseCase title="Families">
+          <UseCase emoji="🏡" title="Families">
             Parents, kids, grandparents, aunts and uncles — invite everyone
             and watch a shared family story grow week by week.
           </UseCase>
-          <UseCase title="New parents">
+          <UseCase emoji="👶" title="New parents">
             Capture the first smile, the first steps, the funny things your
             kids say — all the stuff you swear you'll remember but won't.
           </UseCase>
-          <UseCase title="Couples">
+          <UseCase emoji="💞" title="Couples">
             Date nights, inside jokes, the trip you took on a whim. A
             private journal just for the two of you.
           </UseCase>
-          <UseCase title="Travelers">
+          <UseCase emoji="✈️" title="Travelers">
             One memory book per trip. Drop photos and notes as you go,
             print or share when you're home.
           </UseCase>
-          <UseCase title="Milestones">
+          <UseCase emoji="🎉" title="Milestones">
             Weddings, graduations, retirements, a year of recovery — invite
             everyone you love to share what they remember.
           </UseCase>
-          <UseCase title="People remembering someone">
-            Gather stories from everyone who knew them. A living tribute
-            you can revisit, add to, and share.
+          <UseCase emoji="🕊️" title="Tributes">
+            Gather stories from everyone who knew a loved one. A living
+            tribute you can revisit, add to, and share.
           </UseCase>
         </div>
       </Section>
@@ -177,38 +185,21 @@ export function HowItWorksPage() {
           Templates set the tone, suggest prompts, and shape what the
           finished memory book looks like:
         </p>
-        <ul className="space-y-3 mt-4">
-          <Bullet>
-            <strong>Family</strong> — warm, multi-generational prompts about
-            traditions, milestones, and everyday life.
-          </Bullet>
-          <Bullet>
-            <strong>Friends</strong> — playful, story-driven prompts perfect for
-            a group you've been close to for years.
-          </Bullet>
-          <Bullet>
-            <strong>Romantic</strong> — intimate prompts for couples about
-            shared moments, gratitude, and the small things.
-          </Bullet>
-          <Bullet>
-            <strong>Vacation</strong> — short, in-the-moment prompts designed
-            to be answered on the go, so a trip doesn't fade.
-          </Bullet>
-          <Bullet>
-            <strong>Celebration</strong> — built for milestones like weddings,
-            retirements, and graduations, with prompts that invite guests
-            to share their favorite memories.
-          </Bullet>
-          <Bullet>
-            <strong>Custom</strong> — start blank and write all of your own
-            prompts. Best when you have a very specific use in mind.
-          </Bullet>
-        </ul>
-        <p className="mt-6">
+        <ComparisonTable
+          headers={['Template', "What it's for"]}
+          rows={[
+            ['👨‍👩‍👧 Family', 'Warm, multi-generational prompts about traditions, milestones, and everyday life.'],
+            ['👯 Friends', "Playful, story-driven prompts perfect for a group you've been close to for years."],
+            ['💕 Romantic', 'Intimate prompts for couples about shared moments, gratitude, and the small things.'],
+            ['✈️ Vacation', "Short, in-the-moment prompts designed to be answered on the go, so a trip doesn't fade."],
+            ['🎉 Celebration', 'Built for milestones — weddings, retirements, graduations — with prompts that invite guests to share their favorite memories.'],
+            ['📔 Custom', 'Start blank and write all of your own prompts. Best when you have a very specific use in mind.'],
+          ]}
+        />
+        <Callout icon={<span className="text-xl">✏️</span>} title="Templates are a starting point, not a cage">
           You can change templates, edit any prompt, or add your own
-          custom prompts at any time. Templates are a starting point, not
-          a cage.
-        </p>
+          custom prompts at any time.
+        </Callout>
       </Section>
 
       {/* ============================== PROMPTS ============================== */}
@@ -224,30 +215,19 @@ export function HowItWorksPage() {
           queue of upcoming prompts from the template you picked. You're
           in full control of that queue:
         </p>
-        <ul className="space-y-3 mt-4">
-          <Bullet>
-            <strong>Preview</strong> the next several prompts that will be sent
-            and see exactly what's coming.
-          </Bullet>
-          <Bullet>
-            <strong>Edit</strong> the wording on any upcoming prompt so it
-            sounds more like you.
-          </Bullet>
-          <Bullet>
-            <strong>Cancel</strong> a prompt you don't want to send.
-          </Bullet>
-          <Bullet>
-            <strong>Add</strong> your own custom prompts that matter to your
-            family or moment.
-          </Bullet>
-          <Bullet>
-            <strong>Turn prompts off entirely</strong> if you'd rather use
-            Keepswell as a journal you write in on your own schedule.
-          </Bullet>
-        </ul>
+        <ComparisonTable
+          headers={['You can…', 'What it does']}
+          rows={[
+            ['Preview', 'See the next several prompts that will be sent.'],
+            ['Edit', 'Change the wording on any upcoming prompt so it sounds more like you.'],
+            ['Cancel', "Skip a prompt you don't want to send."],
+            ['Add', 'Drop in a custom prompt that matters to your family or moment.'],
+            ['Pause', "Turn prompts off entirely if you'd rather write on your own schedule."],
+          ]}
+        />
         <p className="mt-6">
-          Prompts arrive on the cadence you choose — daily, weekly,
-          biweekly, or monthly — at a time and day-of-week of your
+          Prompts arrive on the cadence you choose — <strong>daily, weekly,
+          biweekly, or monthly</strong> — at a time and day-of-week of your
           choosing, in your local timezone.
         </p>
       </Section>
@@ -298,18 +278,24 @@ export function HowItWorksPage() {
             journal's settings screen.
           </Bullet>
         </ul>
-        <p className="mt-6">
-          You decide, for each contributor, how they receive prompts —
-          by SMS, in the Keepswell app, or both. If a contributor only
-          uses the app, prompts show up in the app's Prompts tab. If
-          they don't use the app, prompts arrive as a simple text
-          message. They don't have to download anything they don't want
-          to.
+        <h3 className="font-serif text-xl text-[#1F2328] mt-8 mb-3">
+          How each contributor receives prompts
+        </h3>
+        <p className="mb-4">
+          For every contributor, <strong>you</strong> choose how prompts reach them:
         </p>
-        <p>
+        <ComparisonTable
+          headers={['Channel', 'Best for']}
+          rows={[
+            ['📱 SMS', "People who don't want to install an app. Prompts arrive as a regular text."],
+            ['🔔 In-app', 'Contributors who use the Keepswell iOS app. Prompts land in the Prompts tab and as a push notification.'],
+            ['✨ Both', 'The best of both worlds — SMS first, also visible in the in-app feed.'],
+          ]}
+        />
+        <Callout icon={<Users className="h-5 w-5 text-[#D86F5C]" />} title="Owner controls">
           Owners can approve, pause, or remove contributors at any time
           from the journal's settings.
-        </p>
+        </Callout>
       </Section>
 
       {/* ============================== MEMORY BOOK ============================== */}
@@ -486,15 +472,13 @@ export function HowItWorksPage() {
             purposes. See our <Link to="/sms-consent" className="underline">SMS terms</Link>.
           </p>
         </Subsection>
-        <Subsection title="Why SMS matters">
-          <p>
-            The SMS option is what makes Keepswell different from "another
-            app to download." A grandparent who doesn't want to install
-            anything new can still share the story of how they met your
-            grandmother — by text — and it lands in your family memory
-            book alongside everyone else's.
-          </p>
-        </Subsection>
+        <Callout icon={<Smartphone className="h-5 w-5 text-[#D86F5C]" />} title="Why SMS matters">
+          The SMS option is what makes Keepswell different from "another
+          app to download." A grandparent who doesn't want to install
+          anything new can still share the story of how they met your
+          grandmother — by text — and it lands in your family memory
+          book alongside everyone else's.
+        </Callout>
       </Section>
 
       {/* ============================== NOTIFICATIONS / PRIVACY ============================== */}
@@ -515,12 +499,15 @@ export function HowItWorksPage() {
           </p>
         </Subsection>
         <Subsection title="What we do (and don't) do with your data">
-          <ul className="space-y-2">
-            <Bullet>We store your memories so you and the people you've invited can read them. That's the whole reason Keepswell exists.</Bullet>
-            <Bullet>We don't sell your data, ever.</Bullet>
-            <Bullet>We don't share your phone number or email with third parties for marketing.</Bullet>
-            <Bullet>You can delete a journal at any time and we permanently remove the memories in it.</Bullet>
-          </ul>
+          <ComparisonTable
+            headers={['✅ We do', "❌ We don't"]}
+            rows={[
+              ["Store your memories so you and the people you've invited can read them.", 'Sell your data. Ever.'],
+              ["Send the notifications you've opted into.", 'Share your phone number or email for marketing.'],
+              ['Back up your content in secure, replicated cloud storage.', 'Make journals public unless you explicitly share them.'],
+              ['Permanently delete a journal when you tell us to.', 'Use your photos or stories to train AI without consent.'],
+            ]}
+          />
           <p className="mt-3">
             For the full details, read our{' '}
             <Link to="/privacy" className="text-[#D86F5C] underline-offset-4 hover:underline">Privacy Policy</Link>.
@@ -606,17 +593,25 @@ export function HowItWorksPage() {
         </FAQ>
       </Section>
 
-      {/* ============================== FINAL CTA ============================== */}
-      <section className="py-24 px-6 relative overflow-hidden">
+      {/* ============================== BACK COVER ============================== */}
+      <section className="py-28 px-6 relative overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-[#DCCCB7]/40 via-[#F6F1EA] to-[#F6F1EA]" />
-        <div className="container mx-auto max-w-3xl text-center">
+        <div className="container mx-auto max-w-2xl text-center">
+          <img
+            src="/logo-mark.png"
+            alt="Keepswell"
+            className="h-16 w-auto mx-auto mb-6"
+          />
+          <p className="font-serif text-2xl md:text-3xl text-[#D86F5C] mb-2 italic">
+            Capture moments. Cherish life.
+          </p>
           <h2 className="font-serif text-3xl md:text-4xl mb-4 text-[#1F2328]">
-            Start a journal today.
+            Start your journal today.
           </h2>
           <p className="text-[#3C4858] text-lg mb-8">
             Free to begin. No app required for the people you invite.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
             <Link to="/sign-up">
               <Button
                 size="lg"
@@ -636,6 +631,17 @@ export function HowItWorksPage() {
               </Button>
             </Link>
           </div>
+          <p className="text-xs text-[#3C4858]/70">
+            © Keepswell. A product of PikeSquare, LLC.
+            <br />
+            <Link to="/privacy" className="underline-offset-4 hover:underline">Privacy</Link>
+            {' · '}
+            <Link to="/terms" className="underline-offset-4 hover:underline">Terms</Link>
+            {' · '}
+            <Link to="/sms-consent" className="underline-offset-4 hover:underline">SMS program</Link>
+            {' · '}
+            <Link to="/support" className="underline-offset-4 hover:underline">Support</Link>
+          </p>
         </div>
       </section>
     </div>
@@ -687,6 +693,44 @@ function Bullet({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Two-column reference table used across the guide for templates, channels,
+ * do/don't comparisons, etc. Mirrors the table treatment used in the PDF
+ * export so the web and the print asset feel like the same document.
+ */
+function ComparisonTable({
+  headers,
+  rows,
+}: {
+  headers: [string, string];
+  rows: Array<[React.ReactNode, React.ReactNode]>;
+}) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-[#DCCCB7]/60 bg-white mt-4 mb-4">
+      <table className="w-full text-left">
+        <thead>
+          <tr className="bg-[#F6F1EA]">
+            <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#3C4858] w-1/3">
+              {headers[0]}
+            </th>
+            <th className="px-5 py-3 text-xs font-semibold uppercase tracking-wider text-[#3C4858]">
+              {headers[1]}
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-[#DCCCB7]/50">
+          {rows.map((row, i) => (
+            <tr key={i}>
+              <td className="px-5 py-4 text-[#1F2328] font-medium align-top">{row[0]}</td>
+              <td className="px-5 py-4 text-[#3C4858] align-top">{row[1]}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-5">
@@ -704,10 +748,23 @@ function Step({ n, title, children }: { n: number; title: string; children: Reac
   );
 }
 
-function UseCase({ title, children }: { title: string; children: React.ReactNode }) {
+function UseCase({
+  emoji,
+  title,
+  children,
+}: {
+  emoji?: string;
+  title: string;
+  children: React.ReactNode;
+}) {
   return (
     <div className="bg-white border border-[#DCCCB7]/60 rounded-2xl p-5">
-      <h3 className="font-serif text-lg text-[#1F2328] mb-2">{title}</h3>
+      <div className="flex items-center gap-3 mb-2">
+        {emoji ? (
+          <span aria-hidden className="text-2xl leading-none">{emoji}</span>
+        ) : null}
+        <h3 className="font-serif text-lg text-[#1F2328]">{title}</h3>
+      </div>
       <p className="text-[#3C4858] text-sm leading-relaxed">{children}</p>
     </div>
   );
@@ -750,9 +807,6 @@ function FAQ({ q, children }: { q: string; children: React.ReactNode }) {
 void Globe;
 void ImageIcon;
 void MessageSquare;
-void Smartphone;
-void Users;
 void Calendar;
 void Bell;
-void Lock;
 void Share2;
