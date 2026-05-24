@@ -124,9 +124,22 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
   const [uploadingCover, setUploadingCover] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  // Action-token guards against stale uploads if the user picks a new file
-  // mid-upload — only the most-recently-started upload may write state.
+  // Incremented every time the user changes the cover via any *non-upload*
+  // path — picking a template, editing the URL, or removing the cover. An
+  // in-flight upload captures the token at start and only applies its
+  // result if the token still matches; otherwise the user picked
+  // something else while we were uploading and we drop our result. This
+  // prevents a slow upload from clobbering an explicit later choice.
   const uploadTokenRef = useRef(0);
+
+  /**
+   * Wrap setCoverImage so any non-upload mutation bumps the action token,
+   * invalidating any in-flight upload's success branch.
+   */
+  const setCoverImageManual = (value: string) => {
+    uploadTokenRef.current += 1;
+    setCoverImage(value);
+  };
 
   const handlePickCoverFromDevice = () => {
     setUploadError(null);
@@ -334,7 +347,7 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
                   className="w-full h-32 object-cover"
                 />
                 <button
-                  onClick={() => setCoverImage('')}
+                  onClick={() => setCoverImageManual('')}
                   className="absolute top-2 right-2 p-1.5 bg-black/50 hover:bg-black/70 rounded-full text-white transition-colors"
                 >
                   <X className="h-4 w-4" />
@@ -409,7 +422,7 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
                     <button
                       key={template.id}
                       onClick={() => {
-                        setCoverImage(template.url);
+                        setCoverImageManual(template.url);
                         setShowCoverPicker(false);
                       }}
                       className={`relative aspect-[3/1] rounded-lg overflow-hidden border-2 transition-all hover:scale-105 ${
@@ -440,7 +453,7 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
                   <Input
                     placeholder="https://example.com/image.jpg"
                     value={coverImage.startsWith('https://images.unsplash.com') ? '' : coverImage}
-                    onChange={(e) => setCoverImage(e.target.value)}
+                    onChange={(e) => setCoverImageManual(e.target.value)}
                     className="flex-1"
                   />
                   <Button
