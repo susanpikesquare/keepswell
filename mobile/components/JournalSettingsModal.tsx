@@ -25,7 +25,7 @@ import { notificationsApi, type NotificationPreferences, type Journal } from '..
 import { uploadToCloudinary } from '../lib/cloudinary';
 
 // SMS phone number (Telnyx number)
-const SMS_PHONE_NUMBER = '+1 (916) 439-8709';
+const SMS_PHONE_NUMBER = '+1 (831) 340-7377';
 
 // Cover image templates - using Unsplash for high-quality free images
 const COVER_TEMPLATES = [
