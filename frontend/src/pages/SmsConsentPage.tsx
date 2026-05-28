@@ -310,7 +310,7 @@ export function SmsConsentPage() {
                 <div className="bg-gray-100 rounded-lg p-4">
                   <p className="text-sm text-gray-600 mb-2">Text this keyword to join:</p>
                   <p className="text-2xl font-bold text-blue-600">JOIN FAMILY2024</p>
-                  <p className="text-lg text-gray-700 mt-2">to +1 (916) 439-8709</p>
+                  <p className="text-lg text-gray-700 mt-2">to +1 (831) 340-7377</p>
                 </div>
 
                 <div className="bg-gray-100 rounded-lg p-4">
@@ -336,7 +336,7 @@ export function SmsConsentPage() {
               <div className="space-y-4">
                 {/* User sends keyword */}
                 <div>
-                  <p className="text-xs text-gray-500 mb-1">User texts to +1 (916) 439-8709:</p>
+                  <p className="text-xs text-gray-500 mb-1">User texts to +1 (831) 340-7377:</p>
                   <div className="bg-gray-200 text-gray-900 rounded-lg p-3 text-sm ml-auto max-w-[180px] text-center font-medium">
                     JOIN FAMILY2024
                   </div>
