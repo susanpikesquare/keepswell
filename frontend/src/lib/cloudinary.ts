@@ -35,12 +35,15 @@ export function isCloudinaryConfigured(): boolean {
 }
 
 /**
- * Upload a single File (from an <input type="file"> change event) and
- * resolve with the resulting `secure_url`. Calls `onProgress` while the
- * bytes upload — handy for showing a progress bar on big photos.
+ * Upload a File (from an <input type="file">) or a Blob (e.g. a canvas-
+ * cropped image) and resolve with the resulting `secure_url`. Calls
+ * `onProgress` while the bytes upload — handy for showing a progress bar.
+ *
+ * A bare Blob has no filename, so we pass one explicitly; Cloudinary
+ * otherwise rejects multipart parts without a filename.
  */
 export async function uploadFileToCloudinary(
-  file: File,
+  file: File | Blob,
   onProgress?: (p: UploadProgress) => void,
 ): Promise<string> {
   if (!CLOUD_NAME || !UPLOAD_PRESET) {
@@ -51,7 +54,8 @@ export async function uploadFileToCloudinary(
   }
 
   const formData = new FormData();
-  formData.append('file', file);
+  const filename = file instanceof File ? file.name : 'cover.jpg';
+  formData.append('file', file, filename);
   formData.append('upload_preset', UPLOAD_PRESET);
   formData.append('folder', 'keepswell/web');
 

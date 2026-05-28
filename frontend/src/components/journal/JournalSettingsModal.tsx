@@ -5,6 +5,7 @@ import { Modal, Button, Input } from '../ui';
 import { useUpdateJournal, useDeleteJournal } from '../../hooks';
 import { PromptOrderSection } from './PromptOrderSection';
 import { isCloudinaryConfigured, uploadFileToCloudinary } from '../../lib/cloudinary';
+import { CoverCropModal } from './CoverCropModal';
 import type { Journal } from '../../types';
 
 // SMS phone number (Telnyx number)
@@ -150,21 +151,27 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
     setCoverImage(value);
   };
 
+  // Object URL of the photo currently being cropped (null = cropper closed).
+  // The user picks a file, we open the crop modal on this src, then upload
+  // the cropped result. We revoke the URL when the cropper closes.
+  const [cropSrc, setCropSrc] = useState<string | null>(null);
+
   const handlePickCoverFromDevice = () => {
     setUploadError(null);
     fileInputRef.current?.click();
   };
 
-  const handleCoverFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCoverFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     // Always reset the input so picking the same file twice still fires onChange.
     e.target.value = '';
     if (!file) return;
 
-    // 8 MB cap — Cloudinary unsigned uploads allow more but big photos
-    // make the UI feel broken before the progress bar catches up.
-    if (file.size > 8 * 1024 * 1024) {
-      setUploadError('Please choose an image under 8 MB.');
+    // 12 MB cap on the source — we downscale to a 1200×400 JPEG on crop, so
+    // the uploaded result is tiny regardless. This just guards against
+    // someone choosing an enormous RAW-ish file.
+    if (file.size > 12 * 1024 * 1024) {
+      setUploadError('Please choose an image under 12 MB.');
       return;
     }
     if (!file.type.startsWith('image/')) {
@@ -172,17 +179,29 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
       return;
     }
 
+    setUploadError(null);
+    // Open the crop/zoom/reposition step. Upload happens on confirm.
+    setCropSrc(URL.createObjectURL(file));
+  };
+
+  const closeCropper = () => {
+    if (cropSrc) URL.revokeObjectURL(cropSrc);
+    setCropSrc(null);
+  };
+
+  // Upload the cropped 1200×400 banner the cropper hands back, then persist.
+  const handleCropConfirm = async (blob: Blob) => {
     const token = ++uploadTokenRef.current;
     setUploadingCover(true);
     setUploadProgress(0);
     setUploadError(null);
     try {
-      const url = await uploadFileToCloudinary(file, (p) => {
+      const url = await uploadFileToCloudinary(blob, (p) => {
         if (token === uploadTokenRef.current) {
           setUploadProgress(Math.round(p.progress * 100));
         }
       });
-      if (token !== uploadTokenRef.current) return; // a newer upload superseded us
+      if (token !== uploadTokenRef.current) return; // a newer action superseded us
       setCoverImage(url);
       // Persist immediately so the user sees the new cover even if they close
       // the modal without touching another setting.
@@ -191,6 +210,7 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
         data: { cover_image_url: url },
       });
       setShowCoverPicker(false);
+      closeCropper();
     } catch (err) {
       if (token === uploadTokenRef.current) {
         setUploadError((err as Error).message || 'Upload failed. Please try again.');
@@ -385,6 +405,9 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
               {isCloudinaryConfigured() ? (
                 <div>
                   <p className="text-sm font-medium mb-2">Upload from your computer or phone</p>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    You'll be able to crop, zoom, and reposition it before saving.
+                  </p>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -645,6 +668,16 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
           )}
         </section>
       </div>
+
+      {/* Crop / zoom / reposition step — opens after a device photo is picked */}
+      {cropSrc ? (
+        <CoverCropModal
+          imageSrc={cropSrc}
+          busy={uploadingCover}
+          onConfirm={handleCropConfirm}
+          onCancel={closeCropper}
+        />
+      ) : null}
     </Modal>
   );
 }
