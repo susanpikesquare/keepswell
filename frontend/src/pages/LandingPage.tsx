@@ -129,10 +129,10 @@ export function LandingPage() {
               {/* Floating editorial card */}
               <div className="absolute -bottom-10 -left-6 max-w-xs bg-white rounded-2xl p-5 shadow-xl shadow-[#3C4858]/10 border border-[#DCCCB7]/60 hidden md:block">
                 <p className="font-serif text-lg italic text-[#1F2328] leading-snug">
-                  "Dad dressed up as Santa and got stuck in the chimney. We're
-                  still laughing about it."
+                  "Grandma told us how she and Grandpa met at a church dance —
+                  we'd never heard the whole story."
                 </p>
-                <p className="text-xs text-[#3C4858]/70 mt-3">— a memory collected for Mom's birthday book</p>
+                <p className="text-xs text-[#3C4858]/70 mt-3">— a memory collected for our family journal</p>
               </div>
             </div>
           </div>
