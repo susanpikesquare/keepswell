@@ -13,9 +13,15 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui';
 
-// Pre-formatted mailto for beta access requests. Keeps the user out of
-// having to think about subject/body and gives PikeSquare a clean inbox
-// filter to triage from. Swap to an App Store link once shipped.
+// Public TestFlight invite link. Get this from App Store Connect →
+// your app → TestFlight → (a Public Group) → "Enable Public Link", then
+// paste the https://testflight.apple.com/join/XXXXXXXX URL here.
+// While this is empty, the beta CTA falls back to the email request below.
+// Swap to the App Store product URL once the app is publicly released.
+const TESTFLIGHT_URL = '';
+
+// Fallback: pre-formatted mailto for beta access requests when there's no
+// public TestFlight link yet. Gives PikeSquare a clean inbox filter.
 const BETA_MAILTO =
   'mailto:susan@pikesquare.co?subject=' +
   encodeURIComponent('Keepswell iOS beta access request') +
@@ -26,6 +32,11 @@ const BETA_MAILTO =
       'Anything you want to share about what you plan to use Keepswell for:\n\n' +
       'Thanks!\n',
   );
+
+// The beta CTA points at TestFlight when we have a public link, otherwise
+// at the email request. `betaIsLink` lets the UI label the button right.
+const BETA_HREF = TESTFLIGHT_URL || BETA_MAILTO;
+const BETA_IS_TESTFLIGHT = Boolean(TESTFLIGHT_URL);
 
 // Editorial lifestyle photography for the landing page.
 const LANDING_IMAGES = {
@@ -268,18 +279,38 @@ export function LandingPage() {
                 Store, and we're inviting a small group of testers right
                 now.
               </p>
-              <p className="text-[#3C4858] mb-8">
-                <strong>Want in?</strong> Email us your Apple ID and we'll
-                send you a TestFlight invite.
+              <p className="text-[#3C4858] mb-6">
+                <strong>Want in?</strong>{' '}
+                {BETA_IS_TESTFLIGHT
+                  ? "Join the beta on TestFlight — it takes about a minute."
+                  : "Email us your Apple ID and we'll send you a TestFlight invite."}
               </p>
+
+              {/* "Coming soon" App Store badge — a non-clickable placeholder
+                  until the public release. Swap TESTFLIGHT_URL → App Store
+                  link + make this clickable when the app ships. */}
+              <div className="inline-flex items-center gap-2 rounded-xl border border-[#1F2328]/15 bg-white/70 px-4 py-2.5 mb-6">
+                <svg viewBox="0 0 24 24" className="h-6 w-6 text-[#1F2328]" fill="currentColor" aria-hidden>
+                  <path d="M16.365 1.43c0 1.14-.41 2.2-1.1 2.98-.78.9-2.06 1.6-3.13 1.5-.13-1.07.42-2.2 1.04-2.92.74-.86 2.07-1.5 3.19-1.56zM20.5 17.06c-.55 1.27-.82 1.84-1.53 2.96-.99 1.57-2.39 3.52-4.12 3.53-1.54.02-1.94-.99-4.03-.98-2.09.01-2.53.99-4.07.97-1.73-.01-3.05-1.78-4.04-3.34-2.78-4.38-3.07-9.52-1.36-12.25 1.22-1.94 3.14-3.08 4.95-3.08 1.84 0 3 .98 4.52.98 1.48 0 2.38-.98 4.51-.98 1.61 0 3.32.87 4.54 2.38-3.99 2.16-3.34 7.78.16 9.79z"/>
+                </svg>
+                <div className="leading-tight">
+                  <div className="text-[10px] uppercase tracking-wider text-[#3C4858]/70">Coming soon to</div>
+                  <div className="text-base font-semibold text-[#1F2328]">the App Store</div>
+                </div>
+              </div>
+
               <div className="flex flex-col sm:flex-row gap-4">
-                <a href={BETA_MAILTO}>
+                <a href={BETA_HREF} target={BETA_IS_TESTFLIGHT ? '_blank' : undefined} rel="noreferrer">
                   <Button
                     size="lg"
                     className="text-base px-7 py-6 rounded-full bg-[#D86F5C] text-[#F6F1EA] hover:bg-[#c2604f] shadow-md hover:shadow-lg transition-all w-full sm:w-auto"
                   >
-                    <Mail className="mr-2 h-4 w-4" />
-                    Request beta access
+                    {BETA_IS_TESTFLIGHT ? (
+                      <Smartphone className="mr-2 h-4 w-4" />
+                    ) : (
+                      <Mail className="mr-2 h-4 w-4" />
+                    )}
+                    {BETA_IS_TESTFLIGHT ? 'Join the beta on TestFlight' : 'Request beta access'}
                   </Button>
                 </a>
                 <Link to="/how-it-works#ios">
@@ -360,7 +391,12 @@ export function LandingPage() {
               <Link to="/how-it-works" className="hover:text-[#F6F1EA] transition-colors">
                 How it works
               </Link>
-              <a href={BETA_MAILTO} className="hover:text-[#F6F1EA] transition-colors">
+              <a
+                href={BETA_HREF}
+                target={BETA_IS_TESTFLIGHT ? '_blank' : undefined}
+                rel="noreferrer"
+                className="hover:text-[#F6F1EA] transition-colors"
+              >
                 iOS beta
               </a>
               <Link to="/pricing" className="hover:text-[#F6F1EA] transition-colors">

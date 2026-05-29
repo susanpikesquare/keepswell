@@ -8,16 +8,26 @@ import {
   Body,
   Query,
   UseGuards,
+  ForbiddenException,
+  NotFoundException,
 } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { TemplatesService } from './templates.service';
 import { PromptSelectionService } from './prompt-selection.service';
 import { ClerkAuthGuard, Public } from '../../common/guards';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import type { AuthUser } from '../../common/decorators/current-user.decorator';
+import { User } from '../../database/entities';
+import { SubscriptionService } from '../payments/subscription.service';
 
 @Controller('templates')
 export class TemplatesController {
   constructor(
     private readonly templatesService: TemplatesService,
     private readonly promptSelectionService: PromptSelectionService,
+    private readonly subscriptionService: SubscriptionService,
+    @InjectRepository(User) private readonly userRepo: Repository<User>,
   ) {}
 
   /**
@@ -197,6 +207,7 @@ export class TemplatesController {
    */
   @Post('journal/:journalId/prompts')
   async createJournalPrompt(
+    @CurrentUser() auth: AuthUser,
     @Param('journalId') journalId: string,
     @Body()
     body: {
@@ -207,6 +218,12 @@ export class TemplatesController {
       requires_photo?: boolean;
     },
   ) {
+    // Gate: custom prompts are a Pro feature.
+    const user = await this.userRepo.findOne({ where: { clerk_id: auth.clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    const check = this.subscriptionService.canUseCustomPrompts(user);
+    if (!check.allowed) throw new ForbiddenException(check.reason);
+
     return this.templatesService.createJournalPrompt(journalId, body);
   }
 

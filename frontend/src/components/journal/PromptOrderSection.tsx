@@ -9,6 +9,7 @@ import {
   useDeleteJournalPrompt,
 } from '../../hooks/useTemplates';
 import { Button } from '../ui';
+import { UpgradeNotice } from './UpgradeNotice';
 import type { Prompt } from '../../types';
 
 interface PromptOrderSectionProps {
@@ -68,6 +69,8 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null);
   const [formData, setFormData] = useState<PromptFormData>(DEFAULT_FORM_DATA);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  // Surfaces server-side gate errors (e.g. custom prompts are Pro-only).
+  const [saveError, setSaveError] = useState('');
 
   // Sync local state with fetched prompts
   useEffect(() => {
@@ -132,10 +135,12 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
     setEditingPromptId(null);
     setShowAddForm(false);
     setFormData(DEFAULT_FORM_DATA);
+    setSaveError('');
   };
 
   const handleSavePrompt = async () => {
     if (!formData.text.trim()) return;
+    setSaveError('');
 
     try {
       if (editingPromptId) {
@@ -151,8 +156,10 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
         });
       }
       handleCancelEdit();
-    } catch (error) {
-      console.error('Failed to save prompt:', error);
+    } catch (error: any) {
+      // Surface gate errors (e.g. "Custom prompts are a Pro feature…") with
+      // an upgrade link instead of failing silently.
+      setSaveError(error?.response?.data?.message || 'Failed to save prompt. Please try again.');
     }
   };
 
@@ -222,6 +229,8 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
           <span>Photo prompt</span>
         </label>
       </div>
+
+      {saveError ? <UpgradeNotice message={saveError} /> : null}
 
       <div className="flex gap-2 justify-end">
         <Button

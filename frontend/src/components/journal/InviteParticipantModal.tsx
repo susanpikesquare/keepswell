@@ -3,6 +3,7 @@ import { UserPlus, Phone, User, Heart, AlertCircle, Crown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Modal, Button, Input } from '../ui';
 import { useInviteParticipant, useParticipants, useUsageLimits } from '../../hooks';
+import { UpgradeNotice } from './UpgradeNotice';
 
 interface InviteParticipantModalProps {
   isOpen: boolean;
@@ -125,9 +126,10 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
-          <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg text-sm text-destructive">
-            {error}
-          </div>
+          // UpgradeNotice adds a "View plans" link when the error is a
+          // Pro-gate (e.g. inviting by SMS on a free account); plain
+          // validation errors render without the link.
+          <UpgradeNotice message={error} />
         )}
 
         {/* Contributor Limit Warning */}
