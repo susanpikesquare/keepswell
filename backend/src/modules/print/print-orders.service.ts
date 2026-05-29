@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PDFDocument } from 'pdf-lib';
 
+import { BookOrder, Journal, User } from '../../database/entities';
 import type { BookShippingAddress } from '../../database/entities';
 import { ExportService } from '../export/export.service';
 import { StorageService } from '../storage/storage.service';
@@ -50,6 +53,12 @@ export class PrintOrdersService {
     private readonly storage: StorageService,
     private readonly lulu: LuluService,
     private readonly config: ConfigService,
+    @InjectRepository(BookOrder)
+    private readonly orderRepo: Repository<BookOrder>,
+    @InjectRepository(Journal)
+    private readonly journalRepo: Repository<Journal>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   /** Markup percentage applied to Lulu's print cost. Env-tunable. */
@@ -59,17 +68,31 @@ export class PrintOrdersService {
     return Number.isFinite(n) && n >= 0 ? n : 40;
   }
 
-  /** Map our trim-size choice to the export service's page-size option. */
-  private trimToPageSize(trimSize: string): 'letter' | '6x9' | '8x10' {
-    switch (trimSize) {
-      case '6x9':
-        return '6x9';
-      case '8x10':
-        return '8x10';
-      case '8.5x11':
-      default:
-        return 'letter'; // letter == 8.5×11
+  /**
+   * The only trim sizes we offer — both validated against the Lulu sandbox
+   * AND renderable by the export template at a matching interior size.
+   */
+  private static readonly SUPPORTED_TRIM_SIZES = ['6x9', '8.5x11'];
+
+  /**
+   * Reject any trim size we don't fully support. This is the single guard
+   * that keeps the interior page size (trimToPageSize) and the Lulu trim
+   * code (LuluService.resolvePackageId) from diverging — without it a
+   * client passing e.g. '8x10' would get an 8×10 interior submitted under
+   * an 8.5×11 trim code and Lulu would reject the job.
+   */
+  private assertSupportedTrim(trimSize: string): void {
+    if (!PrintOrdersService.SUPPORTED_TRIM_SIZES.includes(trimSize)) {
+      throw new BadRequestException(
+        `Unsupported trim size "${trimSize}". Choose one of: ${PrintOrdersService.SUPPORTED_TRIM_SIZES.join(', ')}.`,
+      );
     }
+  }
+
+  /** Map our (already-validated) trim-size choice to the export page size. */
+  private trimToPageSize(trimSize: string): 'letter' | '6x9' {
+    // '8.5x11' renders as 'letter' (identical dimensions); '6x9' is native.
+    return trimSize === '6x9' ? '6x9' : 'letter';
   }
 
   private async countPages(pdf: Buffer): Promise<number> {
@@ -95,6 +118,7 @@ export class PrintOrdersService {
     interiorPdfUrl: string;
     coverDimensions: CoverDimensions;
   }> {
+    this.assertSupportedTrim(input.trimSize);
     // 1. Render the interior (also enforces journal ownership) + count pages.
     const pdf = await this.exportService.generatePdf(input.journalId, clerkId, {
       pageSize: this.trimToPageSize(input.trimSize),
@@ -130,6 +154,7 @@ export class PrintOrdersService {
   }
 
   async estimate(clerkId: string, input: EstimateInput): Promise<EstimateResult> {
+    this.assertSupportedTrim(input.trimSize);
     // 1. Render the interior + count pages. generatePdf also enforces that
     //    the requester owns the journal, so we don't re-check here.
     const pdf = await this.exportService.generatePdf(input.journalId, clerkId, {
@@ -174,5 +199,116 @@ export class PrintOrdersService {
       markupCents,
       retailTotalCents,
     };
+  }
+
+  /**
+   * Submit a FREE sandbox print job end-to-end: render + host the interior,
+   * compute cover dimensions, generate + host the cover, persist a
+   * BookOrder, and create the Lulu print job. No Stripe — this validates
+   * the write-path (does Lulu accept our PDFs?) before we wire payment.
+   *
+   * The shipping address is required by Lulu even in sandbox; callers pass
+   * a real or test address.
+   */
+  async submitSandboxPrint(
+    clerkId: string,
+    input: {
+      journalId: string;
+      trimSize: string;
+      binding: string;
+      shippingAddress: BookShippingAddress;
+      shippingLevel: string;
+    },
+  ): Promise<{ orderId: string; jobId: string; status: string }> {
+    const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    const journal = await this.journalRepo.findOne({ where: { id: input.journalId } });
+    if (!journal) throw new NotFoundException('Journal not found');
+
+    // 1. Render + host the interior, resolve package id + cover dimensions.
+    const prep = await this.prepare(clerkId, {
+      journalId: input.journalId,
+      trimSize: input.trimSize,
+      binding: input.binding,
+    });
+
+    // 2. Generate + host the cover at Lulu's exact dimensions.
+    const coverPdf = await this.exportService.generateCoverPdf(
+      input.journalId,
+      clerkId,
+      prep.coverDimensions.widthPt,
+      prep.coverDimensions.heightPt,
+    );
+    const coverPdfUrl = await this.storage.uploadPdf(coverPdf, `cover-${input.journalId}`);
+
+    // 3. Persist a draft order so we can reconcile the Lulu job to it.
+    const order = await this.orderRepo.save(
+      this.orderRepo.create({
+        journal_id: input.journalId,
+        user_id: user.id,
+        status: 'submitted',
+        pod_package_id: prep.podPackageId,
+        trim_size: input.trimSize,
+        binding: input.binding,
+        page_count: prep.pageCount,
+        quantity: 1,
+        interior_pdf_url: prep.interiorPdfUrl,
+        cover_pdf_url: coverPdfUrl,
+        shipping_address: input.shippingAddress,
+        shipping_level: input.shippingLevel,
+      }),
+    );
+
+    // 4. Submit the print job to Lulu (sandbox = free, validates our files).
+    try {
+      const job = await this.lulu.createPrintJob({
+        externalId: order.id,
+        title: journal.title || 'Keepswell memory book',
+        contactEmail: user.email,
+        packageId: prep.podPackageId,
+        pageCount: prep.pageCount,
+        quantity: 1,
+        interiorPdfUrl: prep.interiorPdfUrl,
+        coverPdfUrl,
+        shippingAddress: input.shippingAddress,
+        shippingLevel: input.shippingLevel,
+      });
+      order.lulu_job_id = job.jobId;
+      order.printer_status = job.status;
+      await this.orderRepo.save(order);
+      this.logger.log(
+        `Sandbox print job ${job.jobId} (${job.status}) for order ${order.id}`,
+      );
+      return { orderId: order.id, jobId: job.jobId, status: job.status };
+    } catch (err) {
+      order.status = 'error';
+      order.error_message = (err as Error).message;
+      await this.orderRepo.save(order);
+      throw err;
+    }
+  }
+
+  /**
+   * Re-fetch a BookOrder's Lulu status (file validation / production /
+   * shipping), update the stored row, and return it. Owner-scoped.
+   */
+  async getOrderStatus(clerkId: string, orderId: string): Promise<BookOrder> {
+    const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    const order = await this.orderRepo.findOne({ where: { id: orderId } });
+    if (!order || order.user_id !== user.id) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.lulu_job_id) {
+      try {
+        const status = await this.lulu.getPrintJobStatus(order.lulu_job_id);
+        order.printer_status = status.status;
+        if (status.trackingUrl) order.tracking_url = status.trackingUrl;
+        await this.orderRepo.save(order);
+      } catch (err) {
+        this.logger.warn(`Could not refresh Lulu status for order ${orderId}: ${(err as Error).message}`);
+      }
+    }
+    return order;
   }
 }

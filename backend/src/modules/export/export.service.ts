@@ -165,6 +165,81 @@ export class ExportService {
     }
   }
 
+  /**
+   * Generate a full-bleed cover PDF sized to EXACTLY the dimensions Lulu's
+   * cover-dimensions endpoint returned (points). Lulu's cover spans
+   * back-cover | spine | front-cover left-to-right and already includes
+   * bleed, so we render at the exact size with zero page margin and a
+   * full-bleed background, placing the title in the front-cover (right)
+   * safe area. First-pass design — refined once we see Lulu's file
+   * validation on a real (sandbox) job.
+   */
+  async generateCoverPdf(
+    journalId: string,
+    clerkId: string,
+    coverWidthPt: number,
+    coverHeightPt: number,
+  ): Promise<Buffer> {
+    const user = await this.userRepository.findOne({ where: { clerk_id: clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    const journal = await this.journalRepository.findOne({ where: { id: journalId } });
+    if (!journal) throw new NotFoundException('Journal not found');
+    if (journal.owner_id !== user.id) {
+      throw new ForbiddenException('Not authorized to export this journal');
+    }
+
+    const widthIn = coverWidthPt / 72;
+    const heightIn = coverHeightPt / 72;
+    const title = (journal.title || 'Our Memory Book').replace(/</g, '&lt;');
+    const bg = journal.cover_image_url
+      ? `background-image: linear-gradient(rgba(31,35,40,0.25), rgba(31,35,40,0.45)), url('${journal.cover_image_url}'); background-size: cover; background-position: center;`
+      : 'background: linear-gradient(135deg, #DCCCB7 0%, #F5C9BF 100%);';
+    const titleColor = journal.cover_image_url ? '#FFFFFF' : '#1F2328';
+
+    // The title sits in the front-cover region (right ~48% of the wrap),
+    // inset from the trim edge so it stays inside the safe area regardless
+    // of the exact spine width.
+    const html = `<!doctype html><html><head><meta charset="utf-8"><style>
+      @page { margin: 0; size: ${widthIn}in ${heightIn}in; }
+      html, body { margin: 0; padding: 0; width: ${widthIn}in; height: ${heightIn}in; }
+      .cover { width: 100%; height: 100%; ${bg} position: relative; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      .front { position: absolute; top: 0; right: 0; width: 48%; height: 100%;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 0.75in 0.6in; box-sizing: border-box; text-align: center; }
+      .title { font-family: Georgia, 'Times New Roman', serif; font-size: 42pt; line-height: 1.15;
+        color: ${titleColor}; margin: 0; }
+      .tagline { font-family: Georgia, serif; font-style: italic; font-size: 16pt;
+        color: ${titleColor}; opacity: 0.9; margin-top: 0.3in; }
+    </style></head><body>
+      <div class="cover"><div class="front">
+        <h1 class="title">${title}</h1>
+        <div class="tagline">A Keepswell memory book</div>
+      </div></div>
+    </body></html>`;
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
+      const pdfBuffer = await page.pdf({
+        width: `${widthIn}in`,
+        height: `${heightIn}in`,
+        printBackground: true,
+        margin: { top: '0', bottom: '0', left: '0', right: '0' },
+      });
+      this.logger.log(
+        `Generated cover PDF for journal ${journalId} (${widthIn.toFixed(2)}x${heightIn.toFixed(2)}in)`,
+      );
+      return Buffer.from(pdfBuffer);
+    } finally {
+      await browser.close();
+    }
+  }
+
   private getPageDimensions(size: string = 'letter'): { width: string; height: string } {
     switch (size) {
       case '6x9':

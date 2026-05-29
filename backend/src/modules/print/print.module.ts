@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { BookOrder, Journal, User } from '../../database/entities';
 import { LuluService } from './lulu.service';
 import { PrintOrdersService } from './print-orders.service';
 import { PrintController } from './print.controller';
@@ -17,7 +19,12 @@ import { StorageModule } from '../storage/storage.module';
  * downstream code depending on the interface, not the vendor.
  */
 @Module({
-  imports: [ConfigModule, ExportModule, StorageModule],
+  imports: [
+    ConfigModule,
+    ExportModule,
+    StorageModule,
+    TypeOrmModule.forFeature([BookOrder, Journal, User]),
+  ],
   controllers: [PrintController],
   providers: [
     LuluService,

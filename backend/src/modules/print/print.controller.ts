@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 
 import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { Public } from '../../common/decorators';
@@ -100,5 +100,46 @@ export class PrintController {
       trimSize: body.trimSize || '8.5x11',
       binding: body.binding || 'perfect',
     });
+  }
+
+  /**
+   * Submit a FREE sandbox print job end-to-end (interior + cover + Lulu
+   * job). No charge — validates that Lulu accepts our generated PDFs.
+   * A shipping address is required; falls back to a Lulu test address.
+   */
+  @Post('test-submit')
+  async testSubmit(
+    @CurrentUser() auth: AuthUser,
+    @Body()
+    body: {
+      journalId: string;
+      trimSize?: string;
+      binding?: string;
+      shippingAddress?: BookShippingAddress;
+      shippingLevel?: string;
+    },
+  ) {
+    const SAMPLE_ADDRESS: BookShippingAddress = {
+      name: 'Keepswell Test',
+      street1: '631 Tia Juana Street',
+      city: 'Lakeland',
+      state_code: 'FL',
+      postcode: '33801',
+      country_code: 'US',
+      phone_number: '8442124009',
+    };
+    return this.printOrders.submitSandboxPrint(auth.clerkId, {
+      journalId: body.journalId,
+      trimSize: body.trimSize || '8.5x11',
+      binding: body.binding || 'perfect',
+      shippingAddress: body.shippingAddress || SAMPLE_ADDRESS,
+      shippingLevel: body.shippingLevel || 'MAIL',
+    });
+  }
+
+  /** Refresh + return a book order's Lulu status (owner-scoped). */
+  @Get('orders/:id')
+  async orderStatus(@CurrentUser() auth: AuthUser, @Param('id') id: string) {
+    return this.printOrders.getOrderStatus(auth.clerkId, id);
   }
 }
