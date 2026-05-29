@@ -29,11 +29,15 @@ export class ExportController {
     @Body() options: ExportPdfDto,
     @Res() res: Response,
   ) {
-    const pdfBuffer = await this.exportService.generatePdf(
-      journalId,
-      user.clerkId,
-      options,
-    );
+    // Only forward the consumer-facing options. We MUST NOT spread the raw
+    // body here: `forPrint` bypasses the free-tier watermark / entry cap /
+    // page-size limits and is for internal (paid print-order) use only.
+    // Since ExportPdfDto is a plain interface, the ValidationPipe can't
+    // strip an injected `forPrint`, so we whitelist explicitly.
+    const pdfBuffer = await this.exportService.generatePdf(journalId, user.clerkId, {
+      pageSize: options?.pageSize,
+      includeTableOfContents: options?.includeTableOfContents,
+    });
 
     res.set({
       'Content-Type': 'application/pdf',

@@ -85,8 +85,8 @@ export class BookOrder {
   pod_package_id: string;
 
   // Human-friendly spec for display + our own logic.
-  @Column({ type: 'varchar', length: 16, default: '8x10' })
-  trim_size: string; // '6x9' | '8x10' | '8.5x11'
+  @Column({ type: 'varchar', length: 16, default: '8.5x11' })
+  trim_size: string; // '6x9' | '8.5x11' (Lulu-validated, renderable sizes)
 
   @Column({ type: 'varchar', length: 16, default: 'perfect' })
   binding: string; // 'perfect' | 'hardcover' | 'saddle' | 'coil'
