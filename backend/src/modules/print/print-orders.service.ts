@@ -1,7 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { PDFDocument } from 'pdf-lib';
 
+import { BookOrder, Journal, User } from '../../database/entities';
 import type { BookShippingAddress } from '../../database/entities';
 import { ExportService } from '../export/export.service';
 import { StorageService } from '../storage/storage.service';
@@ -50,6 +53,12 @@ export class PrintOrdersService {
     private readonly storage: StorageService,
     private readonly lulu: LuluService,
     private readonly config: ConfigService,
+    @InjectRepository(BookOrder)
+    private readonly orderRepo: Repository<BookOrder>,
+    @InjectRepository(Journal)
+    private readonly journalRepo: Repository<Journal>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   /** Markup percentage applied to Lulu's print cost. Env-tunable. */
@@ -174,5 +183,116 @@ export class PrintOrdersService {
       markupCents,
       retailTotalCents,
     };
+  }
+
+  /**
+   * Submit a FREE sandbox print job end-to-end: render + host the interior,
+   * compute cover dimensions, generate + host the cover, persist a
+   * BookOrder, and create the Lulu print job. No Stripe — this validates
+   * the write-path (does Lulu accept our PDFs?) before we wire payment.
+   *
+   * The shipping address is required by Lulu even in sandbox; callers pass
+   * a real or test address.
+   */
+  async submitSandboxPrint(
+    clerkId: string,
+    input: {
+      journalId: string;
+      trimSize: string;
+      binding: string;
+      shippingAddress: BookShippingAddress;
+      shippingLevel: string;
+    },
+  ): Promise<{ orderId: string; jobId: string; status: string }> {
+    const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    const journal = await this.journalRepo.findOne({ where: { id: input.journalId } });
+    if (!journal) throw new NotFoundException('Journal not found');
+
+    // 1. Render + host the interior, resolve package id + cover dimensions.
+    const prep = await this.prepare(clerkId, {
+      journalId: input.journalId,
+      trimSize: input.trimSize,
+      binding: input.binding,
+    });
+
+    // 2. Generate + host the cover at Lulu's exact dimensions.
+    const coverPdf = await this.exportService.generateCoverPdf(
+      input.journalId,
+      clerkId,
+      prep.coverDimensions.widthPt,
+      prep.coverDimensions.heightPt,
+    );
+    const coverPdfUrl = await this.storage.uploadPdf(coverPdf, `cover-${input.journalId}`);
+
+    // 3. Persist a draft order so we can reconcile the Lulu job to it.
+    const order = await this.orderRepo.save(
+      this.orderRepo.create({
+        journal_id: input.journalId,
+        user_id: user.id,
+        status: 'submitted',
+        pod_package_id: prep.podPackageId,
+        trim_size: input.trimSize,
+        binding: input.binding,
+        page_count: prep.pageCount,
+        quantity: 1,
+        interior_pdf_url: prep.interiorPdfUrl,
+        cover_pdf_url: coverPdfUrl,
+        shipping_address: input.shippingAddress,
+        shipping_level: input.shippingLevel,
+      }),
+    );
+
+    // 4. Submit the print job to Lulu (sandbox = free, validates our files).
+    try {
+      const job = await this.lulu.createPrintJob({
+        externalId: order.id,
+        title: journal.title || 'Keepswell memory book',
+        contactEmail: user.email,
+        packageId: prep.podPackageId,
+        pageCount: prep.pageCount,
+        quantity: 1,
+        interiorPdfUrl: prep.interiorPdfUrl,
+        coverPdfUrl,
+        shippingAddress: input.shippingAddress,
+        shippingLevel: input.shippingLevel,
+      });
+      order.lulu_job_id = job.jobId;
+      order.printer_status = job.status;
+      await this.orderRepo.save(order);
+      this.logger.log(
+        `Sandbox print job ${job.jobId} (${job.status}) for order ${order.id}`,
+      );
+      return { orderId: order.id, jobId: job.jobId, status: job.status };
+    } catch (err) {
+      order.status = 'error';
+      order.error_message = (err as Error).message;
+      await this.orderRepo.save(order);
+      throw err;
+    }
+  }
+
+  /**
+   * Re-fetch a BookOrder's Lulu status (file validation / production /
+   * shipping), update the stored row, and return it. Owner-scoped.
+   */
+  async getOrderStatus(clerkId: string, orderId: string): Promise<BookOrder> {
+    const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    const order = await this.orderRepo.findOne({ where: { id: orderId } });
+    if (!order || order.user_id !== user.id) {
+      throw new NotFoundException('Order not found');
+    }
+    if (order.lulu_job_id) {
+      try {
+        const status = await this.lulu.getPrintJobStatus(order.lulu_job_id);
+        order.printer_status = status.status;
+        if (status.trackingUrl) order.tracking_url = status.trackingUrl;
+        await this.orderRepo.save(order);
+      } catch (err) {
+        this.logger.warn(`Could not refresh Lulu status for order ${orderId}: ${(err as Error).message}`);
+      }
+    }
+    return order;
   }
 }
