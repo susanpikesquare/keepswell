@@ -190,7 +190,9 @@ export class LuluService implements PrintProvider {
     if (!res.ok) {
       const text = await res.text();
       this.logger.error(`Lulu cover-dimensions failed (${res.status}): ${text}`);
-      throw new ServiceUnavailableException('Could not compute cover dimensions.');
+      throw new ServiceUnavailableException(
+        `cover-dimensions ${res.status}: ${text.slice(0, 400)}`,
+      );
     }
     const data = (await res.json()) as {
       width: number;
@@ -223,13 +225,16 @@ export class LuluService implements PrintProvider {
           },
         ],
         shipping_address: this.toLuluAddress(shippingAddress),
-        shipping_option_level: shippingLevel,
+        // Lulu's cost-calc + print-jobs endpoints both use `shipping_level`.
+        shipping_level: shippingLevel,
       }),
     });
     if (!res.ok) {
       const text = await res.text();
       this.logger.error(`Lulu cost-calc failed (${res.status}): ${text}`);
-      throw new ServiceUnavailableException('Could not calculate the print cost.');
+      throw new ServiceUnavailableException(
+        `cost-calc ${res.status}: ${text.slice(0, 400)}`,
+      );
     }
     const data = (await res.json()) as {
       currency: string;
