@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trash2, Clock, AlertTriangle, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered, Upload } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
@@ -184,12 +184,21 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
     setCropSrc(URL.createObjectURL(file));
   };
 
-  const closeCropper = () => {
-    if (cropSrc) URL.revokeObjectURL(cropSrc);
-    setCropSrc(null);
-  };
+  // Just clears the source; the effect below revokes the object URL when
+  // cropSrc changes (or the whole modal unmounts), so we never leak it —
+  // even if the user presses Escape and the entire settings modal closes.
+  const closeCropper = () => setCropSrc(null);
+
+  useEffect(() => {
+    if (!cropSrc) return;
+    return () => URL.revokeObjectURL(cropSrc);
+  }, [cropSrc]);
 
   // Upload the cropped 1200×400 banner the cropper hands back, then persist.
+  // We deliberately DON'T catch upload errors here — they propagate back to
+  // CoverCropModal (which awaits this), so the cropper can show the error in
+  // place and re-enable its buttons. We only own the spinner state via the
+  // finally block.
   const handleCropConfirm = async (blob: Blob) => {
     const token = ++uploadTokenRef.current;
     setUploadingCover(true);
@@ -211,10 +220,6 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
       });
       setShowCoverPicker(false);
       closeCropper();
-    } catch (err) {
-      if (token === uploadTokenRef.current) {
-        setUploadError((err as Error).message || 'Upload failed. Please try again.');
-      }
     } finally {
       if (token === uploadTokenRef.current) {
         setUploadingCover(false);

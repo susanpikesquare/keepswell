@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import Cropper from 'react-easy-crop';
 import type { Area } from 'react-easy-crop';
 import { Button } from '../ui';
@@ -64,8 +64,13 @@ async function getCroppedBlob(imageSrc: string, cropPixels: Area): Promise<Blob>
 interface CoverCropModalProps {
   /** Object URL (or data URL) of the picked image. */
   imageSrc: string;
-  /** Called with the cropped 1200×400 JPEG blob when the user confirms. */
-  onConfirm: (blob: Blob) => void;
+  /**
+   * Called with the cropped 1200×400 JPEG blob when the user confirms.
+   * MUST be awaited — it returns a promise that resolves when the upload
+   * succeeds and rejects if it fails, so this modal can surface the error
+   * in place and re-enable its buttons instead of getting stuck.
+   */
+  onConfirm: (blob: Blob) => Promise<void>;
   onCancel: () => void;
   /** True while the parent is uploading the confirmed crop. */
   busy?: boolean;
@@ -78,6 +83,8 @@ export function CoverCropModal({ imageSrc, onConfirm, onCancel, busy }: CoverCro
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const disabled = working || busy;
+
   const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
     setCroppedAreaPixels(areaPixels);
   }, []);
@@ -88,16 +95,32 @@ export function CoverCropModal({ imageSrc, onConfirm, onCancel, busy }: CoverCro
     setWorking(true);
     try {
       const blob = await getCroppedBlob(imageSrc, croppedAreaPixels);
-      onConfirm(blob);
+      // Awaited so an upload failure lands in our catch — otherwise the
+      // modal would stay disabled forever with the error hidden behind it.
+      await onConfirm(blob);
+      // On success the parent unmounts this modal, so we don't reset state.
     } catch (e) {
-      setError((e as Error).message || 'Something went wrong cropping the image.');
+      setError(
+        (e as Error)?.message || 'Something went wrong saving the photo. Please try again.',
+      );
       setWorking(false);
     }
-    // Note: we intentionally don't clear `working` on success — the parent
-    // unmounts this modal once the upload finishes.
   };
 
-  const disabled = working || busy;
+  // Escape should close ONLY the cropper, not the whole settings modal.
+  // The parent Modal listens for Escape on document (bubble phase), so we
+  // intercept in the capture phase and stop propagation before it reaches
+  // the parent. We ignore Escape while an upload is in flight.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (!disabled) onCancel();
+    };
+    document.addEventListener('keydown', onKeyDown, true); // capture
+    return () => document.removeEventListener('keydown', onKeyDown, true);
+  }, [disabled, onCancel]);
 
   return (
     <div
