@@ -6,6 +6,7 @@ export { entriesApi } from './entries';
 export { adminApi } from './admin';
 export { paymentsApi } from './payments';
 export { exportApi } from './export';
+export { printApi } from './print';
 export { reactionsApi } from './reactions';
 export type { SimulateEntryDto, CreateWebEntryDto } from './entries';
 export type { CreateReactionDto, ToggleReactionResponse } from './reactions';
