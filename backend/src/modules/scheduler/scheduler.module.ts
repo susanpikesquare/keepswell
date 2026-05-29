@@ -14,6 +14,7 @@ import { SmsModule } from '../sms/sms.module';
 import { TemplatesModule } from '../templates/templates.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { AuthModule } from '../auth/auth.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AuthModule } from '../auth/auth.module';
     TemplatesModule,
     NotificationsModule,
     AuthModule,
+    PaymentsModule,
   ],
   controllers: [PromptsController],
   providers: [SchedulerService],

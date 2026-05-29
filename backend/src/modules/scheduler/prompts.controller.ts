@@ -14,6 +14,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 
+import { ForbiddenException } from '@nestjs/common';
 import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 import type { AuthUser } from '../../common/decorators/current-user.decorator';
@@ -25,6 +26,7 @@ import {
   ScheduledPrompt,
   User,
 } from '../../database/entities';
+import { SubscriptionService } from '../payments/subscription.service';
 
 /**
  * Endpoints that power the in-app prompts experience:
@@ -54,6 +56,7 @@ export class PromptsController {
     private readonly journalRepo: Repository<Journal>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   // ---- Helpers ---------------------------------------------------------
@@ -206,6 +209,12 @@ export class PromptsController {
   ) {
     const user = await this.requireUser(auth);
     await this.requireOwnedJournal(user, journalId);
+
+    // Gate: writing your own prompts is a Pro feature.
+    const customCheck = this.subscriptionService.canUseCustomPrompts(user);
+    if (!customCheck.allowed) {
+      throw new ForbiddenException(customCheck.reason);
+    }
 
     const text = (body.text ?? '').trim();
     if (!text) throw new BadRequestException('text is required');

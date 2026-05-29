@@ -66,11 +66,18 @@ export class ParticipantsService {
       throw new ForbiddenException(canAdd.reason);
     }
 
-    // Get tier limits to determine if SMS is allowed
-    const tierLimits = this.subscriptionService.getTierLimits(user);
-
-    // Block phone number for free tier users (SMS is Pro only)
-    const effectivePhoneNumber = tierLimits.smsEnabled ? dto.phone_number : undefined;
+    // SMS gate: inviting by text is a Pro feature. If a free-tier user
+    // explicitly provides a phone number, surface a clean upgrade prompt
+    // rather than silently dropping it (which left the invitee with no
+    // notification and no explanation). Web-only invites (no phone) still
+    // work on every tier.
+    if (dto.phone_number) {
+      const smsCheck = this.subscriptionService.canUseSms(user);
+      if (!smsCheck.allowed) {
+        throw new ForbiddenException(smsCheck.reason);
+      }
+    }
+    const effectivePhoneNumber = dto.phone_number;
 
     // Generate magic token for participant access
     const magicToken = this.generateMagicToken();

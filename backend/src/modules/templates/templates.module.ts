@@ -7,10 +7,12 @@ import {
   PromptUsageLog,
   AIContent,
   Participant,
+  User,
 } from '../../database/entities';
 import { TemplatesService } from './templates.service';
 import { PromptSelectionService } from './prompt-selection.service';
 import { TemplatesController } from './templates.controller';
+import { PaymentsModule } from '../payments/payments.module';
 
 @Module({
   imports: [
@@ -21,7 +23,9 @@ import { TemplatesController } from './templates.controller';
       PromptUsageLog,
       AIContent,
       Participant,
+      User,
     ]),
+    PaymentsModule,
   ],
   controllers: [TemplatesController],
   providers: [TemplatesService, PromptSelectionService],
