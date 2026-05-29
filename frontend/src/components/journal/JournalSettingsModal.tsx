@@ -270,6 +270,10 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
     try {
       const order = await printApi.orderStatus(testPrintResult.orderId);
       setLatestPrinterStatus(order.printer_status || order.status);
+      // Clear any stale error from a previous failed refresh — otherwise the
+      // UI would show BOTH the red error box and the green success panel at
+      // the same time, which is confusing (h/t Bugbot #32).
+      setTestPrintError(null);
     } catch (error: any) {
       setTestPrintError(error?.message || 'Failed to refresh status');
     } finally {
