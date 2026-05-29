@@ -15,6 +15,8 @@ export type { ReactionType } from './reaction.entity';
 export { Comment } from './comment.entity';
 export { PushToken } from './push-token.entity';
 export { NotificationPreference } from './notification-preference.entity';
+export { BookOrder } from './book-order.entity';
+export type { BookOrderStatus, BookShippingAddress } from './book-order.entity';
 
 // Re-export interfaces from entities
 export type {

@@ -32,6 +32,7 @@ import {
   Comment,
   PushToken,
   NotificationPreference,
+  BookOrder,
 } from './database/entities';
 
 // Modules
@@ -48,6 +49,7 @@ import { ReactionsModule } from './modules/reactions/reactions.module';
 import { CommentsModule } from './modules/comments/comments.module';
 import { SchedulerModule } from './modules/scheduler/scheduler.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
+import { PrintModule } from './modules/print/print.module';
 
 @Module({
   imports: [
@@ -86,6 +88,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
           Comment,
           PushToken,
           NotificationPreference,
+          BookOrder,
         ],
         synchronize: true, // Enabled for early development - TODO: use migrations in production
         logging: configService.get<string>('NODE_ENV') !== 'production',
@@ -114,6 +117,7 @@ import { NotificationsModule } from './modules/notifications/notifications.modul
     CommentsModule,
     SchedulerModule,
     NotificationsModule,
+    PrintModule,
   ],
   controllers: [HealthController],
   providers: [
