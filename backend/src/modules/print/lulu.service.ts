@@ -56,6 +56,21 @@ export class LuluService implements PrintProvider {
     return Boolean(this.clientKey && this.clientSecret);
   }
 
+  /**
+   * Diagnostic: attempt to obtain an access token. Returns a small result
+   * the status endpoint can surface so we can confirm the sandbox keys are
+   * valid without placing an order. Never throws.
+   */
+  async pingAuth(): Promise<{ ok: boolean; error?: string }> {
+    if (!this.isConfigured()) return { ok: false, error: 'not_configured' };
+    try {
+      await this.getToken();
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: (e as Error).message };
+    }
+  }
+
   private ensureConfigured(): void {
     if (!this.isConfigured()) {
       throw new ServiceUnavailableException(
