@@ -30,6 +30,47 @@ export class StorageService {
     }
   }
 
+  /** True when Cloudinary credentials are present. */
+  get ready(): boolean {
+    return this.isConfigured;
+  }
+
+  /**
+   * Upload a raw file buffer (e.g. a generated PDF) to Cloudinary and return
+   * its public, fetchable URL. Used for print assets — Lulu fetches the
+   * interior + cover PDFs by URL, so they must be publicly accessible.
+   *
+   * Uses resource_type 'raw' so Cloudinary stores the PDF verbatim (no image
+   * processing). `publicId` lets us overwrite a previous version for the same
+   * order rather than piling up files.
+   */
+  async uploadPdf(
+    buffer: Buffer,
+    publicId: string,
+    folder = 'keepswell/print',
+  ): Promise<string> {
+    if (!this.isConfigured) {
+      throw new Error('Cloudinary is not configured; cannot host the print PDF.');
+    }
+    const result = await new Promise<UploadApiResponse>((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          folder,
+          resource_type: 'raw',
+          public_id: publicId,
+          overwrite: true,
+          format: 'pdf',
+        },
+        (error, res) => {
+          if (error) reject(error);
+          else resolve(res as UploadApiResponse);
+        },
+      );
+      stream.end(buffer);
+    });
+    return result.secure_url;
+  }
+
   /**
    * Check if a URL is a Telnyx media URL that requires authentication
    */

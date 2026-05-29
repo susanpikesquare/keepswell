@@ -40,6 +40,35 @@ export class PrintController {
   }
 
   /**
+   * Public diagnostic: resolve our default package id and ask Lulu for its
+   * cover dimensions at a sample page count. Confirms our pod_package_id
+   * encoding maps to a real Lulu product (Lulu 400s on an unknown id) —
+   * the single biggest unknown — without needing a journal or login. No
+   * order, no charge. Returns only the package id + dimensions or the error.
+   */
+  @Public()
+  @Get('probe')
+  async probe() {
+    const samplePages = 100;
+    const packages = [
+      { trimSize: '8x10', binding: 'perfect' as const },
+      { trimSize: '6x9', binding: 'perfect' as const },
+      { trimSize: '8.5x11', binding: 'perfect' as const },
+    ];
+    const results = [];
+    for (const p of packages) {
+      const packageId = this.lulu.resolvePackageId({ ...p, color: true });
+      try {
+        const dims = await this.lulu.getCoverDimensions(packageId, samplePages);
+        results.push({ ...p, packageId, ok: true, dims });
+      } catch (e) {
+        results.push({ ...p, packageId, ok: false, error: (e as Error).message });
+      }
+    }
+    return { samplePages, results };
+  }
+
+  /**
    * Quote the customer-facing price to print a journal as a book.
    * No charge, no print — just renders the interior to count pages and
    * asks Lulu (sandbox) for the cost, then applies our markup.
@@ -53,6 +82,24 @@ export class PrintController {
       quantity: body.quantity && body.quantity > 0 ? body.quantity : 1,
       shippingAddress: body.shippingAddress,
       shippingLevel: body.shippingLevel || 'MAIL',
+    });
+  }
+
+  /**
+   * Render + host the interior PDF and resolve the cover dimensions for a
+   * journal. De-risking step before cover generation + job submission; no
+   * charge, no print job. Returns the hosted interior URL, page count, the
+   * resolved pod_package_id, and the exact cover size Lulu expects.
+   */
+  @Post('prepare')
+  async prepare(
+    @CurrentUser() auth: AuthUser,
+    @Body() body: { journalId: string; trimSize?: string; binding?: string },
+  ) {
+    return this.printOrders.prepare(auth.clerkId, {
+      journalId: body.journalId,
+      trimSize: body.trimSize || '8x10',
+      binding: body.binding || 'perfect',
     });
   }
 }
