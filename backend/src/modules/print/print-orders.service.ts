@@ -98,6 +98,7 @@ export class PrintOrdersService {
     // 1. Render the interior (also enforces journal ownership) + count pages.
     const pdf = await this.exportService.generatePdf(input.journalId, clerkId, {
       pageSize: this.trimToPageSize(input.trimSize),
+      forPrint: true, // full book, requested size, no watermark — regardless of tier
     });
     const pageCount = await this.countPages(pdf);
 
@@ -133,6 +134,7 @@ export class PrintOrdersService {
     //    the requester owns the journal, so we don't re-check here.
     const pdf = await this.exportService.generatePdf(input.journalId, clerkId, {
       pageSize: this.trimToPageSize(input.trimSize),
+      forPrint: true, // full book, requested size, no watermark — regardless of tier
     });
     const pageCount = await this.countPages(pdf);
 

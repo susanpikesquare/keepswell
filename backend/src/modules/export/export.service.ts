@@ -10,6 +10,14 @@ import { Journal, Entry, User, Participant } from '../../database/entities';
 interface ExportOptions {
   pageSize?: 'letter' | '6x9' | '8x10';
   includeTableOfContents?: boolean;
+  /**
+   * Generate the full, print-ready book regardless of subscription tier:
+   * honor the requested pageSize, include ALL entries (no free-tier cap),
+   * and drop the watermark. Used when producing the interior PDF for a
+   * paid physical-book order — the print itself is the paid product, so the
+   * consumer free-tier limits don't apply.
+   */
+  forPrint?: boolean;
 }
 
 @Injectable()
@@ -72,8 +80,11 @@ export class ExportService {
       throw new ForbiddenException('Not authorized to export this journal');
     }
 
-    // Determine if user is premium
+    // Determine if user is premium. `unlocked` also covers print exports,
+    // which always get the full, correctly-sized, watermark-free book
+    // regardless of subscription tier (the print order is itself paid).
     const isPremium = user.subscription_tier === 'premium' && user.subscription_status === 'active';
+    const unlocked = isPremium || options.forPrint === true;
 
     // Get entries with participants and media
     const entries = await this.entryRepository.find({
@@ -82,8 +93,8 @@ export class ExportService {
       order: { created_at: 'ASC' },
     });
 
-    // Limit entries for free tier
-    const maxEntries = isPremium ? Infinity : 50;
+    // Limit entries for free tier (print + premium get the whole book).
+    const maxEntries = unlocked ? Infinity : 50;
     const limitedEntries = entries.slice(0, maxEntries);
 
     // Get participants summary
@@ -109,8 +120,8 @@ export class ExportService {
       journal,
       entries: formattedEntries,
       participants: participantStats,
-      showWatermark: !isPremium,
-      showTableOfContents: isPremium && (options.includeTableOfContents ?? true),
+      showWatermark: !unlocked,
+      showTableOfContents: unlocked && (options.includeTableOfContents ?? true),
       entryCount: entries.length,
       limitedCount: limitedEntries.length,
       wasTruncated: entries.length > maxEntries,
@@ -121,7 +132,7 @@ export class ExportService {
     const html = template(templateData);
 
     // Get page dimensions based on size
-    const pageDimensions = this.getPageDimensions(isPremium ? options.pageSize : 'letter');
+    const pageDimensions = this.getPageDimensions(unlocked ? options.pageSize : 'letter');
 
     // Generate PDF with Puppeteer
     const browser = await puppeteer.launch({
