@@ -185,7 +185,13 @@ export class LuluService implements PrintProvider {
   async getCoverDimensions(packageId: string, pageCount: number): Promise<CoverDimensions> {
     const res = await this.authedFetch('/cover-dimensions/', {
       method: 'POST',
-      body: JSON.stringify({ pod_package_id: packageId, page_count: pageCount, unit: 'pt' }),
+      // Lulu's cover-dimensions endpoint names this `interior_page_count`
+      // (the print-job + cost-calc line items use `page_count`).
+      body: JSON.stringify({
+        pod_package_id: packageId,
+        interior_page_count: pageCount,
+        unit: 'pt',
+      }),
     });
     if (!res.ok) {
       const text = await res.text();
