@@ -141,6 +141,16 @@ export class SmsController {
     const eventType = body.data?.event_type;
     const payload = body.data?.payload;
 
+    // Outbound delivery lifecycle events — we don't act on these, but we DO
+    // want a paper trail when a send silently fails (carrier filtering, 10DLC
+    // not registered, opt-out, etc.). Without this, Telnyx returns 200 on
+    // /v2/messages and we log "SMS sent successfully", but the carrier then
+    // rejects it and we'd never know unless we read raw webhook bodies.
+    if (eventType === 'message.finalized' || eventType === 'message.failed') {
+      this.logTelnyxDeliveryOutcome(eventType, payload);
+      return 'OK';
+    }
+
     // Only process inbound messages
     if (eventType !== 'message.received') {
       this.logger.log(`Ignoring Telnyx event: ${eventType}`);
@@ -647,6 +657,67 @@ export class SmsController {
   async handleDeliveryReceiptGet(@Query() query: any): Promise<string> {
     this.logger.log(`Delivery receipt: ${JSON.stringify(query)}`);
     return 'OK';
+  }
+
+  /**
+   * Surface the actual outcome of an outbound Telnyx message so silent
+   * carrier-side failures (10DLC unregistered, opt-out, capacity, etc.)
+   * are greppable in Render logs. Without this we just log "SMS sent
+   * successfully" on the API call and never learn the message was dropped.
+   *
+   * Telnyx semantics:
+   *   message.sent         — handed to the carrier (status=sent on each recipient)
+   *   message.finalized    — terminal state, may carry errors[] + recipient
+   *                          status=delivered | delivery_failed | …
+   *   message.failed       — never accepted by Telnyx itself (config/account error)
+   */
+  private logTelnyxDeliveryOutcome(eventType: string, payload: any): void {
+    if (!payload) {
+      this.logger.warn(`Telnyx ${eventType} with empty payload`);
+      return;
+    }
+
+    const messageId = payload.id || 'unknown';
+    const from = payload.from?.phone_number || 'unknown';
+    const recipients = Array.isArray(payload.to) ? payload.to : [];
+    const errors = Array.isArray(payload.errors) ? payload.errors : [];
+
+    // Each recipient has its own status — split successes from failures so the
+    // log line is the actionable bit. Most sends are single-recipient (1:1).
+    const failed = recipients.filter(
+      (r: any) => r?.status && r.status !== 'sent' && r.status !== 'delivered',
+    );
+    const delivered = recipients.filter((r: any) => r?.status === 'delivered');
+
+    if (failed.length === 0 && errors.length === 0) {
+      // Happy path — only log at debug-equivalent level (LOG) so we don't spam.
+      if (delivered.length > 0) {
+        this.logger.log(
+          `Telnyx ${eventType}: delivered messageId=${messageId} from=${from} ` +
+            `to=${delivered.map((r: any) => r.phone_number).join(',')}`,
+        );
+      }
+      return;
+    }
+
+    // Failure path — log at WARN with the carrier error code + detail so it's
+    // greppable. Example: "DELIVERY FAILURE code=40010 detail=Not 10DLC registered"
+    const errorSummary =
+      errors
+        .map(
+          (e: any) =>
+            `code=${e?.code || '?'} detail=${(e?.detail || e?.title || '').toString().slice(0, 200)}`,
+        )
+        .join(' | ') || 'no_error_detail';
+
+    const failureSummary = failed
+      .map((r: any) => `${r.phone_number}=${r.status}`)
+      .join(',');
+
+    this.logger.warn(
+      `Telnyx DELIVERY FAILURE event=${eventType} messageId=${messageId} ` +
+        `from=${from} recipients=[${failureSummary}] errors=[${errorSummary}]`,
+    );
   }
 
   private normalizePhoneNumber(phone: string): string {

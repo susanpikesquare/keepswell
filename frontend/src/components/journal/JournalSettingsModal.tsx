@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Clock, AlertTriangle, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered, Upload } from 'lucide-react';
+import { Trash2, Clock, AlertTriangle, Check, Image, X, MessageSquare, Copy, CheckCircle, ListOrdered, Upload, BookOpen } from 'lucide-react';
 import { Modal, Button, Input } from '../ui';
 import { useUpdateJournal, useDeleteJournal } from '../../hooks';
 import { PromptOrderSection } from './PromptOrderSection';
 import { isCloudinaryConfigured, uploadFileToCloudinary } from '../../lib/cloudinary';
 import { CoverCropModal } from './CoverCropModal';
+import { printApi, type TestSubmitResult } from '../../api/print';
 import type { Journal } from '../../types';
 
 // SMS phone number (Telnyx number)
@@ -224,6 +225,55 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
       if (token === uploadTokenRef.current) {
         setUploadingCover(false);
       }
+    }
+  };
+
+  // Test print (sandbox) — fires a FREE Lulu sandbox order so we can validate
+  // the full PDF + cover + job-submit pipeline before wiring Stripe.
+  const [testPrintTrimSize, setTestPrintTrimSize] = useState<'8.5x11' | '6x9'>('8.5x11');
+  const [testPrintSubmitting, setTestPrintSubmitting] = useState(false);
+  const [testPrintResult, setTestPrintResult] = useState<TestSubmitResult | null>(null);
+  const [testPrintError, setTestPrintError] = useState<string | null>(null);
+  const [refreshingStatus, setRefreshingStatus] = useState(false);
+  const [latestPrinterStatus, setLatestPrinterStatus] = useState<string | null>(null);
+
+  const handleTestPrint = async () => {
+    setTestPrintSubmitting(true);
+    setTestPrintError(null);
+    setTestPrintResult(null);
+    setLatestPrinterStatus(null);
+    try {
+      const result = await printApi.testSubmit({
+        journalId: journal.id,
+        trimSize: testPrintTrimSize,
+        binding: 'perfect',
+      });
+      setTestPrintResult(result);
+      setLatestPrinterStatus(result.status);
+    } catch (error: any) {
+      // Surface Lulu's actual response when available so we can debug what
+      // it didn't like about our submission.
+      const detail =
+        error?.response?.data?.message ||
+        error?.response?.data?.error ||
+        error?.message ||
+        'Failed to submit test print job';
+      setTestPrintError(typeof detail === 'string' ? detail : JSON.stringify(detail));
+    } finally {
+      setTestPrintSubmitting(false);
+    }
+  };
+
+  const handleRefreshPrintStatus = async () => {
+    if (!testPrintResult) return;
+    setRefreshingStatus(true);
+    try {
+      const order = await printApi.orderStatus(testPrintResult.orderId);
+      setLatestPrinterStatus(order.printer_status || order.status);
+    } catch (error: any) {
+      setTestPrintError(error?.message || 'Failed to refresh status');
+    } finally {
+      setRefreshingStatus(false);
     }
   };
 
@@ -615,6 +665,88 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
               >
                 {updateJournal.isPending ? 'Saving...' : 'Save Schedule Changes'}
               </Button>
+            )}
+          </div>
+        </section>
+
+        {/* Print a Test Book (sandbox) */}
+        <section className="border-t pt-6">
+          <h3 className="font-medium flex items-center gap-2 mb-2">
+            <BookOpen className="h-4 w-4" />
+            Print a Test Book
+          </h3>
+          <p className="text-sm text-muted-foreground mb-4">
+            Submit a FREE sandbox order to Lulu — no charge, nothing ships.
+            Validates that our generated interior + cover PDFs pass Lulu's file
+            checks before we wire real payments.
+          </p>
+
+          <div className="grid gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Trim size</label>
+              <select
+                value={testPrintTrimSize}
+                onChange={(e) => setTestPrintTrimSize(e.target.value as '8.5x11' | '6x9')}
+                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                disabled={testPrintSubmitting}
+              >
+                <option value="8.5x11">8.5 × 11 — Letter (perfect-bound, color)</option>
+                <option value="6x9">6 × 9 — Trade paperback (perfect-bound, color)</option>
+              </select>
+            </div>
+
+            <Button
+              onClick={handleTestPrint}
+              disabled={testPrintSubmitting}
+              variant="outline"
+              className="w-full"
+            >
+              <BookOpen className="h-4 w-4 mr-2" />
+              {testPrintSubmitting ? 'Submitting to Lulu…' : 'Submit Sandbox Test Order'}
+            </Button>
+
+            {testPrintError && (
+              <div className="p-3 rounded-lg border border-red-200 bg-red-50 text-sm text-red-700">
+                <p className="font-medium mb-1">Test order failed</p>
+                <p className="break-words">{testPrintError}</p>
+              </div>
+            )}
+
+            {testPrintResult && (
+              <div className="p-4 rounded-lg border border-primary/20 bg-primary/5 text-sm space-y-2">
+                <p className="font-medium text-foreground">
+                  Sandbox order submitted
+                </p>
+                <div className="space-y-1 text-muted-foreground">
+                  <p>
+                    <span className="font-medium">Order ID:</span>{' '}
+                    <span className="font-mono">{testPrintResult.orderId}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium">Lulu job ID:</span>{' '}
+                    <span className="font-mono">{testPrintResult.jobId}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium">Status:</span>{' '}
+                    <span className="font-mono">
+                      {latestPrinterStatus || testPrintResult.status}
+                    </span>
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleRefreshPrintStatus}
+                  disabled={refreshingStatus}
+                >
+                  {refreshingStatus ? 'Refreshing…' : 'Refresh status'}
+                </Button>
+                <p className="text-xs text-muted-foreground pt-1">
+                  Lulu sandbox typically progresses through CREATED →
+                  REJECTED/ACCEPTED → IN_PRODUCTION over a few minutes. A REJECTED
+                  status here tells us our PDFs need to change.
+                </p>
+              </div>
             )}
           </div>
         </section>
