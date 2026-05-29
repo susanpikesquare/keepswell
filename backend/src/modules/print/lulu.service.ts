@@ -154,15 +154,18 @@ export class LuluService implements PrintProvider {
     return `${trim}${color}${quality}${binding}${paper}${ppi}${finish}${linen}${foil}`;
   }
 
+  // Validated against the Lulu sandbox: 6x9 and 8.5x11 perfect-bound are
+  // real trim keys; 8x10 is NOT ("Unknown trim key: 0800X1000"). We only
+  // offer sizes the interior PDF generator can actually render at a
+  // matching size (6x9 and letter/8.5x11), so we don't expose other Lulu
+  // trims (e.g. square) until the export template supports them.
   private trimCode(trimSize: string): string {
     switch (trimSize) {
       case '6x9':
         return '0600X0900';
       case '8.5x11':
-        return '0850X1100';
-      case '8x10':
       default:
-        return '0800X1000';
+        return '0850X1100';
     }
   }
 

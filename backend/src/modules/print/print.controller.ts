@@ -51,7 +51,6 @@ export class PrintController {
   async probe() {
     const samplePages = 100;
     const packages = [
-      { trimSize: '8x10', binding: 'perfect' as const },
       { trimSize: '6x9', binding: 'perfect' as const },
       { trimSize: '8.5x11', binding: 'perfect' as const },
     ];
@@ -77,7 +76,7 @@ export class PrintController {
   async estimate(@CurrentUser() auth: AuthUser, @Body() body: EstimateBody) {
     return this.printOrders.estimate(auth.clerkId, {
       journalId: body.journalId,
-      trimSize: body.trimSize || '8x10',
+      trimSize: body.trimSize || '8.5x11',
       binding: body.binding || 'perfect',
       quantity: body.quantity && body.quantity > 0 ? body.quantity : 1,
       shippingAddress: body.shippingAddress,
@@ -98,7 +97,7 @@ export class PrintController {
   ) {
     return this.printOrders.prepare(auth.clerkId, {
       journalId: body.journalId,
-      trimSize: body.trimSize || '8x10',
+      trimSize: body.trimSize || '8.5x11',
       binding: body.binding || 'perfect',
     });
   }
