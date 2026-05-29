@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -68,17 +68,31 @@ export class PrintOrdersService {
     return Number.isFinite(n) && n >= 0 ? n : 40;
   }
 
-  /** Map our trim-size choice to the export service's page-size option. */
-  private trimToPageSize(trimSize: string): 'letter' | '6x9' | '8x10' {
-    switch (trimSize) {
-      case '6x9':
-        return '6x9';
-      case '8x10':
-        return '8x10';
-      case '8.5x11':
-      default:
-        return 'letter'; // letter == 8.5×11
+  /**
+   * The only trim sizes we offer — both validated against the Lulu sandbox
+   * AND renderable by the export template at a matching interior size.
+   */
+  private static readonly SUPPORTED_TRIM_SIZES = ['6x9', '8.5x11'];
+
+  /**
+   * Reject any trim size we don't fully support. This is the single guard
+   * that keeps the interior page size (trimToPageSize) and the Lulu trim
+   * code (LuluService.resolvePackageId) from diverging — without it a
+   * client passing e.g. '8x10' would get an 8×10 interior submitted under
+   * an 8.5×11 trim code and Lulu would reject the job.
+   */
+  private assertSupportedTrim(trimSize: string): void {
+    if (!PrintOrdersService.SUPPORTED_TRIM_SIZES.includes(trimSize)) {
+      throw new BadRequestException(
+        `Unsupported trim size "${trimSize}". Choose one of: ${PrintOrdersService.SUPPORTED_TRIM_SIZES.join(', ')}.`,
+      );
     }
+  }
+
+  /** Map our (already-validated) trim-size choice to the export page size. */
+  private trimToPageSize(trimSize: string): 'letter' | '6x9' {
+    // '8.5x11' renders as 'letter' (identical dimensions); '6x9' is native.
+    return trimSize === '6x9' ? '6x9' : 'letter';
   }
 
   private async countPages(pdf: Buffer): Promise<number> {
@@ -104,6 +118,7 @@ export class PrintOrdersService {
     interiorPdfUrl: string;
     coverDimensions: CoverDimensions;
   }> {
+    this.assertSupportedTrim(input.trimSize);
     // 1. Render the interior (also enforces journal ownership) + count pages.
     const pdf = await this.exportService.generatePdf(input.journalId, clerkId, {
       pageSize: this.trimToPageSize(input.trimSize),
@@ -139,6 +154,7 @@ export class PrintOrdersService {
   }
 
   async estimate(clerkId: string, input: EstimateInput): Promise<EstimateResult> {
+    this.assertSupportedTrim(input.trimSize);
     // 1. Render the interior + count pages. generatePdf also enforces that
     //    the requester owns the journal, so we don't re-check here.
     const pdf = await this.exportService.generatePdf(input.journalId, clerkId, {
