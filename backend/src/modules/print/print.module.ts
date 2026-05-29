@@ -6,6 +6,7 @@ import { PrintOrdersService } from './print-orders.service';
 import { PrintController } from './print.controller';
 import { PRINT_PROVIDER } from './print-provider.interface';
 import { ExportModule } from '../export/export.module';
+import { StorageModule } from '../storage/storage.module';
 
 /**
  * Printing module — the print-on-demand integration.
@@ -16,7 +17,7 @@ import { ExportModule } from '../export/export.module';
  * downstream code depending on the interface, not the vendor.
  */
 @Module({
-  imports: [ConfigModule, ExportModule],
+  imports: [ConfigModule, ExportModule, StorageModule],
   controllers: [PrintController],
   providers: [
     LuluService,

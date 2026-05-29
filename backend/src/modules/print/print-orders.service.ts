@@ -4,7 +4,9 @@ import { PDFDocument } from 'pdf-lib';
 
 import type { BookShippingAddress } from '../../database/entities';
 import { ExportService } from '../export/export.service';
+import { StorageService } from '../storage/storage.service';
 import { LuluService } from './lulu.service';
+import type { CoverDimensions } from './print-provider.interface';
 
 export interface EstimateInput {
   journalId: string;
@@ -45,6 +47,7 @@ export class PrintOrdersService {
 
   constructor(
     private readonly exportService: ExportService,
+    private readonly storage: StorageService,
     private readonly lulu: LuluService,
     private readonly config: ConfigService,
   ) {}
@@ -72,6 +75,57 @@ export class PrintOrdersService {
   private async countPages(pdf: Buffer): Promise<number> {
     const doc = await PDFDocument.load(pdf);
     return doc.getPageCount();
+  }
+
+  /**
+   * Render + host the interior PDF and resolve the print spec for a journal.
+   * This is the de-risking step before we generate the cover and submit a
+   * job: it confirms (a) our PDF hosts at a public URL Lulu can fetch, and
+   * (b) the pod_package_id is a real product (Lulu returns cover dimensions
+   * for it). Returns everything the cover-generation + submit step will need.
+   *
+   * No Lulu job is created and nothing is charged.
+   */
+  async prepare(
+    clerkId: string,
+    input: { journalId: string; trimSize: string; binding: string },
+  ): Promise<{
+    pageCount: number;
+    podPackageId: string;
+    interiorPdfUrl: string;
+    coverDimensions: CoverDimensions;
+  }> {
+    // 1. Render the interior (also enforces journal ownership) + count pages.
+    const pdf = await this.exportService.generatePdf(input.journalId, clerkId, {
+      pageSize: this.trimToPageSize(input.trimSize),
+    });
+    const pageCount = await this.countPages(pdf);
+
+    // 2. Resolve the Lulu package id.
+    const podPackageId = this.lulu.resolvePackageId({
+      trimSize: input.trimSize,
+      binding: input.binding,
+      color: true,
+    });
+
+    // 3. Host the interior PDF (publicId keyed to the journal so re-prepares
+    //    overwrite rather than accumulate).
+    const interiorPdfUrl = await this.storage.uploadPdf(
+      pdf,
+      `interior-${input.journalId}`,
+    );
+
+    // 4. Ask Lulu for the cover dimensions — this also validates the package
+    //    id is real (Lulu 400s on an unknown pod_package_id).
+    const coverDimensions = await this.lulu.getCoverDimensions(podPackageId, pageCount);
+
+    this.logger.log(
+      `Prepared print assets journal=${input.journalId} pages=${pageCount} ` +
+        `pkg=${podPackageId} cover=${coverDimensions.widthPt}x${coverDimensions.heightPt}pt ` +
+        `spine=${coverDimensions.spinePt}pt`,
+    );
+
+    return { pageCount, podPackageId, interiorPdfUrl, coverDimensions };
   }
 
   async estimate(clerkId: string, input: EstimateInput): Promise<EstimateResult> {
