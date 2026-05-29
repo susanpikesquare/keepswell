@@ -184,7 +184,10 @@
       {{#if media_attachments}}
       <div class="entry-media">
         {{#each media_attachments}}
-        <img src="{{url}}" alt="Photo" />
+        {{!-- MediaAttachment fields are stored_url (preferred) + original_url (fallback). --}}
+        {{!-- The old {{url}} reference was always empty and produced <img src=""> --}}
+        {{!-- which Puppeteer's networkidle0 then waited on forever.            --}}
+        <img src="{{stored_url}}" alt="Photo" onerror="this.style.display='none'" />
         {{/each}}
       </div>
       {{/if}}

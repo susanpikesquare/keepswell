@@ -134,18 +134,65 @@ export class ExportService {
     // Get page dimensions based on size
     const pageDimensions = this.getPageDimensions(unlocked ? options.pageSize : 'letter');
 
-    // Generate PDF with Puppeteer
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-
+    // Generate PDF with Puppeteer. We log timing at each step because this is
+    // the most failure-prone path in the app: heavy Chromium launch on a
+    // memory-constrained Render dyno, plus remote image fetches that can
+    // misbehave. When this hangs in prod we need to see exactly which step
+    // stalled instead of the request just timing out at the gateway.
+    const t0 = Date.now();
+    let browser: puppeteer.Browser | null = null;
     try {
-      const page = await browser.newPage();
-      await page.setContent(html, { waitUntil: 'networkidle0' });
+      browser = await puppeteer.launch({
+        headless: true,
+        // --disable-dev-shm-usage is critical on Render: /dev/shm is tiny (~64MB)
+        // and Chromium will otherwise crash when rendering image-heavy pages.
+        args: [
+          '--no-sandbox',
+          '--disable-setuid-sandbox',
+          '--disable-dev-shm-usage',
+          '--disable-gpu',
+          '--single-process',
+        ],
+      });
+      this.logger.log(`PDF[${journalId}] browser launched in ${Date.now() - t0}ms`);
 
+      const tPage = Date.now();
+      const page = await browser.newPage();
+
+      // domcontentloaded fires as soon as the HTML is parsed — not after every
+      // image network request settles. We then explicitly give images a bounded
+      // window (3s) to load via Promise.race, so a single slow/broken Cloudinary
+      // URL can't hang the whole export. networkidle0 (the previous setting)
+      // would wait the full Puppeteer default of 30s on any stuck request.
+      await page.setContent(html, { waitUntil: 'domcontentloaded', timeout: 20_000 });
+
+      // Wait for images, but cap it. Anything that hasn't loaded in 3s either
+      // 404s, is throttled, or is broken — we'd rather render without it than
+      // hang the whole export.
+      await Promise.race([
+        page.evaluate(async () => {
+          const imgs = Array.from(document.images);
+          await Promise.all(
+            imgs.map(
+              (img) =>
+                img.complete
+                  ? Promise.resolve()
+                  : new Promise<void>((resolve) => {
+                      img.addEventListener('load', () => resolve(), { once: true });
+                      img.addEventListener('error', () => resolve(), { once: true });
+                    }),
+            ),
+          );
+        }),
+        new Promise((resolve) => setTimeout(resolve, 3000)),
+      ]);
+      this.logger.log(`PDF[${journalId}] content + images ready in ${Date.now() - tPage}ms`);
+
+      const tPdf = Date.now();
+      // NOTE: passing both `format` and explicit `width`/`height` makes
+      // Puppeteer ignore the explicit size — `format` wins. We want the
+      // requested size to actually take effect, so only set width/height.
       const pdfBuffer = await page.pdf({
-        format: 'Letter',
         width: pageDimensions.width,
         height: pageDimensions.height,
         printBackground: true,
@@ -156,12 +203,30 @@ export class ExportService {
           right: '0.5in',
         },
       });
-
-      this.logger.log(`Generated PDF for journal ${journalId} (${limitedEntries.length} entries)`);
+      this.logger.log(
+        `PDF[${journalId}] pdf rendered in ${Date.now() - tPdf}ms ` +
+          `total ${Date.now() - t0}ms entries=${limitedEntries.length} bytes=${pdfBuffer.length}`,
+      );
 
       return Buffer.from(pdfBuffer);
+    } catch (err) {
+      // Don't let an obscure Chromium failure surface as a generic 500 / gateway
+      // timeout. Log the full error in Render so we can see exactly what blew up
+      // (browser launch? OOM kill? page.setContent? page.pdf?), then re-throw a
+      // clean message to the client.
+      this.logger.error(
+        `PDF[${journalId}] failed after ${Date.now() - t0}ms: ${(err as Error).message}`,
+        (err as Error).stack,
+      );
+      throw err;
     } finally {
-      await browser.close();
+      if (browser) {
+        try {
+          await browser.close();
+        } catch (closeErr) {
+          this.logger.warn(`PDF[${journalId}] browser close failed: ${(closeErr as Error).message}`);
+        }
+      }
     }
   }
 
