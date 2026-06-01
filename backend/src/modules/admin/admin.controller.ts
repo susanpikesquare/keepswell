@@ -43,12 +43,12 @@ export class AdminController {
   // One-time tier setup endpoint - no auth required, uses secret
   @Public()
   @Post('setup-tier')
-  async setupTier(@Body() body: { email: string; tier: 'free' | 'premium' | 'pro'; secret: string }) {
+  async setupTier(@Body() body: { email: string; tier: 'free' | 'premium'; secret: string }) {
     if (body.secret !== 'keepswell-setup-2024') {
       throw new BadRequestException('Invalid setup secret');
     }
-    if (!['free', 'premium', 'pro'].includes(body.tier)) {
-      throw new BadRequestException('Invalid tier. Must be: free, premium, or pro');
+    if (!['free', 'premium'].includes(body.tier)) {
+      throw new BadRequestException('Invalid tier. Must be: free or premium');
     }
     const user = await this.adminService.setTierByEmail(body.email, body.tier);
     if (!user) {
@@ -121,10 +121,10 @@ export class AdminController {
   @Patch('users/:id/tier')
   async setSubscriptionTier(
     @Param('id') userId: string,
-    @Body() body: { tier: 'free' | 'premium' | 'pro' },
+    @Body() body: { tier: 'free' | 'premium' },
   ) {
-    if (!['free', 'premium', 'pro'].includes(body.tier)) {
-      throw new BadRequestException('Invalid tier. Must be: free, premium, or pro');
+    if (!['free', 'premium'].includes(body.tier)) {
+      throw new BadRequestException('Invalid tier. Must be: free or premium');
     }
     return this.adminService.setSubscriptionTier(userId, body.tier);
   }

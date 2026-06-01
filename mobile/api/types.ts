@@ -190,7 +190,7 @@ export interface UsageLimits {
   maxJournals: number;
   canCreateJournal: boolean;
   tier: string;
-  isPro: boolean;
+  isPremium: boolean;
   smsEnabled: boolean;
   customPrompts: boolean;
   maxContributorsPerJournal: number;

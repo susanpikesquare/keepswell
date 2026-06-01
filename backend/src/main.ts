@@ -44,14 +44,26 @@ async function bootstrap() {
   await app.listen(port);
 
   // Set up initial admin user
+  const adminService = app.get(AdminService);
   try {
-    const adminService = app.get(AdminService);
     const adminUser = await adminService.makeUserAdminByEmail('susan@pikesquare.co');
     if (adminUser) {
       logger.log(`Admin access granted to: susan@pikesquare.co`);
     }
   } catch (error) {
     logger.warn('Could not set up admin user (user may not exist yet)');
+  }
+
+  // One-shot data migration: collapse the legacy 'pro' subscription tier
+  // value to canonical 'premium'. Idempotent — no-ops once every row is
+  // already on the new value. Runs on every boot until we delete the call;
+  // cost is one indexed UPDATE that affects 0 rows in steady state.
+  try {
+    await adminService.migrateLegacyProToPremium();
+  } catch (error) {
+    logger.error(
+      `Migration migrateLegacyProToPremium failed: ${(error as Error).message}`,
+    );
   }
 
   logger.log(`Application running on http://localhost:${port}`);

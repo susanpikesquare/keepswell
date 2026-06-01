@@ -3,7 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, Journal, Participant } from '../../database/entities';
 
-// Tier limits constants
+// Tier limits constants. There are only two real tiers — `free` and `premium`
+// — plus a one-time `event` pass. The legacy `'pro'` tier value is fully
+// equivalent to `'premium'` for any rows that still hold it pre-migration;
+// see migrateLegacyProToPremium() and the isPaid() check below.
 export const TIER_LIMITS = {
   free: {
     maxJournals: 1,
@@ -11,7 +14,7 @@ export const TIER_LIMITS = {
     smsEnabled: false,
     customPrompts: false,
   },
-  pro: {
+  premium: {
     maxJournals: Infinity,
     maxContributorsPerJournal: 15,
     smsEnabled: true,
@@ -27,7 +30,7 @@ export const TIER_LIMITS = {
 
 // Pricing constants (in USD)
 export const PRICING = {
-  pro: {
+  premium: {
     monthly: 4.99,
     yearly: 44.99,
     trialDays: 7,
@@ -63,7 +66,7 @@ export interface UsageLimits {
   maxJournals: number; // -1 = unlimited
   canCreateJournal: boolean;
   tier: string;
-  isPro: boolean;
+  isPremium: boolean;
   smsEnabled: boolean;
   customPrompts: boolean;
   maxContributorsPerJournal: number;
@@ -86,23 +89,24 @@ export class SubscriptionService {
   ) {}
 
   /**
-   * Check if user has an active Pro subscription
+   * Check if user has an active Premium subscription. Accepts the legacy
+   * 'pro' value as a safety net for any rows that hadn't been migrated yet
+   * (see migrateLegacyProToPremium); under normal operation there are none.
    */
-  isPro(user: User): boolean {
+  isPremium(user: User): boolean {
     return (
-      user.subscription_tier === 'pro' &&
+      ['premium', 'pro'].includes(user.subscription_tier) &&
       user.subscription_status === 'active'
     );
   }
 
   /**
-   * Check if user has any active paid subscription (pro or legacy premium)
+   * Alias retained for any in-tree callers that still spell it isPaid().
+   * Identical semantics to isPremium — they used to differ before the tier
+   * naming was unified.
    */
   isPaid(user: User): boolean {
-    return (
-      ['pro', 'premium'].includes(user.subscription_tier) &&
-      user.subscription_status === 'active'
-    );
+    return this.isPremium(user);
   }
 
   /**
@@ -138,8 +142,8 @@ export class SubscriptionService {
    * Get tier limits for a user
    */
   getTierLimits(user: User): TierLimits {
-    if (this.isPaid(user) || this.isInTrial(user)) {
-      return TIER_LIMITS.pro;
+    if (this.isPremium(user) || this.isInTrial(user)) {
+      return TIER_LIMITS.premium;
     }
     if (this.hasActiveEventPass(user)) {
       return TIER_LIMITS.event;
@@ -175,7 +179,7 @@ export class SubscriptionService {
   async canCreateJournal(user: User): Promise<LimitCheckResult> {
     const limits = this.getTierLimits(user);
 
-    // Pro users can create unlimited journals
+    // Premium users can create unlimited journals
     if (limits.maxJournals === Infinity) {
       return { allowed: true };
     }
@@ -185,7 +189,7 @@ export class SubscriptionService {
     if (journalCount >= limits.maxJournals) {
       return {
         allowed: false,
-        reason: `Free accounts are limited to ${limits.maxJournals} journal. Upgrade to Pro for unlimited journals.`,
+        reason: `Free accounts are limited to ${limits.maxJournals} journal. Upgrade to Premium for unlimited journals.`,
         current: journalCount,
         limit: limits.maxJournals,
       };
@@ -211,7 +215,7 @@ export class SubscriptionService {
       return {
         allowed: false,
         reason: `${tierName} ${isPaid ? 'is' : 'are'} limited to ${effectiveMax} contributors per journal.${
-          !isPaid ? ' Upgrade to Pro for up to 15 contributors.' : ' Purchase additional participant slots for more.'
+          !isPaid ? ' Upgrade to Premium for up to 15 contributors.' : ' Purchase additional participant slots for more.'
         }`,
         current: contributorCount,
         limit: effectiveMax,
@@ -232,7 +236,7 @@ export class SubscriptionService {
     if (!this.hasSmsAccess(user)) {
       return {
         allowed: false,
-        reason: 'SMS messaging is a Pro feature. Upgrade to Pro or start a free trial to send SMS prompts.',
+        reason: 'SMS messaging is a Premium feature. Upgrade to Premium or start a free trial to send SMS prompts.',
       };
     }
 
@@ -248,7 +252,7 @@ export class SubscriptionService {
     if (!limits.customPrompts) {
       return {
         allowed: false,
-        reason: 'Custom prompts are a Pro feature. Upgrade to Pro to create your own prompts.',
+        reason: 'Custom prompts are a Premium feature. Upgrade to Premium to create your own prompts.',
       };
     }
 
@@ -266,14 +270,16 @@ export class SubscriptionService {
 
     const limits = this.getTierLimits(user);
     const journalCount = await this.getUserJournalCount(userId);
-    const isPro = this.isPaid(user);
+    const isPremium = this.isPremium(user);
 
     return {
       journalCount,
       maxJournals: limits.maxJournals === Infinity ? -1 : limits.maxJournals,
       canCreateJournal: journalCount < limits.maxJournals,
-      tier: user.subscription_tier,
-      isPro,
+      // Surface the canonical value even if a legacy 'pro' row hasn't been
+      // migrated yet — keeps frontend display consistent.
+      tier: user.subscription_tier === 'pro' ? 'premium' : user.subscription_tier,
+      isPremium,
       smsEnabled: this.hasSmsAccess(user),
       customPrompts: limits.customPrompts,
       maxContributorsPerJournal: this.getEffectiveMaxContributors(user),
