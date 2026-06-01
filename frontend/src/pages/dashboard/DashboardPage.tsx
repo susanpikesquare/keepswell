@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Plus, BookHeart, Users, Crown, ArrowRight, Globe } from 'lucide-react';
-import { useJournals, useAuthSync, useUsageLimits, useIsPro } from '../../hooks';
+import { useJournals, useAuthSync, useUsageLimits, useIsPremium } from '../../hooks';
 import { Button, Card, CardHeader, CardTitle, CardDescription, CardContent, PageLoader } from '../../components/ui';
 import { formatRelativeTime } from '../../lib/utils';
 import type { Journal } from '../../types';
@@ -9,7 +9,7 @@ export function DashboardPage() {
   const { isLoaded, isSignedIn } = useAuthSync();
   const { data: journals, isLoading, error } = useJournals();
   const { data: usageLimits } = useUsageLimits();
-  const { isPro } = useIsPro();
+  const { isPremium } = useIsPremium();
 
   // Wait for auth to be ready
   if (!isLoaded) {
@@ -37,7 +37,7 @@ export function DashboardPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Usage Stats / Upgrade Banner for Free Users */}
-      {usageLimits && !isPro && (
+      {usageLimits && !isPremium && (
         <div className="mb-6 bg-gradient-to-r from-primary/5 to-amber-50 rounded-xl p-4 border border-primary/10">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-start gap-3">
@@ -68,7 +68,7 @@ export function DashboardPage() {
       )}
 
       {/* Premium Badge */}
-      {isPro && (
+      {isPremium && (
         <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
           <div className="flex items-center gap-3">
             <Crown className="h-5 w-5 text-amber-500" />

@@ -100,7 +100,7 @@ export class PaymentsService {
       ],
       ...(isFirstSubscription ? {
         subscription_data: {
-          trial_period_days: PRICING.pro.trialDays,
+          trial_period_days: PRICING.premium.trialDays,
         },
       } : {}),
       success_url: `${returnUrl}?success=true`,
@@ -320,7 +320,7 @@ export class PaymentsService {
         const sub = subscription as any;
 
         await this.userRepository.update(userId, {
-          subscription_tier: 'pro',
+          subscription_tier: 'premium',
           subscription_status: sub.status === 'trialing' ? 'trialing' : 'active',
           stripe_subscription_id: subscription.id,
           subscription_current_period_end: new Date(sub.current_period_end * 1000),
@@ -459,7 +459,7 @@ export class PaymentsService {
         const entitlements = event.entitlement_ids || [];
         if (entitlements.includes('Keepswell Pro')) {
           const updateData: Record<string, any> = {
-            subscription_tier: 'pro',
+            subscription_tier: 'premium',
             subscription_status: 'active',
           };
           if (event.expiration_at_ms) {
@@ -543,21 +543,21 @@ export class PaymentsService {
         const expiresAt = new Date(proEntitlement.expires_date);
         if (expiresAt > new Date()) {
           await this.userRepository.update(user.id, {
-            subscription_tier: 'pro',
+            subscription_tier: 'premium',
             subscription_status: 'active',
             subscription_current_period_end: expiresAt,
           });
-          return { tier: 'pro', status: 'active' };
+          return { tier: 'premium', status: 'active' };
         }
       }
 
       // Check for non-expiring entitlements (lifetime or consumable)
       if (proEntitlement && !proEntitlement.expires_date) {
         await this.userRepository.update(user.id, {
-          subscription_tier: 'pro',
+          subscription_tier: 'premium',
           subscription_status: 'active',
         });
-        return { tier: 'pro', status: 'active' };
+        return { tier: 'premium', status: 'active' };
       }
 
       return { tier: user.subscription_tier, status: user.subscription_status };

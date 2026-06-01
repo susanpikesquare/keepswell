@@ -50,9 +50,9 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
   const [error, setError] = useState('');
   const [showRelationshipPicker, setShowRelationshipPicker] = useState(false);
 
-  const isPro = usageLimits?.isPro ?? false;
+  const isPremium = usageLimits?.isPremium ?? false;
   const smsEnabled = usageLimits?.smsEnabled ?? false;
-  const maxContributors = isPro ? 15 : 3;
+  const maxContributors = isPremium ? 15 : 3;
   const currentContributorCount = participants?.length ?? 0;
   const hasReachedContributorLimit = currentContributorCount >= maxContributors;
 
@@ -160,7 +160,7 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
                   <Text style={styles.warningTitle}>Contributor limit reached</Text>
                   <Text style={styles.warningText}>
                     You've reached the maximum of {maxContributors} contributors
-                    {!isPro ? ' on the free plan. Upgrade to Premium for up to 15 contributors per journal.' : '.'}
+                    {!isPremium ? ' on the free plan. Upgrade to Premium for up to 15 contributors per journal.' : '.'}
                   </Text>
                 </View>
               </View>

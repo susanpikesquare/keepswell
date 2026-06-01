@@ -35,7 +35,7 @@ export class User {
   avatar_url: string;
 
   @Column({ default: 'free' })
-  subscription_tier: string; // 'free', 'premium', 'pro', 'event'
+  subscription_tier: string; // 'free' | 'premium' | 'event' (legacy 'pro' is migrated to 'premium' on boot)
 
   @Column({ default: 'active' })
   subscription_status: string;

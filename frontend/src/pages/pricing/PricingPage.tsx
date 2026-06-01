@@ -22,9 +22,11 @@ export function PricingPage() {
 
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
 
-  const isPro = (subscription?.tier === 'premium' || subscription?.tier === 'pro') && subscription?.status === 'active';
+  // Accept legacy 'pro' rows for safety (the boot-time migration collapses
+  // them to 'premium', but keep this defensive in case a webhook races).
+  const isPremium = (subscription?.tier === 'premium' || subscription?.tier === 'pro') && subscription?.status === 'active';
   const isEvent = subscription?.tier === 'event' && subscription?.status === 'active';
-  const isPaid = isPro || isEvent;
+  const isPaid = isPremium || isEvent;
 
   const yearlyPrice = 44.99;
   const monthlyPrice = 4.99;
@@ -179,7 +181,7 @@ export function PricingPage() {
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                 Loading...
               </Button>
-            ) : isPro ? (
+            ) : isPremium ? (
               <div className="space-y-2">
                 <Button variant="outline" className="w-full" onClick={handleManage} disabled={isCreatingPortal}>
                   {isCreatingPortal ? (
@@ -218,7 +220,7 @@ export function PricingPage() {
               </Button>
             )}
 
-            {isPro && subscription?.cancelAtPeriodEnd && (
+            {isPremium && subscription?.cancelAtPeriodEnd && (
               <p className="text-sm text-amber-600 mt-4 text-center">
                 Your subscription will end on {new Date(subscription.currentPeriodEnd!).toLocaleDateString()}
               </p>
@@ -293,14 +295,14 @@ export function PricingPage() {
                 variant="outline"
                 className="w-full border-amber-500 text-amber-700 hover:bg-amber-50"
                 onClick={handleEventPass}
-                disabled={isCreatingEventPass || isPro}
+                disabled={isCreatingEventPass || isPremium}
               >
                 {isCreatingEventPass ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                     Loading...
                   </>
-                ) : isPro ? (
+                ) : isPremium ? (
                   'Included in Premium'
                 ) : (
                   'Get Event Pass'

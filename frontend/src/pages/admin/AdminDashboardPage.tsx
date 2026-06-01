@@ -308,7 +308,7 @@ export function AdminDashboardPage() {
                         <select
                           value={user.subscription_tier || 'free'}
                           onChange={(e) => {
-                            const newTier = e.target.value as 'free' | 'premium' | 'pro';
+                            const newTier = e.target.value as 'free' | 'premium';
                             if (window.confirm(`Change ${user.email} to ${newTier} tier?`)) {
                               setSubscriptionTier.mutate({ userId: user.id, tier: newTier });
                             } else {
@@ -318,15 +318,16 @@ export function AdminDashboardPage() {
                           disabled={setSubscriptionTier.isPending}
                           className={`
                             text-sm px-2 py-1 rounded-md border cursor-pointer
-                            ${user.subscription_tier === 'pro' ? 'bg-[#DCCCB7]/40 border-[#DCCCB7] text-[#3C4858]' : ''}
-                            ${user.subscription_tier === 'premium' ? 'bg-blue-100 border-blue-300 text-blue-800' : ''}
+                            ${(user.subscription_tier === 'premium' || user.subscription_tier === 'pro') ? 'bg-blue-100 border-blue-300 text-blue-800' : ''}
                             ${(!user.subscription_tier || user.subscription_tier === 'free') ? 'bg-gray-100 border-gray-300 text-gray-700' : ''}
                             ${setSubscriptionTier.isPending ? 'opacity-50 cursor-not-allowed' : ''}
                           `}
                         >
                           <option value="free">Free</option>
                           <option value="premium">Premium</option>
-                          <option value="pro">Pro</option>
+                          {/* Legacy 'pro' option removed — admin can only set */}
+                          {/* free or premium going forward. Existing 'pro' rows */}
+                          {/* get migrated to 'premium' on backend boot.        */}
                         </select>
                       </td>
                       <td className="px-4 py-3">{user.journalCount}</td>

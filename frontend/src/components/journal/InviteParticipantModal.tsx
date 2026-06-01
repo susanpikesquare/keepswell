@@ -37,9 +37,9 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
   const [error, setError] = useState('');
 
   // Tier-based limits
-  const isPro = usageLimits?.isPro ?? false;
+  const isPremium = usageLimits?.isPremium ?? false;
   const smsEnabled = usageLimits?.smsEnabled ?? false;
-  const maxContributors = isPro ? 15 : 3;
+  const maxContributors = isPremium ? 15 : 3;
   const currentContributorCount = participants?.length ?? 0;
   const hasReachedContributorLimit = currentContributorCount >= maxContributors;
 
@@ -142,8 +142,8 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
                   Contributor limit reached
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  You've reached the maximum of {maxContributors} contributors{!isPro && ' on the free plan'}.{' '}
-                  {!isPro && (
+                  You've reached the maximum of {maxContributors} contributors{!isPremium && ' on the free plan'}.{' '}
+                  {!isPremium && (
                     <>
                       <Link to="/pricing" className="text-primary hover:underline font-medium">
                         Upgrade to Premium

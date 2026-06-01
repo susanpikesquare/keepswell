@@ -100,12 +100,12 @@ export function useIsPremium() {
   };
 }
 
+// Deprecated — was renamed to useIsPremium and the returned field is now
+// isPremium. Kept as a thin alias so any external code referencing it still
+// compiles; remove once we're confident nothing imports useIsPro.
 export function useIsPro() {
   const { data: subscription, isLoading } = useSubscriptionStatus();
-
-  // Check for both 'premium' and 'pro' tiers for backwards compatibility
   const isPaidTier = subscription?.tier === 'premium' || subscription?.tier === 'pro';
-
   return {
     isPro: isPaidTier && subscription?.status === 'active',
     isLoading,

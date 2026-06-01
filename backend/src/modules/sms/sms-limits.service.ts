@@ -10,7 +10,7 @@ export interface SmsLimitCheckResult {
 
 export interface SmsUsageStats {
   tier: string;
-  isPro: boolean;
+  isPremium: boolean;
   smsEnabled: boolean;
 }
 
@@ -24,10 +24,10 @@ export class SmsLimitsService {
   ) {}
 
   /**
-   * Check if a user has SMS access (Pro, active event pass, or trial)
+   * Check if a user has SMS access (Premium, active event pass, or trial)
    */
   private hasSmsAccess(user: User): boolean {
-    // Pro or legacy premium with active status
+    // Premium (or any unmigrated legacy 'pro' rows) with active status
     if (
       ['premium', 'pro'].includes(user.subscription_tier) &&
       ['active', 'trialing'].includes(user.subscription_status)
@@ -48,7 +48,7 @@ export class SmsLimitsService {
   /**
    * Check if a user can send any SMS (invites or prompts)
    * Free tier: NO SMS at all
-   * Pro tier: Unlimited SMS
+   * Premium tier: Unlimited SMS
    */
   async canSendSms(userId: string): Promise<SmsLimitCheckResult> {
     const user = await this.userRepository.findOne({ where: { id: userId } });
@@ -59,7 +59,7 @@ export class SmsLimitsService {
     if (!this.hasSmsAccess(user)) {
       return {
         allowed: false,
-        reason: 'SMS messaging is a Pro feature. Upgrade to Pro to send SMS prompts to contributors.',
+        reason: 'SMS messaging is a Premium feature. Upgrade to Premium to send SMS prompts to contributors.',
       };
     }
 
@@ -109,12 +109,13 @@ export class SmsLimitsService {
       throw new ForbiddenException('User not found');
     }
 
-    const isPro = this.hasSmsAccess(user);
+    const isPremium = this.hasSmsAccess(user);
 
     return {
-      tier: user.subscription_tier,
-      isPro,
-      smsEnabled: isPro,
+      // Normalize any unmigrated legacy 'pro' rows to the canonical value.
+      tier: user.subscription_tier === 'pro' ? 'premium' : user.subscription_tier,
+      isPremium,
+      smsEnabled: isPremium,
     };
   }
 }

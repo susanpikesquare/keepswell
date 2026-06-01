@@ -26,7 +26,7 @@ export interface UsageLimits {
   maxJournals: number; // -1 means unlimited
   canCreateJournal: boolean;
   tier: string;
-  isPro: boolean;
+  isPremium: boolean;
   smsEnabled: boolean;
 }
 

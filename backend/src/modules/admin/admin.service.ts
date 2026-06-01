@@ -201,7 +201,7 @@ export class AdminService {
 
   async setSubscriptionTier(
     userId: string,
-    tier: 'free' | 'premium' | 'pro',
+    tier: 'free' | 'premium',
   ): Promise<User> {
     this.logger.log(`Admin setting user ${userId} to tier: ${tier}`);
     await this.userRepo.update(userId, {
@@ -209,6 +209,30 @@ export class AdminService {
       subscription_status: tier === 'free' ? 'active' : 'active',
     });
     return this.userRepo.findOneOrFail({ where: { id: userId } });
+  }
+
+  /**
+   * One-shot data migration: collapse the legacy 'pro' tier value to the
+   * canonical 'premium'. Runs at app startup (see main.ts). Idempotent: when
+   * there are no legacy rows it returns affected:0 and logs nothing
+   * actionable. Once every row is 'premium' (or 'free' or 'event') this is
+   * a no-op forever and can eventually be removed.
+   */
+  async migrateLegacyProToPremium(): Promise<{ migrated: number }> {
+    const result = await this.userRepo
+      .createQueryBuilder()
+      .update(User)
+      .set({ subscription_tier: 'premium' })
+      .where('subscription_tier = :legacy', { legacy: 'pro' })
+      .execute();
+
+    const migrated = result.affected ?? 0;
+    if (migrated > 0) {
+      this.logger.log(
+        `Migration: collapsed ${migrated} legacy subscription_tier='pro' row(s) → 'premium'`,
+      );
+    }
+    return { migrated };
   }
 
   /**
@@ -299,7 +323,7 @@ export class AdminService {
 
   async setTierByEmail(
     email: string,
-    tier: 'free' | 'premium' | 'pro',
+    tier: 'free' | 'premium',
   ): Promise<User | null> {
     const user = await this.userRepo.findOne({ where: { email } });
     if (!user) {
