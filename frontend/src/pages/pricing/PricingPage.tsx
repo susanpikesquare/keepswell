@@ -131,7 +131,7 @@ export function PricingPage() {
             )}
           </div>
 
-          {/* Pro Plan */}
+          {/* Premium Plan */}
           <div className="bg-background rounded-2xl p-8 border-2 border-primary shadow-lg relative">
             <div className="absolute -top-4 left-1/2 -translate-x-1/2">
               <div className="bg-primary text-primary-foreground px-4 py-1 rounded-full text-sm font-medium flex items-center gap-1">
@@ -141,7 +141,7 @@ export function PricingPage() {
             </div>
 
             <div className="mb-6">
-              <h2 className="text-2xl font-bold mb-2">Pro</h2>
+              <h2 className="text-2xl font-bold mb-2">Premium</h2>
               <div className="flex items-baseline gap-1">
                 <span className="text-4xl font-bold">
                   ${billingPeriod === 'yearly' ? yearlyPrice : monthlyPrice}
@@ -301,7 +301,7 @@ export function PricingPage() {
                     Loading...
                   </>
                 ) : isPro ? (
-                  'Included in Pro'
+                  'Included in Premium'
                 ) : (
                   'Get Event Pass'
                 )}
@@ -341,21 +341,21 @@ export function PricingPage() {
           <h3 className="text-xl font-semibold mb-4">Frequently Asked Questions</h3>
           <div className="space-y-4 text-left">
             <div className="bg-background rounded-lg p-4 border">
-              <p className="font-medium mb-2">Can I try Pro before committing?</p>
+              <p className="font-medium mb-2">Can I try Premium before committing?</p>
               <p className="text-muted-foreground text-sm">
-                Yes! Pro comes with a 7-day free trial. You won't be charged until the trial ends, and you can cancel anytime during the trial.
+                Yes! Premium comes with a 7-day free trial. You won't be charged until the trial ends, and you can cancel anytime during the trial.
               </p>
             </div>
             <div className="bg-background rounded-lg p-4 border">
-              <p className="font-medium mb-2">What's the difference between Pro and Event Pass?</p>
+              <p className="font-medium mb-2">What's the difference between Premium and Event Pass?</p>
               <p className="text-muted-foreground text-sm">
-                Pro is an ongoing subscription with unlimited journals — great for families collecting memories over time. The Event Pass is a one-time purchase that lasts 90 days — perfect for weddings, birthdays, or reunions.
+                Premium is an ongoing subscription with unlimited journals — great for families collecting memories over time. The Event Pass is a one-time purchase that lasts 90 days — perfect for weddings, birthdays, or reunions.
               </p>
             </div>
             <div className="bg-background rounded-lg p-4 border">
               <p className="font-medium mb-2">Can I cancel anytime?</p>
               <p className="text-muted-foreground text-sm">
-                Yes! You can cancel your Pro subscription at any time. You'll continue to have access until the end of your billing period.
+                Yes! You can cancel your Premium subscription at any time. You'll continue to have access until the end of your billing period.
               </p>
             </div>
             <div className="bg-background rounded-lg p-4 border">
@@ -373,7 +373,7 @@ export function PricingPage() {
             <div className="bg-background rounded-lg p-4 border">
               <p className="font-medium mb-2">Can I add more participants?</p>
               <p className="text-muted-foreground text-sm">
-                Yes! Both Pro and Event Pass users can purchase participant bundles of 5 extra slots for $4.99 each. These are added permanently to your account.
+                Yes! Both Premium and Event Pass users can purchase participant bundles of 5 extra slots for $4.99 each. These are added permanently to your account.
               </p>
             </div>
           </div>

@@ -41,9 +41,9 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
           <div className="bg-primary/10 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <Crown className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-2xl font-bold mb-2">Upgrade to Pro</h2>
+          <h2 className="text-2xl font-bold mb-2">Upgrade to Premium</h2>
           <p className="text-muted-foreground">
-            Unlock {feature} and more Pro features.
+            Unlock {feature} and more Premium features.
           </p>
         </div>
 
@@ -77,7 +77,7 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
         </div>
 
         <div className="bg-muted/50 rounded-lg p-4 mb-6">
-          <p className="font-semibold mb-3">Pro includes:</p>
+          <p className="font-semibold mb-3">Premium includes:</p>
           <ul className="space-y-2">
             <li className="flex items-center gap-2 text-sm">
               <Check className="h-4 w-4 text-primary" />
@@ -135,7 +135,7 @@ export function UpgradeModal({ isOpen, onClose, feature = 'this feature' }: Upgr
         </div>
 
         <p className="text-xs text-muted-foreground text-center mt-4">
-          Cancel anytime. You'll keep Pro access until your billing period ends.
+          Cancel anytime. You'll keep Premium access until your billing period ends.
         </p>
       </div>
     </div>

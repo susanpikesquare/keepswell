@@ -157,7 +157,7 @@ export function PromptOrderSection({ journalId }: PromptOrderSectionProps) {
       }
       handleCancelEdit();
     } catch (error: any) {
-      // Surface gate errors (e.g. "Custom prompts are a Pro feature…") with
+      // Surface gate errors (e.g. "Custom prompts are a Premium feature…") with
       // an upgrade link instead of failing silently.
       setSaveError(error?.response?.data?.message || 'Failed to save prompt. Please try again.');
     }

@@ -423,7 +423,7 @@ export default function GuideScreen() {
             number that receives text messages.
           </Faq>
           <Faq q="Is Keepswell free?">
-            Yes — you can start a journal at no cost. Pro adds more
+            Yes — you can start a journal at no cost. Premium adds more
             journals, more contributors, and SMS prompts.
           </Faq>
           <Faq q="Can I have more than one journal?">

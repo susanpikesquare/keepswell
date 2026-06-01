@@ -149,7 +149,7 @@ export default function CreateJournalScreen() {
       if (error.response?.status === 403) {
         Alert.alert(
           'Upgrade Required',
-          'You\'ve reached the journal limit for your plan. Upgrade to Pro for unlimited journals.',
+          'You\'ve reached the journal limit for your plan. Upgrade to Premium for unlimited journals.',
           [{ text: 'OK', style: 'cancel' }]
         );
       } else {
@@ -294,10 +294,10 @@ export default function CreateJournalScreen() {
             )}
 
             {ownerParticipate && !smsEnabled && (
-              <View style={styles.proNotice}>
+              <View style={styles.premiumNotice}>
                 <FontAwesome name="star" size={14} color="#d97706" />
-                <Text style={styles.proNoticeText}>
-                  SMS prompts require Pro. You'll access prompts through the web dashboard.
+                <Text style={styles.premiumNoticeText}>
+                  SMS prompts require Premium. You'll access prompts through the web library.
                 </Text>
               </View>
             )}
@@ -631,7 +631,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: '#1a1a1a',
   },
-  proNotice: {
+  premiumNotice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
@@ -642,7 +642,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#fde68a',
   },
-  proNoticeText: {
+  premiumNoticeText: {
     flex: 1,
     fontSize: 13,
     color: '#78716c',
