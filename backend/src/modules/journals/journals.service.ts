@@ -98,13 +98,15 @@ export class JournalsService {
       this.logger.log(`Owner added as participant to journal ${savedJournal.id}`);
     } else if (owner_participate) {
       // Free tier owner participation without phone — the participant has no
-      // phone_number and receives prompts in-app only. Explicitly setting
-      // delivery_channel='in_app' (instead of letting it default to 'sms')
-      // matches the new participant model and keeps the SMS scheduler from
-      // ever trying to text a participant with a null phone.
+      // phone_number and receives prompts in-app only. We MUST set the
+      // participant.email to the User's email: the in-app feed + push
+      // resolver matches participants to users by phone_number OR email, so a
+      // phone-less participant without an email would never see their own
+      // scheduled prompts (h/t Bugbot PR #35).
       const ownerParticipant = this.participantRepository.create({
         journal_id: savedJournal.id,
         phone_number: null,
+        email: user.email,
         display_name: user.full_name || 'Me',
         relationship: 'Owner',
         status: 'active',

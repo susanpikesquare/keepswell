@@ -14,7 +14,9 @@ export class CreateJournalDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['daily', 'weekly', 'biweekly', 'monthly'])
+  // 'none' = prompts paused at creation. Rare path, but allowed for parity
+  // with UpdateJournalDto so the same value never gets rejected somewhere.
+  @IsIn(['daily', 'weekly', 'biweekly', 'monthly', 'none'])
   prompt_frequency?: string;
 
   @IsOptional()
