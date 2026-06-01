@@ -16,7 +16,9 @@ export class UpdateJournalDto {
 
   @IsString()
   @IsOptional()
-  @IsIn(['daily', 'weekly', 'biweekly', 'monthly'])
+  // 'none' = prompts paused. Scheduler treats it as never-send (default
+  // branch in shouldSendToday) and seedUpcomingScheduledPrompts skips.
+  @IsIn(['daily', 'weekly', 'biweekly', 'monthly', 'none'])
   prompt_frequency?: string;
 
   @IsOptional()
