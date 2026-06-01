@@ -28,8 +28,13 @@ export class Participant {
   @JoinColumn({ name: 'journal_id' })
   journal: Journal;
 
-  @Column()
-  phone_number: string;
+  // Nullable: app-only participants (delivery_channel='in_app') and the
+  // free-tier owner-as-contributor don't have a phone. SMS senders/receivers
+  // still require a phone; that's enforced in the participant invite flow,
+  // not at the schema layer. The (journal_id, phone_number) unique constraint
+  // still works because Postgres treats NULLs as distinct.
+  @Column({ type: 'text', nullable: true })
+  phone_number: string | null;
 
   @Column({ nullable: true })
   email: string;

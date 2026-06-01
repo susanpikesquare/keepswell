@@ -443,6 +443,14 @@ export class SchedulerService {
     journalTitle: string,
     viewUrl?: string,
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
+    // Guard against an in_app participant somehow reaching the SMS path —
+    // shouldn't happen now that the dispatcher filters by delivery_channel,
+    // but it's cheap insurance and silences the type error after phone_number
+    // became nullable on the schema.
+    if (!participant.phone_number) {
+      return { success: false, error: 'no_phone_number_on_participant' };
+    }
+
     const promptSend = await this.promptSendRepository.save({
       scheduled_prompt_id: scheduledPrompt.id,
       participant_id: participant.id,
@@ -569,6 +577,17 @@ export class SchedulerService {
     });
     if (!journal) {
       this.logger.warn(`seedUpcomingScheduledPrompts: journal ${journalId} not found`);
+      return [];
+    }
+
+    // 'none' = prompts paused; don't seed anything. shouldSendToday already
+    // refuses to dispatch (default branch returns false), so any existing
+    // pending rows from a prior frequency just sit there until the user
+    // resumes or deletes them.
+    if (journal.prompt_frequency === 'none') {
+      this.logger.log(
+        `seedUpcomingScheduledPrompts: ${journalId} has prompts paused (frequency='none'); skipping`,
+      );
       return [];
     }
 

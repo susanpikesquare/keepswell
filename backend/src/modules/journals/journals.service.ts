@@ -97,15 +97,20 @@ export class JournalsService {
       await this.participantRepository.save(ownerParticipant);
       this.logger.log(`Owner added as participant to journal ${savedJournal.id}`);
     } else if (owner_participate) {
-      // Free tier owner participation without phone - create participant but no SMS
+      // Free tier owner participation without phone — the participant has no
+      // phone_number and receives prompts in-app only. Explicitly setting
+      // delivery_channel='in_app' (instead of letting it default to 'sms')
+      // matches the new participant model and keeps the SMS scheduler from
+      // ever trying to text a participant with a null phone.
       const ownerParticipant = this.participantRepository.create({
         journal_id: savedJournal.id,
-        phone_number: undefined,
+        phone_number: null,
         display_name: user.full_name || 'Me',
         relationship: 'Owner',
         status: 'active',
         opted_in: true,
         opted_in_at: new Date(),
+        delivery_channel: 'in_app',
       });
 
       await this.participantRepository.save(ownerParticipant);
@@ -462,8 +467,10 @@ export class JournalsService {
       throw new NotFoundException('Shared journal not found');
     }
 
+    // Skip phone-less ('in_app') participants — they're not reachable via the
+    // SMS verify flow and their null phone would crash normalizePhoneNumber.
     const participant = journal.participants?.find(
-      p => this.normalizePhoneNumber(p.phone_number) === normalizedPhone
+      p => p.phone_number != null && this.normalizePhoneNumber(p.phone_number) === normalizedPhone
     );
 
     return {
@@ -491,8 +498,10 @@ export class JournalsService {
     }
 
     // Find participant with this phone number
+    // Skip phone-less ('in_app') participants — they're not reachable via the
+    // SMS verify flow and their null phone would crash normalizePhoneNumber.
     const participant = journal.participants?.find(
-      p => this.normalizePhoneNumber(p.phone_number) === normalizedPhone
+      p => p.phone_number != null && this.normalizePhoneNumber(p.phone_number) === normalizedPhone
     );
 
     if (!participant) {
@@ -552,8 +561,10 @@ export class JournalsService {
     }
 
     // Find participant with this phone number
+    // Skip phone-less ('in_app') participants — they're not reachable via the
+    // SMS verify flow and their null phone would crash normalizePhoneNumber.
     const participant = journal.participants?.find(
-      p => this.normalizePhoneNumber(p.phone_number) === normalizedPhone
+      p => p.phone_number != null && this.normalizePhoneNumber(p.phone_number) === normalizedPhone
     );
 
     if (!participant) {
