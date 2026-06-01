@@ -75,6 +75,10 @@ const FREQUENCIES = [
   { value: 'weekly', label: 'Weekly' },
   { value: 'biweekly', label: 'Every 2 weeks' },
   { value: 'monthly', label: 'Monthly' },
+  // 'none' pauses prompts entirely. Backend scheduler treats it as
+  // "never send" (default case in shouldSendToday) and seedUpcomingScheduledPrompts
+  // refuses to enqueue new ones.
+  { value: 'none', label: 'Paused — no prompts' },
 ];
 
 const DAYS_OF_WEEK = [
@@ -100,7 +104,7 @@ const TIMEZONES = [
   'Australia/Sydney',
 ];
 
-type PromptFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly';
+type PromptFrequency = 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'none';
 
 export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettingsModalProps) {
   const navigate = useNavigate();
@@ -317,8 +321,16 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
     }
   };
 
+  // Lenient compare: trim whitespace + case-insensitive. Mobile keyboards
+  // often autocapitalize the first letter or append a trailing space, which
+  // made the strict === check silently fail for users who typed the right
+  // thing visually but had invisible differences.
+  const deleteConfirmMatches =
+    deleteConfirmText.trim().toLocaleLowerCase() ===
+    (journal.title || '').trim().toLocaleLowerCase();
+
   const handleDelete = async () => {
-    if (deleteConfirmText !== journal.title) return;
+    if (!deleteConfirmMatches) return;
 
     try {
       await deleteJournal.mutateAsync(journal.id);
@@ -616,50 +628,62 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
               </select>
             </div>
 
-            {/* Day of Week (only for non-daily) */}
-            {frequency !== 'daily' && (
-              <div>
-                <label className="block text-sm font-medium mb-1.5">Day of Week</label>
-                <select
-                  value={dayOfWeek}
-                  onChange={(e) => setDayOfWeek(Number(e.target.value))}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-                >
-                  {DAYS_OF_WEEK.map((d) => (
-                    <option key={d.value} value={d.value}>
-                      {d.label}
-                    </option>
-                  ))}
-                </select>
+            {/* When paused, hide all the timing controls — they don't apply  */}
+            {/* until the user picks an active frequency again. We keep the   */}
+            {/* underlying state so re-enabling preserves their old choices.  */}
+            {frequency === 'none' ? (
+              <div className="rounded-md border border-dashed bg-muted/40 p-4 text-sm text-muted-foreground">
+                Prompts are paused. No new prompts will be sent until you pick
+                a frequency again. Existing scheduled prompts will not fire.
               </div>
+            ) : (
+              <>
+                {/* Day of Week (only for non-daily) */}
+                {frequency !== 'daily' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-1.5">Day of Week</label>
+                    <select
+                      value={dayOfWeek}
+                      onChange={(e) => setDayOfWeek(Number(e.target.value))}
+                      className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                    >
+                      {DAYS_OF_WEEK.map((d) => (
+                        <option key={d.value} value={d.value}>
+                          {d.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Time */}
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Time</label>
+                  <input
+                    type="time"
+                    value={promptTime}
+                    onChange={(e) => setPromptTime(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  />
+                </div>
+
+                {/* Timezone */}
+                <div>
+                  <label className="block text-sm font-medium mb-1.5">Timezone</label>
+                  <select
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  >
+                    {TIMEZONES.map((tz) => (
+                      <option key={tz} value={tz}>
+                        {tz.replace(/_/g, ' ')}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </>
             )}
-
-            {/* Time */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Time</label>
-              <input
-                type="time"
-                value={promptTime}
-                onChange={(e) => setPromptTime(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              />
-            </div>
-
-            {/* Timezone */}
-            <div>
-              <label className="block text-sm font-medium mb-1.5">Timezone</label>
-              <select
-                value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
-                {TIMEZONES.map((tz) => (
-                  <option key={tz} value={tz}>
-                    {tz.replace(/_/g, ' ')}
-                  </option>
-                ))}
-              </select>
-            </div>
 
             {hasScheduleChanges && (
               <Button
@@ -789,7 +813,7 @@ export function JournalSettingsModal({ isOpen, onClose, journal }: JournalSettin
                 <Button
                   variant="destructive"
                   onClick={handleDelete}
-                  disabled={deleteConfirmText !== journal.title || deleteJournal.isPending}
+                  disabled={!deleteConfirmMatches || deleteJournal.isPending}
                   className="flex-1"
                 >
                   {deleteJournal.isPending ? 'Deleting...' : 'Delete Forever'}
