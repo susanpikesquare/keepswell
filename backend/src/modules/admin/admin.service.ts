@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User, Journal, Entry, Participant } from '../../database/entities';
+import { User, Journal, Entry, Participant, PushToken, NotificationPreference } from '../../database/entities';
 
 export interface PlatformStats {
   users: {
@@ -57,6 +57,10 @@ export class AdminService {
     private entryRepo: Repository<Entry>,
     @InjectRepository(Participant)
     private participantRepo: Repository<Participant>,
+    @InjectRepository(PushToken)
+    private pushTokenRepo: Repository<PushToken>,
+    @InjectRepository(NotificationPreference)
+    private notificationPrefRepo: Repository<NotificationPreference>,
   ) {}
 
   async getPlatformStats(): Promise<PlatformStats> {
@@ -205,6 +209,79 @@ export class AdminService {
       subscription_status: tier === 'free' ? 'active' : 'active',
     });
     return this.userRepo.findOneOrFail({ where: { id: userId } });
+  }
+
+  /**
+   * Hard-delete a user and every record that depends on them. Irreversible.
+   *
+   * What cascades automatically (FK with onDelete:'CASCADE' to users):
+   *   - Journal (owner_id) → which in turn cascades:
+   *       Entry, MediaAttachment, Comment, Reaction, ScheduledPrompt,
+   *       PromptSend, NotificationPreference (via journal_id), and any
+   *       Participant whose journal_id is the deleted journal's id.
+   *   - BookOrder (user_id)
+   *
+   * What we have to clean up manually (no FK to users at the DB layer —
+   * the columns are indexed but not constrained):
+   *   - PushToken rows (user_id)
+   *   - NotificationPreference rows (user_id, in case any exist that
+   *     aren't tied to a journal we just cascaded)
+   *   - Participant rows where this user contributes to OTHER people's
+   *     journals — matched by phone_number or email, the same way the
+   *     in-app feed/push resolver looks them up. Their own journal
+   *     participants cascade with the journal.
+   *
+   * NOT touched: their Clerk account. We don't have a Clerk admin secret
+   * here to delete that; the operator needs to remove it from the Clerk
+   * dashboard separately if they want the email/phone freed for re-signup.
+   *
+   * Foot-gun guard: refuses if the actor is trying to delete themselves.
+   */
+  async deleteUserCascade(
+    userId: string,
+    actorClerkId: string,
+  ): Promise<{ deleted: true; email: string }> {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) throw new NotFoundException('User not found');
+
+    if (user.clerk_id === actorClerkId) {
+      throw new BadRequestException(
+        'You cannot delete your own admin account. Ask another admin.',
+      );
+    }
+
+    this.logger.warn(
+      `Admin cascade-delete user id=${userId} email=${user.email} phone=${user.phone_number ?? 'none'}`,
+    );
+
+    // 1. PushToken rows
+    const pushDel = await this.pushTokenRepo.delete({ user_id: userId });
+    this.logger.log(`  · push_tokens removed: ${pushDel.affected ?? 0}`);
+
+    // 2. NotificationPreference rows
+    const npDel = await this.notificationPrefRepo.delete({ user_id: userId });
+    this.logger.log(`  · notification_preferences removed: ${npDel.affected ?? 0}`);
+
+    // 3. Participant rows in OTHER people's journals (matched by contact
+    //    identifiers — same as the feed/push resolver). Build a single
+    //    WHERE clause covering whichever identifiers exist on the user.
+    if (user.email || user.phone_number) {
+      const conditions: Array<Record<string, string>> = [];
+      if (user.email) conditions.push({ email: user.email });
+      if (user.phone_number) conditions.push({ phone_number: user.phone_number });
+      const partDel = await this.participantRepo.delete(conditions);
+      this.logger.log(
+        `  · contributor participants removed (other journals): ${partDel.affected ?? 0}`,
+      );
+    }
+
+    // 4. The user itself. Postgres CASCADE handles journals → entries →
+    //    media/comments/reactions/scheduled_prompts/prompt_sends + own-
+    //    journal participants + book_orders.
+    await this.userRepo.delete(userId);
+    this.logger.log(`  · user ${user.email} deleted`);
+
+    return { deleted: true, email: user.email };
   }
 
   async makeUserAdminByEmail(email: string): Promise<User | null> {

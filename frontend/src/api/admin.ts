@@ -64,4 +64,17 @@ export const adminApi = {
   setSubscriptionTier: async (userId: string, tier: 'free' | 'premium' | 'pro'): Promise<void> => {
     await apiClient.patch(`/admin/users/${userId}/tier`, { tier });
   },
+
+  /**
+   * Hard-delete a user and cascade their journals/entries/etc. Irreversible.
+   * Refused server-side if the caller tries to delete themselves.
+   * Their Clerk account is not touched — clear it from the Clerk dashboard
+   * separately if you also want to free the email/phone for re-signup.
+   */
+  deleteUser: async (userId: string): Promise<{ deleted: true; email: string }> => {
+    const response = await apiClient.delete<{ deleted: true; email: string }>(
+      `/admin/users/${userId}`,
+    );
+    return response.data;
+  },
 };

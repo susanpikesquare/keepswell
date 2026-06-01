@@ -11,8 +11,16 @@ import {
   TrendingUp,
   Database,
   Server,
+  Trash2,
 } from 'lucide-react';
-import { useAdminAccess, useAdminStats, useAdminUsers, useSetAdminStatus, useSetSubscriptionTier } from '../../hooks/useAdmin';
+import {
+  useAdminAccess,
+  useAdminStats,
+  useAdminUsers,
+  useSetAdminStatus,
+  useSetSubscriptionTier,
+  useDeleteUser,
+} from '../../hooks/useAdmin';
 import { useAuthSync } from '../../hooks';
 import { Button, Card, CardHeader, CardTitle, CardContent, PageLoader } from '../../components/ui';
 import { formatRelativeTime } from '../../lib/utils';
@@ -25,6 +33,7 @@ export function AdminDashboardPage() {
   const { data: users, isLoading: usersLoading } = useAdminUsers();
   const setAdminStatus = useSetAdminStatus();
   const setSubscriptionTier = useSetSubscriptionTier();
+  const deleteUser = useDeleteUser();
   const [activeTab, setActiveTab] = useState<'overview' | 'users'>('overview');
 
   if (!isLoaded || accessLoading) {
@@ -58,6 +67,44 @@ export function AdminDashboardPage() {
     if (window.confirm(`Are you sure you want to ${currentStatus ? 'remove' : 'grant'} admin access?`)) {
       setAdminStatus.mutate({ userId, isAdmin: !currentStatus });
     }
+  };
+
+  /**
+   * Two-step confirmation for delete-user: a generic confirm() then a prompt()
+   * asking the operator to retype the email. Irreversible, so we make sure
+   * they're not accidentally clicking the wrong row.
+   */
+  const handleDeleteUser = (userId: string, email: string, journalCount: number) => {
+    const ok = window.confirm(
+      `Hard-delete ${email}?\n\n` +
+        `This permanently removes their account and ALL their data:\n` +
+        `  • ${journalCount} journal${journalCount === 1 ? '' : 's'} (and every entry, photo, comment, reaction)\n` +
+        `  • Their participant rows in other people's journals\n` +
+        `  • Push tokens + notification preferences\n` +
+        `  • Book orders\n\n` +
+        `This cannot be undone. Their Clerk account is NOT deleted — clear it ` +
+        `from the Clerk dashboard separately if you want the email freed for re-signup.`,
+    );
+    if (!ok) return;
+
+    const typed = window.prompt(
+      `Type "${email}" exactly to confirm deletion.`,
+    );
+    if (typed !== email) {
+      if (typed != null) {
+        window.alert('Email did not match. Deletion cancelled.');
+      }
+      return;
+    }
+
+    deleteUser.mutate(userId, {
+      onSuccess: (data) => window.alert(`Deleted ${data.email}.`),
+      onError: (err: any) => {
+        const detail =
+          err?.response?.data?.message || err?.message || 'Delete failed.';
+        window.alert(`Failed to delete: ${detail}`);
+      },
+    });
   };
 
   return (
@@ -245,6 +292,7 @@ export function AdminDashboardPage() {
                     <th className="text-left px-4 py-3 font-medium">Entries</th>
                     <th className="text-left px-4 py-3 font-medium">Joined</th>
                     <th className="text-left px-4 py-3 font-medium">Admin</th>
+                    <th className="text-left px-4 py-3 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y">
@@ -304,6 +352,24 @@ export function AdminDashboardPage() {
                               User
                             </>
                           )}
+                        </Button>
+                      </td>
+                      <td className="px-4 py-3">
+                        {/* Backend refuses if the admin tries to delete       */}
+                        {/* themselves (compares clerk_id server-side), so we  */}
+                        {/* always render the button and surface the error if  */}
+                        {/* they hit it.                                       */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() =>
+                            handleDeleteUser(user.id, user.email, user.journalCount)
+                          }
+                          disabled={deleteUser.isPending}
+                          className="text-red-600 border-red-200 hover:bg-red-50"
+                          title="Delete user (cascade)"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </td>
                     </tr>
