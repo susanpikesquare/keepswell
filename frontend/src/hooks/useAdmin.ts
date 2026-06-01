@@ -58,3 +58,19 @@ export function useSetSubscriptionTier() {
     },
   });
 }
+
+/**
+ * Hard-delete a user (cascade). Invalidates users + stats on success so the
+ * row disappears immediately.
+ */
+export function useDeleteUser() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (userId: string) => adminApi.deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      queryClient.invalidateQueries({ queryKey: ['admin', 'stats'] });
+    },
+  });
+}

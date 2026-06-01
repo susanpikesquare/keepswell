@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Patch,
+  Delete,
   Param,
   Body,
   UseGuards,
@@ -126,6 +127,23 @@ export class AdminController {
       throw new BadRequestException('Invalid tier. Must be: free, premium, or pro');
     }
     return this.adminService.setSubscriptionTier(userId, body.tier);
+  }
+
+  /**
+   * Hard-delete a user and cascade everything they own (journals, entries,
+   * comments, reactions, push tokens, notification prefs, participants of
+   * other people's journals matched by email/phone). Irreversible. The
+   * actor cannot delete themselves; see deleteUserCascade for the full
+   * lifecycle notes. Their Clerk account is NOT touched — handle that in
+   * the Clerk dashboard if you also want to free the email/phone.
+   */
+  @UseGuards(AdminGuard)
+  @Delete('users/:id')
+  async deleteUser(
+    @Param('id') userId: string,
+    @CurrentUser() user: any,
+  ) {
+    return this.adminService.deleteUserCascade(userId, user.id);
   }
 
   @UseGuards(AdminGuard)
