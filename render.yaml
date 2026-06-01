@@ -14,7 +14,16 @@ services:
     runtime: node
     plan: free # Use 'starter' for production
     rootDir: backend
-    buildCommand: npm ci --include=dev && npm run build
+    # The puppeteer postinstall downloads Chrome during `npm ci`. By default
+    # it goes to $HOME/.cache/puppeteer (which on Render is
+    # /opt/render/.cache/puppeteer) — that path is NOT copied from build to
+    # runtime, so the running container would have Puppeteer JS but no
+    # Chrome binary and crash on first PDF export with
+    # "Could not find Chrome". We point PUPPETEER_CACHE_DIR at
+    # /opt/render/project/.cache/puppeteer (under /opt/render/project/, which
+    # IS persisted to runtime), then explicitly re-install Chrome after the
+    # build to guarantee the binary lives there.
+    buildCommand: npm ci --include=dev && npm run build && npx puppeteer browsers install chrome
     startCommand: node dist/main.js
     healthCheckPath: /api/health
     envVars:
@@ -22,6 +31,8 @@ services:
         value: production
       - key: PORT
         value: 10000
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/project/.cache/puppeteer
       - key: DATABASE_URL
         fromDatabase:
           name: keepswell-db
