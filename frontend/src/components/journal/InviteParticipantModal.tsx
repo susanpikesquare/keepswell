@@ -127,7 +127,7 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
       <form onSubmit={handleSubmit} className="space-y-4">
         {error && (
           // UpgradeNotice adds a "View plans" link when the error is a
-          // Pro-gate (e.g. inviting by SMS on a free account); plain
+          // Premium-gate (e.g. inviting by SMS on a free account); plain
           // validation errors render without the link.
           <UpgradeNotice message={error} />
         )}
@@ -146,7 +146,7 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
                   {!isPro && (
                     <>
                       <Link to="/pricing" className="text-primary hover:underline font-medium">
-                        Upgrade to Pro
+                        Upgrade to Premium
                       </Link>{' '}
                       for up to 15 contributors per journal.
                     </>
@@ -165,7 +165,7 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
           </div>
         )}
 
-        {/* Phone Number - Pro only */}
+        {/* Phone Number - Premium only */}
         {smsEnabled ? (
           <div>
             <label className="block text-sm font-medium mb-1.5">
@@ -188,12 +188,12 @@ export function InviteParticipantModal({ isOpen, onClose, journalId }: InvitePar
               <Crown className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-medium text-foreground">
-                  SMS prompts require Pro
+                  SMS prompts require Premium
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
                   This contributor will access prompts through the web dashboard.{' '}
                   <Link to="/pricing" className="text-primary hover:underline font-medium">
-                    Upgrade to Pro
+                    Upgrade to Premium
                   </Link>{' '}
                   to enable SMS prompts.
                 </p>

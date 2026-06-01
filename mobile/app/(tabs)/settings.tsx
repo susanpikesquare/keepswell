@@ -171,9 +171,9 @@ export default function SettingsScreen() {
                 <View style={styles.subscriptionRow}>
                   <View style={{ flex: 1 }}>
                     <View style={styles.tierBadgeRow}>
-                      <Text style={styles.subscriptionTier}>Pro Plan</Text>
-                      <View style={styles.proBadge}>
-                        <Text style={styles.proBadgeText}>PRO</Text>
+                      <Text style={styles.subscriptionTier}>Premium Plan</Text>
+                      <View style={styles.premiumBadge}>
+                        <Text style={styles.premiumBadgeText}>PREMIUM</Text>
                       </View>
                     </View>
                     {usageLimits.trialEndsAt && (
@@ -216,8 +216,8 @@ export default function SettingsScreen() {
                 <View style={{ flex: 1 }}>
                   <View style={styles.tierBadgeRow}>
                     <Text style={styles.subscriptionTier}>Event Pass</Text>
-                    <View style={[styles.proBadge, { backgroundColor: '#f59e0b' }]}>
-                      <Text style={styles.proBadgeText}>EVENT</Text>
+                    <View style={[styles.premiumBadge, { backgroundColor: '#f59e0b' }]}>
+                      <Text style={styles.premiumBadgeText}>EVENT</Text>
                     </View>
                   </View>
                   {usageLimits.eventPassExpiresAt && (
@@ -503,13 +503,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
-  proBadge: {
+  premiumBadge: {
     backgroundColor: '#D86F5C',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 4,
   },
-  proBadgeText: {
+  premiumBadgeText: {
     color: '#fff',
     fontSize: 10,
     fontWeight: '700',

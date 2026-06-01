@@ -10,6 +10,8 @@ import {
   ActivityIndicator,
   Image,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { FontAwesome } from '@expo/vector-icons';
@@ -340,9 +342,16 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
     }
   };
 
+  // Mobile keyboards autocapitalize the first letter and sometimes append a
+  // trailing space — make the confirmation lenient (trim + case-insensitive)
+  // so a visually-correct title isn't rejected by an invisible difference.
+  const deleteConfirmMatches =
+    deleteConfirmText.trim().toLocaleLowerCase() ===
+    (journal.title || '').trim().toLocaleLowerCase();
+
   const handleDelete = () => {
-    if (deleteConfirmText !== journal.title) {
-      Alert.alert('Confirmation Required', 'Please type the journal title exactly to confirm deletion.');
+    if (!deleteConfirmMatches) {
+      Alert.alert('Confirmation Required', 'Please type the journal title to confirm deletion.');
       return;
     }
 
@@ -379,10 +388,21 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
           <View style={{ width: 50 }} />
         </View>
 
+        {/* KeyboardAvoidingView pushes the ScrollView up when the on-screen */}
+        {/* keyboard appears, so the Delete-confirm input (and any other     */}
+        {/* near-bottom text inputs) stay visible. Without this the iOS      */}
+        {/* keyboard covers the bottom ~40% of the modal and users can't    */}
+        {/* see what they're typing.                                         */}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      >
         <ScrollView
           style={styles.content}
           contentContainerStyle={styles.contentContainer}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="interactive"
         >
           {/* SMS Join Info Section */}
           <View style={styles.section}>
@@ -775,10 +795,10 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
             <TouchableOpacity
               style={[
                 styles.deleteButton,
-                deleteConfirmText !== journal.title && styles.deleteButtonDisabled,
+                !deleteConfirmMatches && styles.deleteButtonDisabled,
               ]}
               onPress={handleDelete}
-              disabled={deleteConfirmText !== journal.title || deleteJournal.isPending}
+              disabled={!deleteConfirmMatches || deleteJournal.isPending}
             >
               {deleteJournal.isPending ? (
                 <ActivityIndicator size="small" color="#fff" />
@@ -792,6 +812,7 @@ export function JournalSettingsModal({ onClose, journal }: JournalSettingsModalP
           </View>
 
       </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }

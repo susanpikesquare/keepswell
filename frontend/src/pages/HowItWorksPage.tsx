@@ -338,9 +338,9 @@ export function HowItWorksPage() {
             Policy when you sign up — that's all the legal we need.
           </p>
         </Subsection>
-        <Subsection title="Your dashboard">
+        <Subsection title="Your library">
           <p>
-            After signing in you land on your <strong>Dashboard</strong>, which
+            After signing in you land on your <strong>Library</strong>, which
             shows every journal you've created. Tap one to open it; tap
             <strong> New Journal</strong> to start another.
           </p>
@@ -565,7 +565,7 @@ export function HowItWorksPage() {
         </FAQ>
         <FAQ q="Is Keepswell free?">
           Yes — you can start a journal and begin capturing memories at
-          no cost. We offer a Pro plan with extra features like more
+          no cost. We offer a Premium plan with extra features like more
           journals, more contributors, and SMS prompts. See{' '}
           <Link to="/pricing" className="text-[#D86F5C] underline-offset-4 hover:underline">pricing</Link>{' '}
           for the current details.

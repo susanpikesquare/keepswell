@@ -187,13 +187,13 @@ export function CreateJournalPage() {
           <h1 className="text-2xl font-bold mb-2">Journal Limit Reached</h1>
           <p className="text-muted-foreground mb-6">
             You've created {journalCount} of {maxJournals} journal{maxJournals !== 1 ? 's' : ''} on the free plan.
-            Upgrade to Pro for unlimited journals.
+            Upgrade to Premium for unlimited journals.
           </p>
           <div className="space-y-3">
             <Link to="/pricing">
               <Button size="lg" className="w-full">
                 <Crown className="h-4 w-4 mr-2" />
-                Upgrade to Pro
+                Upgrade to Premium
               </Button>
             </Link>
             <Button variant="outline" size="lg" className="w-full" onClick={() => navigate('/dashboard')}>
@@ -393,12 +393,12 @@ export function CreateJournalPage() {
                       <Crown className="h-5 w-5 text-amber-500 flex-shrink-0 mt-0.5" />
                       <div>
                         <p className="text-sm font-medium text-foreground">
-                          SMS prompts require Pro
+                          SMS prompts require Premium
                         </p>
                         <p className="text-xs text-muted-foreground mt-1">
                           As a free user, you'll receive prompts through the web dashboard.{' '}
                           <Link to="/pricing" className="text-primary hover:underline font-medium">
-                            Upgrade to Pro
+                            Upgrade to Premium
                           </Link>{' '}
                           to receive SMS prompts.
                         </p>

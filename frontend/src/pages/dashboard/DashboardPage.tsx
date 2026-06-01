@@ -51,7 +51,7 @@ export function DashboardPage() {
                     Journals: <strong className="text-foreground">{usageLimits.journalCount}</strong> / {usageLimits.maxJournals === -1 ? 'Unlimited' : usageLimits.maxJournals}
                   </span>
                   <span>
-                    SMS: <strong className="text-foreground">Web dashboard only</strong>
+                    SMS: <strong className="text-foreground">Web library only</strong>
                   </span>
                 </div>
               </div>
@@ -59,7 +59,7 @@ export function DashboardPage() {
             <Link to="/pricing">
               <Button variant="outline" size="sm" className="whitespace-nowrap">
                 <Crown className="h-4 w-4 mr-2 text-amber-500" />
-                Upgrade to Pro
+                Upgrade to Premium
                 <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             </Link>
@@ -67,13 +67,13 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Pro Badge */}
+      {/* Premium Badge */}
       {isPro && (
         <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-4 border border-amber-200">
           <div className="flex items-center gap-3">
             <Crown className="h-5 w-5 text-amber-500" />
             <div>
-              <span className="font-medium text-amber-800">Pro Member</span>
+              <span className="font-medium text-amber-800">Premium Member</span>
               <span className="text-sm text-amber-600 ml-2">Unlimited journals & SMS enabled</span>
             </div>
             <Link to="/pricing" className="ml-auto text-sm text-amber-700 hover:underline">

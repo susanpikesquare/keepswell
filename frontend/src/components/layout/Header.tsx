@@ -51,7 +51,7 @@ export function Header() {
                   <Button variant="ghost">How it works</Button>
                 </Link>
                 <Link to="/dashboard">
-                  <Button variant="ghost">Dashboard</Button>
+                  <Button variant="ghost">Library</Button>
                 </Link>
                 <UserButton afterSignOutUrl="/" />
               </SignedIn>
@@ -62,7 +62,7 @@ export function Header() {
                 <Button variant="ghost">How it works</Button>
               </Link>
               <Link to="/dashboard">
-                <Button variant="ghost">Dashboard</Button>
+                <Button variant="ghost">Library</Button>
               </Link>
               <Link to="/sign-in">
                 <Button variant="ghost">Sign In</Button>

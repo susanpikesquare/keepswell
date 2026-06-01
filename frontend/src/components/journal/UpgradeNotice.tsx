@@ -2,14 +2,14 @@ import { Link } from 'react-router-dom';
 
 /**
  * Renders an error/notice message and, when it looks like a plan-gate
- * (the backend messages for Pro features say "Pro" / "Upgrade" / "trial"),
+ * (the backend messages for paid features say "Pro" / "Premium" / "Upgrade" / "trial"),
  * adds a link to the pricing page. Used wherever a free-tier action is
  * blocked server-side so the user gets a clean upgrade path instead of a
  * dead-end error.
  */
 export function UpgradeNotice({ message }: { message: string }) {
   if (!message) return null;
-  const isUpgrade = /\b(pro|upgrade|trial|plan)\b/i.test(message);
+  const isUpgrade = /\b(pro|premium|upgrade|trial|plan)\b/i.test(message);
 
   return (
     <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2.5 text-sm text-amber-900">

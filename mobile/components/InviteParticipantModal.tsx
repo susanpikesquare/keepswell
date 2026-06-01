@@ -160,7 +160,7 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
                   <Text style={styles.warningTitle}>Contributor limit reached</Text>
                   <Text style={styles.warningText}>
                     You've reached the maximum of {maxContributors} contributors
-                    {!isPro ? ' on the free plan. Upgrade to Pro for up to 15 contributors per journal.' : '.'}
+                    {!isPro ? ' on the free plan. Upgrade to Premium for up to 15 contributors per journal.' : '.'}
                   </Text>
                 </View>
               </View>
@@ -189,12 +189,12 @@ export function InviteParticipantModal({ visible, onClose, journalId }: InvitePa
                 <Text style={styles.fieldHint}>Optional - provide to send SMS prompts</Text>
               </View>
             ) : (
-              <View style={styles.proBox}>
+              <View style={styles.premiumBox}>
                 <FontAwesome name="star" size={16} color="#d97706" />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.proTitle}>SMS prompts require Pro</Text>
-                  <Text style={styles.proText}>
-                    This contributor will access prompts through the web dashboard. Upgrade to Pro to enable SMS prompts.
+                  <Text style={styles.premiumTitle}>SMS prompts require Premium</Text>
+                  <Text style={styles.premiumText}>
+                    This contributor will access prompts through the web library. Upgrade to Premium to enable SMS prompts.
                   </Text>
                 </View>
               </View>
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#666',
   },
-  proBox: {
+  premiumBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
@@ -425,12 +425,12 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 20,
   },
-  proTitle: {
+  premiumTitle: {
     fontSize: 14,
     fontWeight: '600',
     color: '#1a1a1a',
   },
-  proText: {
+  premiumText: {
     fontSize: 13,
     color: '#78716c',
     marginTop: 2,
