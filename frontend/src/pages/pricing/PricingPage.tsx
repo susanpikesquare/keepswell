@@ -27,6 +27,9 @@ export function PricingPage() {
   const isPremium = (subscription?.tier === 'premium' || subscription?.tier === 'pro') && subscription?.status === 'active';
   const isEvent = subscription?.tier === 'event' && subscription?.status === 'active';
   const isPaid = isPremium || isEvent;
+  // Granted premium (admin override, no Stripe customer) has no currentPeriodEnd —
+  // the Stripe Billing Portal has nothing to show them, so hide "Manage Subscription".
+  const hasStripeSubscription = isPremium && !!subscription?.currentPeriodEnd;
 
   const yearlyPrice = 44.99;
   const monthlyPrice = 4.99;
@@ -183,16 +186,22 @@ export function PricingPage() {
               </Button>
             ) : isPremium ? (
               <div className="space-y-2">
-                <Button variant="outline" className="w-full" onClick={handleManage} disabled={isCreatingPortal}>
-                  {isCreatingPortal ? (
-                    <>
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      Loading...
-                    </>
-                  ) : (
-                    'Manage Subscription'
-                  )}
-                </Button>
+                {hasStripeSubscription ? (
+                  <Button variant="outline" className="w-full" onClick={handleManage} disabled={isCreatingPortal}>
+                    {isCreatingPortal ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      'Manage Subscription'
+                    )}
+                  </Button>
+                ) : (
+                  <div className="w-full text-center text-sm text-muted-foreground py-2.5 border rounded-md bg-primary/5">
+                    Complimentary Premium — enjoy!
+                  </div>
+                )}
                 <Button variant="ghost" className="w-full text-sm" onClick={handleAddParticipants} disabled={isCreatingBundle}>
                   {isCreatingBundle ? (
                     <>

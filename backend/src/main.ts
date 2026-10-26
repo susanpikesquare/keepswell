@@ -6,7 +6,10 @@ import { AdminService } from './modules/admin';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule);
+  // rawBody: true preserves the untouched request body on `req.rawBody`,
+  // which the Stripe webhook needs to verify its signature. Without this,
+  // webhook signature verification fails with "No raw body found" (400).
+  const app = await NestFactory.create(AppModule, { rawBody: true });
 
   const configService = app.get(ConfigService);
   const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:5173';
