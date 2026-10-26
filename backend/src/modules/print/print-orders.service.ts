@@ -4,7 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PDFDocument } from 'pdf-lib';
 
-import { BookOrder, Journal, User } from '../../database/entities';
+import { BookOrder, Entry, Journal, User } from '../../database/entities';
 import type { BookShippingAddress } from '../../database/entities';
 import { ExportService } from '../export/export.service';
 import { StorageService } from '../storage/storage.service';
@@ -59,6 +59,8 @@ export class PrintOrdersService {
     private readonly journalRepo: Repository<Journal>,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Entry)
+    private readonly entryRepo: Repository<Entry>,
   ) {}
 
   /** Markup percentage applied to Lulu's print cost. Env-tunable. */
@@ -310,5 +312,142 @@ export class PrintOrdersService {
       }
     }
     return order;
+  }
+
+  // ---- Book editor -----------------------------------------------------
+  //
+  // Three endpoints the book editor UI calls: load the current config +
+  // entry list to populate the editor, save edits as the owner tweaks
+  // them, and render a preview PDF to show what the printed book will
+  // look like before any payment or Lulu job.
+
+  /**
+   * Load the owner's current book-editor state for a journal, plus the
+   * list of its (visible) entries so the UI can show the include/exclude
+   * checkboxes. Owner-scoped — participants and other users can't peek
+   * at what the owner is planning to print.
+   */
+  async getBookConfig(clerkId: string, journalId: string): Promise<{
+    title: string;
+    journalTitle: string;
+    excludedEntryIds: string[];
+    entries: Array<{
+      id: string;
+      content: string;
+      participantName: string;
+      hasPhoto: boolean;
+      createdAt: Date;
+    }>;
+  }> {
+    const { journal } = await this.assertJournalOwnership(clerkId, journalId);
+    const entries = await this.entryRepo.find({
+      where: { journal_id: journalId, is_hidden: false },
+      relations: ['participant', 'media_attachments'],
+      order: { created_at: 'ASC' },
+    });
+    return {
+      title: journal.book_title_override ?? journal.title,
+      journalTitle: journal.title,
+      excludedEntryIds: journal.book_excluded_entry_ids ?? [],
+      entries: entries.map((e) => ({
+        id: e.id,
+        content: e.content,
+        participantName: e.participant?.display_name ?? 'Unknown',
+        hasPhoto: (e.media_attachments?.length ?? 0) > 0,
+        createdAt: e.created_at,
+      })),
+    };
+  }
+
+  /**
+   * Save book-editor changes. Any field left undefined is left as-is;
+   * passing an empty string for title resets it to the journal name.
+   * The excluded-entry list is validated to only contain ids that belong
+   * to the journal, so a bad client can't make the next preview silently
+   * drop every entry.
+   */
+  async updateBookConfig(
+    clerkId: string,
+    journalId: string,
+    patch: { title?: string | null; excludedEntryIds?: string[] },
+  ): Promise<{ title: string; excludedEntryIds: string[] }> {
+    const { journal } = await this.assertJournalOwnership(clerkId, journalId);
+
+    if (patch.title !== undefined) {
+      const trimmed = patch.title == null ? null : patch.title.trim();
+      journal.book_title_override = trimmed && trimmed.length > 0 ? trimmed : null;
+    }
+
+    if (patch.excludedEntryIds !== undefined) {
+      const requested = new Set(patch.excludedEntryIds);
+      if (requested.size > 0) {
+        const owned = await this.entryRepo.find({
+          where: { journal_id: journalId },
+          select: ['id'],
+        });
+        const ownedIds = new Set(owned.map((e) => e.id));
+        for (const id of requested) {
+          if (!ownedIds.has(id)) {
+            throw new BadRequestException(
+              `Entry ${id} does not belong to journal ${journalId}`,
+            );
+          }
+        }
+      }
+      journal.book_excluded_entry_ids = Array.from(requested);
+    }
+
+    await this.journalRepo.save(journal);
+    return {
+      title: journal.book_title_override ?? journal.title,
+      excludedEntryIds: journal.book_excluded_entry_ids ?? [],
+    };
+  }
+
+  /**
+   * Render the printed interior with the owner's current editor settings
+   * and host the PDF so the frontend can display it (iframe/pdf.js/new
+   * tab). Returns the hosted URL + page count. No Lulu call, no charge.
+   * The publicId is keyed to the journal so each preview overwrites the
+   * last — we don't accumulate stale PDFs for a journal that's being
+   * actively edited.
+   */
+  async previewBook(
+    clerkId: string,
+    journalId: string,
+    opts: { trimSize?: string } = {},
+  ): Promise<{ pdfUrl: string; pageCount: number }> {
+    const trimSize = opts.trimSize ?? '8.5x11';
+    this.assertSupportedTrim(trimSize);
+    const { journal } = await this.assertJournalOwnership(clerkId, journalId);
+
+    const pdf = await this.exportService.generatePdf(journalId, clerkId, {
+      pageSize: this.trimToPageSize(trimSize),
+      forPrint: true,
+      titleOverride: journal.book_title_override ?? undefined,
+      excludeEntryIds: journal.book_excluded_entry_ids ?? [],
+    });
+    const pageCount = await this.countPages(pdf);
+    const pdfUrl = await this.storage.uploadPdf(pdf, `preview-${journalId}`);
+    this.logger.log(`Preview rendered journal=${journalId} pages=${pageCount}`);
+    return { pdfUrl, pageCount };
+  }
+
+  /**
+   * Shared ownership check used by the editor endpoints. Returns both the
+   * user and the loaded journal so callers don't re-fetch.
+   */
+  private async assertJournalOwnership(
+    clerkId: string,
+    journalId: string,
+  ): Promise<{ user: User; journal: Journal }> {
+    const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
+    if (!user) throw new NotFoundException('User not found');
+    const journal = await this.journalRepo.findOne({ where: { id: journalId } });
+    if (!journal) throw new NotFoundException('Journal not found');
+    if (journal.owner_id !== user.id) {
+      throw new NotFoundException('Journal not found');
+    }
+    return { user, journal };
   }
 }

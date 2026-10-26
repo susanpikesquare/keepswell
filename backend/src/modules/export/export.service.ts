@@ -18,6 +18,16 @@ interface ExportOptions {
    * consumer free-tier limits don't apply.
    */
   forPrint?: boolean;
+  /**
+   * Book editor overrides. These let the owner tailor the printed book
+   * before placing an order. Each defaults to the journal's own values
+   * when not supplied, so callers that don't opt in see the old behavior.
+   */
+  // Replace the cover/spine title. Falls back to journal.title.
+  titleOverride?: string | null;
+  // Skip these entry ids when rendering the interior. Does not alter the
+  // on-screen journal — only the printed/preview output.
+  excludeEntryIds?: string[];
 }
 
 @Injectable()
@@ -87,11 +97,18 @@ export class ExportService {
     const unlocked = isPremium || options.forPrint === true;
 
     // Get entries with participants and media
-    const entries = await this.entryRepository.find({
+    const allEntries = await this.entryRepository.find({
       where: { journal_id: journalId, is_hidden: false },
       relations: ['participant', 'media_attachments', 'prompt_send', 'prompt_send.scheduled_prompt', 'prompt_send.scheduled_prompt.prompt'],
       order: { created_at: 'ASC' },
     });
+
+    // Honor the book editor's "exclude these entries" toggle. Applied only
+    // to the printed/preview output — the journal itself is untouched.
+    const excludeSet = new Set(options.excludeEntryIds ?? []);
+    const entries = excludeSet.size > 0
+      ? allEntries.filter((e) => !excludeSet.has(e.id))
+      : allEntries;
 
     // Limit entries for free tier (print + premium get the whole book).
     const maxEntries = unlocked ? Infinity : 50;
@@ -115,9 +132,16 @@ export class ExportService {
       media_attachments: entry.media_attachments || [],
     }));
 
+    // The template reads `journal.title` for the cover + spine title. If the
+    // caller supplied an override (book editor), swap it in on a shallow clone
+    // so we don't mutate the entity we return elsewhere.
+    const journalForTemplate = options.titleOverride
+      ? { ...journal, title: options.titleOverride }
+      : journal;
+
     // Prepare template data
     const templateData = {
-      journal,
+      journal: journalForTemplate,
       entries: formattedEntries,
       participants: participantStats,
       showWatermark: !unlocked,

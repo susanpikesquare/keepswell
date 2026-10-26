@@ -145,6 +145,25 @@ export class Journal {
   @Column({ nullable: true })
   shared_at: Date;
 
+  // Print book configuration — the user's current edits in the book editor.
+  // These override the defaults when generating a preview or ordering a
+  // print. Each is nullable/empty so unedited journals keep the default
+  // behavior (title = journal name, cover auto-picked, all entries included).
+
+  // Custom book title to show on cover + spine. null → fall back to `name`.
+  @Column({ type: 'text', nullable: true })
+  book_title_override: string | null;
+
+  // Entry whose first media attachment is used as the cover photo.
+  // null → the template picks one automatically.
+  @Column({ type: 'uuid', nullable: true })
+  book_cover_entry_id: string | null;
+
+  // Entry ids the owner has toggled off in the editor. Interior PDF skips
+  // these. Default [] means every visible entry is included.
+  @Column({ type: 'jsonb', default: () => "'[]'::jsonb" })
+  book_excluded_entry_ids: string[];
+
   @CreateDateColumn()
   created_at: Date;
 
