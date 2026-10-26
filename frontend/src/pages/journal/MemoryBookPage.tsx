@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Settings, Share2, Download, Loader2 } from 'lucide-react';
+import { ArrowLeft, Settings, Share2, Download, Loader2, BookOpen } from 'lucide-react';
 import { useJournal, useEntries, useAuthSync, useExportPdf, useIsPremium } from '../../hooks';
 import { Button, PageLoader } from '../../components/ui';
-import { MemoryTimeline, ShareModal } from '../../components/journal';
+import { MemoryTimeline, ShareModal, BookEditorModal } from '../../components/journal';
 import { UpgradeModal } from '../../components/subscription';
 import { getTheme } from '../../lib/themes';
 
@@ -16,6 +16,7 @@ export function MemoryBookPage() {
   const { isPremium } = useIsPremium();
   const [showShareModal, setShowShareModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showBookEditor, setShowBookEditor] = useState(false);
 
   const handleExport = () => {
     if (id) {
@@ -72,6 +73,16 @@ export function MemoryBookPage() {
           </Button>
           <Button
             size="sm"
+            onClick={() => setShowBookEditor(true)}
+            variant="outline"
+            className={`${theme.cardBg} ${theme.cardShadow} border ${theme.cardBorder}`}
+            title="Design and preview your printed book"
+          >
+            <BookOpen className="h-4 w-4 mr-1" />
+            Print book
+          </Button>
+          <Button
+            size="sm"
             onClick={() => setShowShareModal(true)}
             variant="outline"
             className={`${theme.cardBg} ${theme.cardShadow} border ${theme.cardBorder}`}
@@ -98,6 +109,11 @@ export function MemoryBookPage() {
         onClose={() => setShowShareModal(false)}
         journalId={id || ''}
         journalTitle={journal.title}
+      />
+      <BookEditorModal
+        isOpen={showBookEditor}
+        onClose={() => setShowBookEditor(false)}
+        journalId={id || ''}
       />
       <UpgradeModal
         isOpen={showUpgradeModal}

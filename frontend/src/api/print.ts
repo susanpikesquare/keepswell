@@ -83,4 +83,59 @@ export const printApi = {
     const response = await apiClient.get(`/print/orders/${orderId}`);
     return response.data;
   },
+
+  // ---- Book editor ---------------------------------------------------
+  //
+  // Three endpoints the editor UI uses to let the owner tailor the printed
+  // book before placing an order: load the current state + entry list,
+  // save title/exclude edits, and render a preview PDF with the current
+  // settings so the owner can see the book before paying.
+
+  /** Load the editor state and entry list for a journal. Owner-scoped. */
+  getBookConfig: async (journalId: string): Promise<BookEditorConfig> => {
+    const response = await apiClient.get(`/print/book-config/${journalId}`);
+    return response.data;
+  },
+
+  /**
+   * Save title and/or excluded-entry edits. Either field may be omitted
+   * (undefined leaves it as-is); passing title: null or '' resets to the
+   * journal's own title.
+   */
+  updateBookConfig: async (
+    journalId: string,
+    patch: { title?: string | null; excludedEntryIds?: string[] },
+  ): Promise<{ title: string; excludedEntryIds: string[] }> => {
+    const response = await apiClient.put(`/print/book-config/${journalId}`, patch);
+    return response.data;
+  },
+
+  /**
+   * Render the interior PDF with the current saved config and return a
+   * hosted url the browser can open. No charge, no Lulu call.
+   */
+  previewBook: async (
+    journalId: string,
+    body: { trimSize?: string } = {},
+  ): Promise<{ pdfUrl: string; pageCount: number }> => {
+    const response = await apiClient.post(`/print/preview/${journalId}`, body);
+    return response.data;
+  },
 };
+
+/** Loaded shape returned by `getBookConfig`. */
+export interface BookEditorConfig {
+  // Resolved title the printed book will carry (override OR journal title).
+  title: string;
+  // The journal's own title — shown as the "reset to" value in the UI.
+  journalTitle: string;
+  // Entry ids the owner has toggled off. Everything else is included.
+  excludedEntryIds: string[];
+  entries: Array<{
+    id: string;
+    content: string;
+    participantName: string;
+    hasPhoto: boolean;
+    createdAt: string;
+  }>;
+}
