@@ -6,6 +6,14 @@ import Stripe from 'stripe';
 import { User } from '../../database/entities';
 import { PRICING } from './subscription.service';
 
+// Stripe API 2025-xx moved `current_period_end` from the subscription object
+// down to each subscription item. Read the new location first, fall back to
+// the old subscription-level field for compatibility with older API versions.
+// Returns a Unix seconds timestamp, or null when neither field is set.
+function getSubscriptionPeriodEnd(sub: any): number | null {
+  return sub?.items?.data?.[0]?.current_period_end ?? sub?.current_period_end ?? null;
+}
+
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
@@ -318,12 +326,13 @@ export class PaymentsService {
         // Pro subscription checkout
         const subscription = await this.stripe!.subscriptions.retrieve(session.subscription as string);
         const sub = subscription as any;
+        const periodEndUnix = getSubscriptionPeriodEnd(sub);
 
         await this.userRepository.update(userId, {
           subscription_tier: 'premium',
           subscription_status: sub.status === 'trialing' ? 'trialing' : 'active',
           stripe_subscription_id: subscription.id,
-          subscription_current_period_end: new Date(sub.current_period_end * 1000),
+          subscription_current_period_end: periodEndUnix ? new Date(periodEndUnix * 1000) : null as any,
           subscription_cancel_at_period_end: sub.cancel_at_period_end,
         });
 
@@ -369,10 +378,11 @@ export class PaymentsService {
 
     const sub = subscription as any;
     const status = sub.status === 'trialing' ? 'trialing' : (sub.status === 'active' ? 'active' : sub.status);
+    const periodEndUnix = getSubscriptionPeriodEnd(sub);
 
     await this.userRepository.update(user.id, {
       subscription_status: status,
-      subscription_current_period_end: new Date(sub.current_period_end * 1000),
+      subscription_current_period_end: periodEndUnix ? new Date(periodEndUnix * 1000) : null as any,
       subscription_cancel_at_period_end: sub.cancel_at_period_end,
     });
 
