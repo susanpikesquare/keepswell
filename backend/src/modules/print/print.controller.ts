@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 
 import { ClerkAuthGuard } from '../../common/guards/clerk-auth.guard';
 import { Public } from '../../common/decorators';
@@ -141,5 +141,45 @@ export class PrintController {
   @Get('orders/:id')
   async orderStatus(@CurrentUser() auth: AuthUser, @Param('id') id: string) {
     return this.printOrders.getOrderStatus(auth.clerkId, id);
+  }
+
+  /**
+   * Book editor — load the owner's current title/exclude settings plus
+   * the entry list to populate the editor UI. Owner-scoped.
+   */
+  @Get('book-config/:journalId')
+  async getBookConfig(
+    @CurrentUser() auth: AuthUser,
+    @Param('journalId') journalId: string,
+  ) {
+    return this.printOrders.getBookConfig(auth.clerkId, journalId);
+  }
+
+  /**
+   * Book editor — save the owner's title + excluded-entries edits.
+   * Both fields are optional (undefined leaves the stored value alone);
+   * title: null or '' resets to the journal name. Returns the normalized
+   * state so the frontend can trust what it has.
+   */
+  @Put('book-config/:journalId')
+  async updateBookConfig(
+    @CurrentUser() auth: AuthUser,
+    @Param('journalId') journalId: string,
+    @Body() body: { title?: string | null; excludedEntryIds?: string[] },
+  ) {
+    return this.printOrders.updateBookConfig(auth.clerkId, journalId, body);
+  }
+
+  /**
+   * Book editor — render the printed interior with the owner's current
+   * saved config and return a hosted PDF url. No Lulu call, no charge.
+   */
+  @Post('preview/:journalId')
+  async previewBook(
+    @CurrentUser() auth: AuthUser,
+    @Param('journalId') journalId: string,
+    @Body() body: { trimSize?: string } = {},
+  ) {
+    return this.printOrders.previewBook(auth.clerkId, journalId, body);
   }
 }

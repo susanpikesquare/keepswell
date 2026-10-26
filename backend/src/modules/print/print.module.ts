@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
-import { BookOrder, Journal, User } from '../../database/entities';
+import { BookOrder, Entry, Journal, User } from '../../database/entities';
 import { LuluService } from './lulu.service';
 import { PrintOrdersService } from './print-orders.service';
 import { PrintController } from './print.controller';
@@ -23,7 +23,7 @@ import { StorageModule } from '../storage/storage.module';
     ConfigModule,
     ExportModule,
     StorageModule,
-    TypeOrmModule.forFeature([BookOrder, Journal, User]),
+    TypeOrmModule.forFeature([BookOrder, Entry, Journal, User]),
   ],
   controllers: [PrintController],
   providers: [
