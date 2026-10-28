@@ -36,6 +36,41 @@ export interface TestSubmitResult {
   status: string;
 }
 
+export interface EstimateBody {
+  journalId: string;
+  trimSize?: string;
+  binding?: string;
+  quantity?: number;
+  shippingAddress: BookShippingAddress;
+  shippingLevel?: string;
+}
+
+export interface EstimateResult {
+  currency: string;
+  pageCount: number;
+  podPackageId: string;
+  printCostCents: number; // Lulu's charge to us
+  shippingCents: number; // Lulu shipping, passed through at cost
+  markupPercent: number;
+  markupCents: number;
+  retailTotalCents: number; // what the customer pays
+}
+
+export interface CreateCheckoutSessionBody {
+  journalId: string;
+  trimSize?: string;
+  binding?: string;
+  quantity?: number;
+  shippingAddress: BookShippingAddress;
+  shippingLevel?: string;
+  returnUrl: string;
+}
+
+export interface CreateCheckoutSessionResult {
+  orderId: string;
+  url: string;
+}
+
 export interface BookOrder {
   id: string;
   journal_id: string;
@@ -75,6 +110,29 @@ export const printApi = {
    */
   testSubmit: async (body: TestSubmitBody): Promise<TestSubmitResult> => {
     const response = await apiClient.post('/print/test-submit', body);
+    return response.data;
+  },
+
+  /**
+   * Price a printed book for the current journal. Backend renders the
+   * interior to count pages, calls Lulu for cost, applies markup, and
+   * returns the retail total — nothing is charged.
+   */
+  estimate: async (body: EstimateBody): Promise<EstimateResult> => {
+    const response = await apiClient.post('/print/estimate', body);
+    return response.data;
+  },
+
+  /**
+   * Create a Stripe Checkout session for a printed book order. Backend
+   * prices + snapshots + creates a draft BookOrder, hands back the
+   * Stripe URL. The caller should redirect to `url`. On successful
+   * payment the backend webhook submits the order to Lulu.
+   */
+  createCheckoutSession: async (
+    body: CreateCheckoutSessionBody,
+  ): Promise<CreateCheckoutSessionResult> => {
+    const response = await apiClient.post('/print/create-checkout-session', body);
     return response.data;
   },
 

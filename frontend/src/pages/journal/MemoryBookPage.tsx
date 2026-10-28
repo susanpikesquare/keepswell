@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Settings, Share2, Download, Loader2, BookOpen } from 'lucide-react';
 import { useJournal, useEntries, useAuthSync, useExportPdf, useIsPremium } from '../../hooks';
 import { Button, PageLoader } from '../../components/ui';
-import { MemoryTimeline, ShareModal, BookEditorModal } from '../../components/journal';
+import { MemoryTimeline, ShareModal, BookEditorModal, OrderBookModal } from '../../components/journal';
 import { UpgradeModal } from '../../components/subscription';
 import { getTheme } from '../../lib/themes';
 
@@ -17,6 +17,23 @@ export function MemoryBookPage() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [showBookEditor, setShowBookEditor] = useState(false);
+  const [showOrderBook, setShowOrderBook] = useState(false);
+  const [orderBanner, setOrderBanner] = useState<null | 'success' | 'canceled'>(null);
+
+  // Stripe redirects back here with ?book_order=success|canceled after a
+  // book-order checkout. Convert that into an in-page banner once, then
+  // scrub the query string so a refresh doesn't re-show it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    const outcome = searchParams.get('book_order');
+    if (outcome === 'success' || outcome === 'canceled') {
+      setOrderBanner(outcome);
+      const next = new URLSearchParams(searchParams);
+      next.delete('book_order');
+      next.delete('orderId');
+      setSearchParams(next, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const handleExport = () => {
     if (id) {
@@ -114,7 +131,38 @@ export function MemoryBookPage() {
         isOpen={showBookEditor}
         onClose={() => setShowBookEditor(false)}
         journalId={id || ''}
+        onRequestOrder={() => {
+          setShowBookEditor(false);
+          setShowOrderBook(true);
+        }}
       />
+      <OrderBookModal
+        isOpen={showOrderBook}
+        onClose={() => setShowOrderBook(false)}
+        journalId={id || ''}
+      />
+      {orderBanner && (
+        <div
+          className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-md px-5 py-3 rounded-full shadow-lg text-sm font-medium ${
+            orderBanner === 'success'
+              ? 'bg-green-600 text-white'
+              : 'bg-gray-800 text-white'
+          }`}
+          role="status"
+        >
+          {orderBanner === 'success'
+            ? "Thanks! Your printed book is on its way — we'll send tracking info by email."
+            : 'Checkout canceled — your card was not charged.'}
+          <button
+            type="button"
+            onClick={() => setOrderBanner(null)}
+            className="ml-3 opacity-70 hover:opacity-100"
+            aria-label="Dismiss"
+          >
+            ✕
+          </button>
+        </div>
+      )}
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}

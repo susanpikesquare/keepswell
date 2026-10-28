@@ -8,6 +8,12 @@ interface BookEditorModalProps {
   isOpen: boolean;
   onClose: () => void;
   journalId: string;
+  /**
+   * Fired when the owner clicks "Order a printed copy". The parent is
+   * expected to close this modal and open the order flow — kept as a
+   * callback so the editor stays unaware of the order modal itself.
+   */
+  onRequestOrder?: () => void;
 }
 
 /**
@@ -21,7 +27,7 @@ interface BookEditorModalProps {
  * users to close without saving. The explicit action here is "Preview",
  * which simultaneously confirms the current state looks right.
  */
-export function BookEditorModal({ isOpen, onClose, journalId }: BookEditorModalProps) {
+export function BookEditorModal({ isOpen, onClose, journalId, onRequestOrder }: BookEditorModalProps) {
   const queryClient = useQueryClient();
 
   const { data: config, isLoading, isError } = useQuery<BookEditorConfig>({
@@ -214,7 +220,11 @@ export function BookEditorModal({ isOpen, onClose, journalId }: BookEditorModalP
               <Button variant="outline" onClick={onClose}>
                 Done
               </Button>
-              <Button onClick={() => preview.mutate()} disabled={preview.isPending || includedCount === 0}>
+              <Button
+                variant="outline"
+                onClick={() => preview.mutate()}
+                disabled={preview.isPending || includedCount === 0}
+              >
                 {preview.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -224,6 +234,15 @@ export function BookEditorModal({ isOpen, onClose, journalId }: BookEditorModalP
                   'Preview book'
                 )}
               </Button>
+              {onRequestOrder && (
+                <Button
+                  onClick={onRequestOrder}
+                  disabled={includedCount === 0}
+                  title="Order a professionally printed copy"
+                >
+                  Order a printed copy
+                </Button>
+              )}
             </div>
           </div>
         </div>
