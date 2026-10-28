@@ -5,3 +5,4 @@ export { InviteParticipantModal } from './InviteParticipantModal';
 export { AddMemoryModal } from './AddMemoryModal';
 export { PromptOrderSection } from './PromptOrderSection';
 export { BookEditorModal } from './BookEditorModal';
+export { OrderBookModal } from './OrderBookModal';
