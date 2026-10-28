@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
@@ -9,6 +9,7 @@ import { PrintController } from './print.controller';
 import { PRINT_PROVIDER } from './print-provider.interface';
 import { ExportModule } from '../export/export.module';
 import { StorageModule } from '../storage/storage.module';
+import { PaymentsModule } from '../payments/payments.module';
 
 /**
  * Printing module — the print-on-demand integration.
@@ -24,6 +25,10 @@ import { StorageModule } from '../storage/storage.module';
     ExportModule,
     StorageModule,
     TypeOrmModule.forFeature([BookOrder, Entry, Journal, User]),
+    // Book-order checkout: PrintOrdersService asks PaymentsService to
+    // create the Stripe session; PaymentsService then calls us back in
+    // the webhook. forwardRef resolves the circular dependency.
+    forwardRef(() => PaymentsModule),
   ],
   controllers: [PrintController],
   providers: [

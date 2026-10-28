@@ -144,6 +144,42 @@ export class PrintController {
   }
 
   /**
+   * Owner-scoped: create a Stripe Checkout session for a printed book.
+   * The server renders the interior, prices the order, persists a
+   * BookOrder in `awaiting_payment`, and hands back the Stripe URL for
+   * the client to redirect to. On payment, our Stripe webhook submits
+   * the order to Lulu.
+   *
+   * The client passes `returnUrl` (where Stripe redirects after
+   * success/cancel). Stripe appends `?book_order=success|canceled` and
+   * `orderId=…` so the frontend can show the right message.
+   */
+  @Post('create-checkout-session')
+  async createCheckoutSession(
+    @CurrentUser() auth: AuthUser,
+    @Body()
+    body: {
+      journalId: string;
+      trimSize?: string;
+      binding?: string;
+      quantity?: number;
+      shippingAddress: BookShippingAddress;
+      shippingLevel?: string;
+      returnUrl: string;
+    },
+  ) {
+    return this.printOrders.createBookOrderCheckoutSession(auth.clerkId, {
+      journalId: body.journalId,
+      trimSize: body.trimSize,
+      binding: body.binding,
+      quantity: body.quantity,
+      shippingAddress: body.shippingAddress,
+      shippingLevel: body.shippingLevel,
+      returnUrl: body.returnUrl,
+    });
+  }
+
+  /**
    * Book editor — load the owner's current title/exclude settings plus
    * the entry list to populate the editor UI. Owner-scoped.
    */
