@@ -1,10 +1,11 @@
-import { Injectable, Logger, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import Stripe from 'stripe';
-import { User } from '../../database/entities';
+import { BookOrder, User } from '../../database/entities';
 import { PRICING } from './subscription.service';
+import { PrintOrdersService } from '../print/print-orders.service';
 
 // Stripe API 2025-xx moved `current_period_end` from the subscription object
 // down to each subscription item. Read the new location first, fall back to
@@ -24,6 +25,8 @@ export class PaymentsService {
     private configService: ConfigService,
     @InjectRepository(User)
     private userRepository: Repository<User>,
+    @Inject(forwardRef(() => PrintOrdersService))
+    private readonly printOrders: PrintOrdersService,
   ) {
     const secretKey = this.configService.get<string>('stripe.secretKey');
     if (!secretKey) {
@@ -66,6 +69,71 @@ export class PaymentsService {
 
     this.logger.log(`Created Stripe customer ${customer.id} for user ${user.id}`);
     return customer.id;
+  }
+
+  /**
+   * Create a one-off Checkout session for a printed-book order. The line
+   * item uses dynamic `price_data` so each order's exact total (print +
+   * shipping + markup) is charged — we don't maintain Stripe Price objects
+   * for an infinite number of possible book configurations.
+   *
+   * Metadata on the session carries `purchaseType: 'book_order'` and the
+   * `bookOrderId` so the webhook can route the completion event back to
+   * the print module.
+   */
+  async createBookOrderCheckoutSession(
+    user: User,
+    bookOrder: BookOrder,
+    returnUrl: string,
+    options: { productName: string; description?: string },
+  ): Promise<{ url: string; sessionId: string }> {
+    this.ensureConfigured();
+    if (!bookOrder.retail_total_cents || bookOrder.retail_total_cents <= 0) {
+      throw new BadRequestException('Book order is missing a priced total');
+    }
+    const customerId = await this.getOrCreateCustomer(user);
+
+    const shipTo = bookOrder.shipping_address;
+    const description =
+      options.description ??
+      `${bookOrder.page_count ?? '?'} pages · ${bookOrder.trim_size}` +
+        (shipTo ? ` · ships to ${shipTo.city}, ${shipTo.state_code}` : '');
+
+    const session = await this.stripe!.checkout.sessions.create({
+      customer: customerId,
+      mode: 'payment',
+      line_items: [
+        {
+          // `quantity: 1` with `unit_amount = retail_total_cents` means
+          // Stripe charges exactly the retail total we computed. We don't
+          // use the line item's `quantity` to represent copies ordered
+          // because Lulu-side pricing already accounts for that in the
+          // single retail total.
+          quantity: 1,
+          price_data: {
+            currency: (bookOrder.currency || 'USD').toLowerCase(),
+            unit_amount: bookOrder.retail_total_cents,
+            product_data: {
+              name: options.productName,
+              description,
+            },
+          },
+        },
+      ],
+      success_url: `${returnUrl}?book_order=success&orderId=${bookOrder.id}`,
+      cancel_url: `${returnUrl}?book_order=canceled&orderId=${bookOrder.id}`,
+      metadata: {
+        userId: user.id,
+        purchaseType: 'book_order',
+        bookOrderId: bookOrder.id,
+      },
+    });
+
+    this.logger.log(
+      `Book-order checkout session ${session.id} created for order ${bookOrder.id} ` +
+        `(user ${user.id}, ${bookOrder.retail_total_cents}c ${bookOrder.currency})`,
+    );
+    return { url: session.url!, sessionId: session.id };
   }
 
   /**
@@ -318,6 +386,22 @@ export class PaymentsService {
       case 'participant_bundle': {
         const quantity = parseInt(session.metadata?.bundleQuantity || '1', 10);
         await this.addParticipantSlots(userId, quantity);
+        break;
+      }
+
+      case 'book_order': {
+        const bookOrderId = session.metadata?.bookOrderId;
+        if (!bookOrderId) {
+          this.logger.error(
+            `Book-order checkout ${session.id} completed without bookOrderId in metadata`,
+          );
+          return;
+        }
+        const paymentIntentId =
+          typeof session.payment_intent === 'string'
+            ? session.payment_intent
+            : session.payment_intent?.id ?? null;
+        await this.printOrders.markBookOrderPaidAndSubmit(bookOrderId, paymentIntentId);
         break;
       }
 

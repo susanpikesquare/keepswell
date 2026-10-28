@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, forwardRef, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +9,7 @@ import type { BookShippingAddress } from '../../database/entities';
 import { ExportService } from '../export/export.service';
 import { StorageService } from '../storage/storage.service';
 import { LuluService } from './lulu.service';
+import { PaymentsService } from '../payments/payments.service';
 import type { CoverDimensions } from './print-provider.interface';
 
 export interface EstimateInput {
@@ -53,6 +54,8 @@ export class PrintOrdersService {
     private readonly storage: StorageService,
     private readonly lulu: LuluService,
     private readonly config: ConfigService,
+    @Inject(forwardRef(() => PaymentsService))
+    private readonly payments: PaymentsService,
     @InjectRepository(BookOrder)
     private readonly orderRepo: Repository<BookOrder>,
     @InjectRepository(Journal)
@@ -204,10 +207,10 @@ export class PrintOrdersService {
   }
 
   /**
-   * Submit a FREE sandbox print job end-to-end: render + host the interior,
-   * compute cover dimensions, generate + host the cover, persist a
-   * BookOrder, and create the Lulu print job. No Stripe — this validates
-   * the write-path (does Lulu accept our PDFs?) before we wire payment.
+   * Submit a FREE sandbox print job end-to-end: prepare the interior,
+   * persist a BookOrder in a "ready to submit" state, and run the shared
+   * cover-generate-and-submit step. No Stripe — this validates the
+   * write-path (does Lulu accept our PDFs?) before we wire payment.
    *
    * The shipping address is required by Lulu even in sandbox; callers pass
    * a real or test address.
@@ -222,71 +225,277 @@ export class PrintOrdersService {
       shippingLevel: string;
     },
   ): Promise<{ orderId: string; jobId: string; status: string }> {
-    const user = await this.userRepo.findOne({ where: { clerk_id: clerkId } });
-    if (!user) throw new NotFoundException('User not found');
-    const journal = await this.journalRepo.findOne({ where: { id: input.journalId } });
-    if (!journal) throw new NotFoundException('Journal not found');
+    const { user, journal } = await this.assertJournalOwnership(clerkId, input.journalId);
 
-    // 1. Render + host the interior, resolve package id + cover dimensions.
     const prep = await this.prepare(clerkId, {
       journalId: input.journalId,
       trimSize: input.trimSize,
       binding: input.binding,
     });
 
-    // 2. Generate + host the cover at Lulu's exact dimensions.
-    const coverPdf = await this.exportService.generateCoverPdf(
-      input.journalId,
-      clerkId,
-      prep.coverDimensions.widthPt,
-      prep.coverDimensions.heightPt,
-    );
-    const coverPdfUrl = await this.storage.uploadPdf(coverPdf, `cover-${input.journalId}`);
-
-    // 3. Persist a draft order so we can reconcile the Lulu job to it.
     const order = await this.orderRepo.save(
       this.orderRepo.create({
         journal_id: input.journalId,
         user_id: user.id,
-        status: 'submitted',
+        // Sandbox has no payment step; treat as pre-paid so the shared
+        // submit path (which expects a payment-complete order) accepts it.
+        status: 'paid',
         pod_package_id: prep.podPackageId,
         trim_size: input.trimSize,
         binding: input.binding,
         page_count: prep.pageCount,
         quantity: 1,
         interior_pdf_url: prep.interiorPdfUrl,
-        cover_pdf_url: coverPdfUrl,
         shipping_address: input.shippingAddress,
         shipping_level: input.shippingLevel,
       }),
     );
 
-    // 4. Submit the print job to Lulu (sandbox = free, validates our files).
+    await this.generateCoverAndSubmit(order, journal, user);
+    return {
+      orderId: order.id,
+      jobId: order.lulu_job_id!,
+      status: order.printer_status!,
+    };
+  }
+
+  /**
+   * Create a Stripe Checkout session for a printed book. Prices the order
+   * (which also renders + hosts the interior), persists a BookOrder in
+   * `awaiting_payment` with the full spec snapshotted (price, shipping,
+   * interior URL, page count, pod package), and hands Stripe a dynamic
+   * `price_data` line item for the computed total. The webhook handler
+   * for `purchaseType=book_order` later finishes the submit.
+   *
+   * Snapshotting matters: the price shown on the review page is what the
+   * customer pays, and the interior they review is what gets printed —
+   * even if they edit the book between checkout and payment.
+   */
+  async createBookOrderCheckoutSession(
+    clerkId: string,
+    input: {
+      journalId: string;
+      trimSize?: string;
+      binding?: string;
+      quantity?: number;
+      shippingAddress: BookShippingAddress;
+      shippingLevel?: string;
+      returnUrl: string;
+    },
+  ): Promise<{ orderId: string; url: string }> {
+    this.assertShippingAddress(input.shippingAddress);
+    if (!input.returnUrl) throw new BadRequestException('returnUrl is required');
+    const trimSize = input.trimSize || '8.5x11';
+    const binding = input.binding || 'perfect';
+    const quantity = input.quantity && input.quantity > 0 ? input.quantity : 1;
+    const shippingLevel = input.shippingLevel || 'MAIL';
+
+    const { user, journal } = await this.assertJournalOwnership(clerkId, input.journalId);
+
+    // Price the order (renders + counts pages) …
+    const estimate = await this.estimate(clerkId, {
+      journalId: input.journalId,
+      trimSize,
+      binding,
+      quantity,
+      shippingAddress: input.shippingAddress,
+      shippingLevel,
+    });
+
+    // … then prepare the interior so we have a stable hosted URL on the
+    // order. estimate() rendered the PDF, but didn't host it; this does.
+    const prep = await this.prepare(clerkId, {
+      journalId: input.journalId,
+      trimSize,
+      binding,
+    });
+
+    const order = await this.orderRepo.save(
+      this.orderRepo.create({
+        journal_id: input.journalId,
+        user_id: user.id,
+        status: 'awaiting_payment',
+        pod_package_id: prep.podPackageId,
+        trim_size: trimSize,
+        binding,
+        page_count: prep.pageCount,
+        quantity,
+        interior_pdf_url: prep.interiorPdfUrl,
+        shipping_address: input.shippingAddress,
+        shipping_level: shippingLevel,
+        currency: estimate.currency,
+        print_cost_cents: estimate.printCostCents,
+        markup_cents: estimate.markupCents,
+        shipping_cents: estimate.shippingCents,
+        retail_total_cents: estimate.retailTotalCents,
+      }),
+    );
+
+    const bookTitle = journal.book_title_override || journal.title || 'Memory book';
+    const productName = quantity > 1
+      ? `${bookTitle} (printed book × ${quantity})`
+      : `${bookTitle} (printed book)`;
+
+    const { url, sessionId } = await this.payments.createBookOrderCheckoutSession(
+      user,
+      order,
+      input.returnUrl,
+      { productName },
+    );
+
+    order.stripe_checkout_session_id = sessionId;
+    await this.orderRepo.save(order);
+
+    this.logger.log(
+      `Book-order checkout created: order=${order.id} session=${sessionId} ` +
+        `retail=${estimate.retailTotalCents}c ${estimate.currency}`,
+    );
+    return { orderId: order.id, url };
+  }
+
+  /**
+   * Called by the Stripe webhook when a book-order checkout completes.
+   * Marks the order paid, then submits to Lulu via the shared submit
+   * step. Idempotent — a repeat delivery of the same event (Stripe
+   * retries on 5xx) is a no-op once the order has advanced past
+   * `awaiting_payment`.
+   *
+   * Lulu failures are caught so the webhook can respond 200 and Stripe
+   * doesn't retry (which would eventually create duplicate print jobs);
+   * the order parks in `status=error` with the message for manual
+   * follow-up.
+   */
+  async markBookOrderPaidAndSubmit(
+    bookOrderId: string,
+    stripePaymentIntentId: string | null,
+  ): Promise<void> {
+    const order = await this.orderRepo.findOne({ where: { id: bookOrderId } });
+    if (!order) {
+      this.logger.warn(`Webhook referenced unknown book order ${bookOrderId}`);
+      return;
+    }
+    if (order.status !== 'awaiting_payment' && order.status !== 'draft') {
+      this.logger.log(
+        `Ignoring repeat payment event for order ${bookOrderId} (status=${order.status})`,
+      );
+      return;
+    }
+
+    order.status = 'paid';
+    if (stripePaymentIntentId) order.stripe_payment_intent_id = stripePaymentIntentId;
+    await this.orderRepo.save(order);
+
+    const user = await this.userRepo.findOne({ where: { id: order.user_id } });
+    const journal = await this.journalRepo.findOne({ where: { id: order.journal_id } });
+    if (!user || !journal) {
+      order.status = 'error';
+      order.error_message = 'User or journal missing at submit time';
+      await this.orderRepo.save(order);
+      this.logger.error(
+        `Cannot submit paid order ${bookOrderId}: user or journal missing`,
+      );
+      return;
+    }
+
     try {
+      await this.generateCoverAndSubmit(order, journal, user);
+    } catch (err) {
+      // generateCoverAndSubmit already set status=error and saved. We
+      // swallow here so the webhook responds 200 and Stripe doesn't retry.
+      this.logger.error(
+        `Lulu submit failed for paid order ${bookOrderId}: ${(err as Error).message}`,
+      );
+    }
+  }
+
+  /**
+   * Shared Lulu-submission step. Assumes the order already has
+   * `interior_pdf_url`, `pod_package_id`, and `page_count` populated.
+   * Generates + hosts the cover (dimensions re-fetched from Lulu since
+   * they depend on page count), creates the print job, and updates the
+   * order with `status=submitted` + `lulu_job_id` on success. On failure
+   * the order is set to `status=error` and the error is RE-THROWN — the
+   * sandbox endpoint surfaces it to the client, the webhook catches it.
+   */
+  private async generateCoverAndSubmit(
+    order: BookOrder,
+    journal: Journal,
+    user: User,
+  ): Promise<void> {
+    if (!order.interior_pdf_url || !order.pod_package_id || !order.page_count) {
+      throw new BadRequestException(
+        `Order ${order.id} missing print assets (interior/package/pages)`,
+      );
+    }
+
+    try {
+      const coverDims = await this.lulu.getCoverDimensions(
+        order.pod_package_id,
+        order.page_count,
+      );
+      const coverPdf = await this.exportService.generateCoverPdf(
+        order.journal_id,
+        user.clerk_id,
+        coverDims.widthPt,
+        coverDims.heightPt,
+      );
+      const coverPdfUrl = await this.storage.uploadPdf(coverPdf, `cover-${order.id}`);
+
       const job = await this.lulu.createPrintJob({
         externalId: order.id,
-        title: journal.title || 'Keepswell memory book',
+        title: journal.book_title_override || journal.title || 'Keepswell memory book',
         contactEmail: user.email,
-        packageId: prep.podPackageId,
-        pageCount: prep.pageCount,
-        quantity: 1,
-        interiorPdfUrl: prep.interiorPdfUrl,
+        packageId: order.pod_package_id,
+        pageCount: order.page_count,
+        quantity: order.quantity,
+        interiorPdfUrl: order.interior_pdf_url,
         coverPdfUrl,
-        shippingAddress: input.shippingAddress,
-        shippingLevel: input.shippingLevel,
+        shippingAddress: order.shipping_address,
+        shippingLevel: order.shipping_level,
       });
+
+      order.status = 'submitted';
+      order.cover_pdf_url = coverPdfUrl;
       order.lulu_job_id = job.jobId;
       order.printer_status = job.status;
       await this.orderRepo.save(order);
       this.logger.log(
-        `Sandbox print job ${job.jobId} (${job.status}) for order ${order.id}`,
+        `Submitted print job ${job.jobId} (${job.status}) for order ${order.id}`,
       );
-      return { orderId: order.id, jobId: job.jobId, status: job.status };
     } catch (err) {
       order.status = 'error';
       order.error_message = (err as Error).message;
       await this.orderRepo.save(order);
       throw err;
+    }
+  }
+
+  /**
+   * Minimal structural validation of a shipping address — Lulu rejects
+   * incomplete addresses with a 400, which would otherwise reach the user
+   * as a mysterious "something went wrong" after they paid. Field-level
+   * format validation (e.g. real ZIP code) is left to Lulu.
+   */
+  private assertShippingAddress(a: BookShippingAddress | undefined): void {
+    if (!a) throw new BadRequestException('Shipping address is required');
+    const required: Array<keyof BookShippingAddress> = [
+      'name',
+      'street1',
+      'city',
+      'state_code',
+      'postcode',
+      'country_code',
+    ];
+    for (const field of required) {
+      const v = a[field];
+      if (typeof v !== 'string' || v.trim().length === 0) {
+        throw new BadRequestException(`Shipping address is missing "${field}"`);
+      }
+    }
+    if (a.country_code.length !== 2) {
+      throw new BadRequestException(
+        'Shipping country_code must be an ISO-2 code (e.g. "US")',
+      );
     }
   }
 
