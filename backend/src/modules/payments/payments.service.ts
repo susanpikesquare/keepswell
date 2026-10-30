@@ -45,13 +45,40 @@ export class PaymentsService {
   }
 
   /**
-   * Get or create a Stripe customer for a user
+   * Get or create a Stripe customer for a user.
+   *
+   * If a `stripe_customer_id` is already stored, verify it still exists
+   * in the current Stripe account/mode before returning it. A stored id
+   * can go stale when: (a) the Stripe key is swapped between live and
+   * test, (b) the key is swapped between Stripe accounts, or (c) someone
+   * deletes the customer in the Stripe dashboard. In any of those cases
+   * the stored id refers to nothing and every downstream call fails with
+   * "No such customer" — we clear it here and create a fresh one so
+   * callers never see that error.
    */
   async getOrCreateCustomer(user: User): Promise<string> {
     this.ensureConfigured();
 
     if (user.stripe_customer_id) {
-      return user.stripe_customer_id;
+      try {
+        const existing = await this.stripe!.customers.retrieve(user.stripe_customer_id);
+        // Stripe returns a special `{deleted: true}` shape for soft-deleted
+        // customers rather than throwing — treat that as "gone" too.
+        if (!(existing as any).deleted) {
+          return user.stripe_customer_id;
+        }
+        this.logger.warn(
+          `Stripe customer ${user.stripe_customer_id} for user ${user.id} is deleted — recreating`,
+        );
+      } catch (err: any) {
+        // StripeInvalidRequestError with code `resource_missing` means the
+        // customer id doesn't exist in the current Stripe account/mode.
+        // Anything else (network, auth, rate-limit) should bubble up.
+        if (err?.code !== 'resource_missing') throw err;
+        this.logger.warn(
+          `Stored Stripe customer ${user.stripe_customer_id} for user ${user.id} not found in current Stripe mode — recreating`,
+        );
+      }
     }
 
     const customer = await this.stripe!.customers.create({
